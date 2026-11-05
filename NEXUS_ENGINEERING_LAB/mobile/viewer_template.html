@@ -94,14 +94,15 @@ DATA.parts.forEach((p,i)=>{
 function framing(){const b=new THREE.Box3();
  meshes.forEach(m=>{const x=m.geometry.boundingBox.clone().translate(m.userData.base);b.union(x);b.union(x.clone().translate(m.userData.off));});return b;}
 const fb=framing(),center=fb.getCenter(new THREE.Vector3()),size=fb.getSize(new THREE.Vector3()),radius=size.length()*0.5;
+cam.near=Math.max(1,radius*0.01);cam.far=radius*16;cam.updateProjectionMatrix();
 // projector floor: grid + rings
 const floorZ=fb.min.z-radius*0.05,half=Math.max(size.x,size.y,size.z)*1.15;
 const grid=new THREE.GridHelper(half*2,16,0x127a9c,0x0d4a63);grid.rotation.x=Math.PI/2;grid.position.set(center.x,center.y,floorZ);
 grid.material.transparent=true;grid.material.opacity=.7;scene.add(grid);
 [.55,.85,1.1].forEach(f=>{const pts=[];for(let a=0;a<=128;a++){const t=a/128*Math.PI*2;pts.push(new THREE.Vector3(center.x+half*f*Math.cos(t),center.y+half*f*Math.sin(t),floorZ));}
  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x1593b8,transparent:true,opacity:.8})));});
-const S={th:-0.9,ph:1.0,r:radius*2.8,t:center.clone()};
-function fitR(){const a=cam.aspect||1;return radius*2.8*Math.max(1,0.95/a);}
+const S={th:-0.9,ph:1.0,r:radius*2.1,t:center.clone()};
+function fitR(){const a=cam.aspect||1;return radius*2.1*Math.max(1,0.95/a);}
 function place(){const sp=Math.sin(S.ph);cam.position.set(S.t.x+S.r*sp*Math.cos(S.th),S.t.y+S.r*sp*Math.sin(S.th),S.t.z+S.r*Math.cos(S.ph));cam.lookAt(S.t);}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);
  renderer.domElement.style.width=w+'px';renderer.domElement.style.height=h+'px';const first=!cam.userData.sized;cam.aspect=w/h;cam.updateProjectionMatrix();if(first){cam.userData.sized=true;S.r=fitR();}}
@@ -123,7 +124,13 @@ function beltFrame(path,s){s=((s%path.length)+path.length)%path.length;let p,t,n
   break;}s-=pc.len;}
  // matriz com y local = tangente, z local = normal para dentro, origem no ponto (coluna por coluna)
  return new THREE.Matrix4().set(1,0,0,0, 0,t[0],-n[0],p[0], 0,t[1],-n[1],p[1], 0,0,0,1);}
+function tabM(k,th){const tb=MECH.extra.tabs[k];let x=th%tb.per;if(x<0)x+=tb.per;const q=x/tb.step,i=Math.floor(q),f=q-i,n=tb.n,a=(i%n)*12,b=((i+1)%n)*12,d=tb.d,e=[];
+ for(let j=0;j<12;j++)e[j]=d[a+j]*(1-f)+d[b+j]*f;
+ return new THREE.Matrix4().set(e[0],e[1],e[2],e[3],e[4],e[5],e[6],e[7],e[8],e[9],e[10],e[11],0,0,0,1);}
 function poseFor(d,th){const t=th*Math.PI/180;
+ if(d.t==='tab')return tabM(d.k,th);
+ if(d.t==='mul')return poseFor(d.a,th).multiply(poseFor(d.b,th));
+ if(d.t==='rot'){const ax=new THREE.Vector3(d.a[0],d.a[1],d.a[2]).normalize();return _T(d.p[0],d.p[1],d.p[2]).multiply(new THREE.Matrix4().makeRotationAxis(ax,t*d.r)).multiply(_T(-d.p[0],-d.p[1],-d.p[2]));}
  if(d.t==='rx')return _RxAbout(d.y,d.z,t*d.r);
  if(d.t==='rxcos')return _RxAbout(d.y,d.z,d.amp*Math.PI/180*(1-Math.cos(2*Math.PI*th/720))/2);
  if(d.t==='belt'){const B=MECH.extra.belt;const f0=beltFrame(B.path,d.s0),f1=beltFrame(B.path,d.s0+B.rc*t);return f1.multiply(f0.invert());}

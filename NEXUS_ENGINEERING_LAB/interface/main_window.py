@@ -37,7 +37,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "2.2"
+APP_VERSION = "2.4"
 
 
 # --------------------------------------------------------------- console inferior
@@ -217,6 +217,8 @@ class MainWindow(QMainWindow):
           "Aerodinâmica, desempenho e testes estruturais analíticos (não é CFD nem FEA)")
         a("kinematics", "Animar mecanismo (motor de exemplo)…", lambda: self.open_kinematics(), "Ctrl+M", None,
           "Gira virabrequim, mexe bielas/pistões, comandos e válvulas (movimento prescrito, só exibição)")
+        a("interference", "Verificação de interferência (estática)…", lambda: self.show_interference(), "Ctrl+Shift+I", None,
+          "Acha pares de peças que se sobrepõem (interseção booleana exata), lista, seleciona na cena e exporta CSV")
         a("bom", "Lista de materiais (BOM) e massa…", lambda: self.show_bom(), "Ctrl+B", None,
           "Massa por componente, total e exportação CSV/XLSX")
         # análise
@@ -278,7 +280,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "kinematics", "fatigue", "lab", "library", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -870,6 +872,13 @@ class MainWindow(QMainWindow):
             self._structure_changed()
         self.console.log("ok", f"'{pd.title}' adicionada. {pd.note}")
         return comp
+
+    def show_interference(self):
+        from interface.interference_dialog import InterferenceDialog
+        dlg = InterferenceDialog(self)
+        dlg.show()
+        self._interference_dialog = dlg
+        return dlg
 
     def open_lab(self) -> None:
         self.central_tabs.setCurrentWidget(self.lab_tab)

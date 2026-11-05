@@ -8,10 +8,10 @@ import math
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
-from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QTabWidget,
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QFileDialog, QPlainTextEdit, QPushButton, QTabWidget,
                                QVBoxLayout, QWidget)
 
-from modules import aero, structural as st
+from modules import aero, structural as st, truss_fem
 
 
 @dataclass
@@ -246,6 +246,9 @@ class CalcWidget(QWidget):
         self.btn = QPushButton("Calcular")
         self.btn.clicked.connect(self.compute)
         row.addWidget(self.btn)
+        self.btn_export = QPushButton("Exportar relatório (.md)…")
+        self.btn_export.clicked.connect(lambda: self.export_report())
+        row.addWidget(self.btn_export)
         row.addStretch(1)
         root.addLayout(row)
         self.out = QPlainTextEdit()
@@ -264,6 +267,23 @@ class CalcWidget(QWidget):
         elif key in self.combos:
             self.combos[key].setCurrentText(value)
 
+    def report_text(self) -> str:
+        """Relatório rastreável: entradas + resultado + hipóteses (reprodutível)."""
+        from datetime import datetime
+        ins = "\n".join(f"- {f.label}: {self.boxes[f.key].value():g} {f.unit}" for f in self.calc.fields) + "".join(
+            f"\n- {lab}: {self.combos[k].currentText()}" for k, lab, _ in self.calc.choices)
+        return (f"# {self.calc.title}\n\nGerado pelo NEXUS ENGINEERING LAB em {datetime.now():%Y-%m-%d %H:%M}\n\n## Entradas\n{ins}\n\n"
+                f"## Resultado\n\n```\n{self.out.toPlainText() or self.compute()}\n```\n")
+
+    def export_report(self, path: Optional[str] = None) -> Optional[str]:
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Exportar relatório", f"{self.calc.key}.md", "Markdown (*.md)")
+        if not path:
+            return None
+        from pathlib import Path
+        Path(path).write_text(self.report_text(), encoding="utf-8")
+        return path
+
     def compute(self) -> str:
         try:
             text = self.calc.run(self.values())
@@ -274,6 +294,59 @@ class CalcWidget(QWidget):
             text = f"Peça selecionada: {who}\n\n" + text
         self.out.setPlainText(text)
         return text
+
+
+class TrussWidget(QWidget):
+    """Treliça espacial de barras (método da rigidez direta). Entrada em texto; ver modules/truss_fem.py para o formato."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        root = QVBoxLayout(self)
+        lab = QLabel("Treliça de barras articuladas (MEF de barras, linear). Formato: NODE id x y z [fix=xyz] · BAR id n1 n2 A E [I=…] · LOAD nó fx fy fz  (mm, N, MPa). "
+                     "O exemplo traz uma Warren plana com valores genéricos — troque pelos seus.")
+        lab.setWordWrap(True)
+        root.addWidget(lab)
+        self.edit = QPlainTextEdit()
+        self.edit.setPlainText(truss_fem.warren_example())
+        self.edit.setStyleSheet("font-family: Consolas, 'DejaVu Sans Mono', monospace;")
+        root.addWidget(self.edit, 2)
+        row = QHBoxLayout()
+        self.sy = QDoubleSpinBox()
+        self.sy.setRange(0, 1e5)
+        self.sy.setValue(250)
+        self.sy.setSuffix(" MPa (Sy, 0 = ignorar)")
+        row.addWidget(self.sy)
+        for text, slot in (("Resolver", lambda: self.compute()), ("Carregar exemplo Warren", lambda: self.edit.setPlainText(truss_fem.warren_example())),
+                           ("Exportar relatório (.md)…", lambda: self.export_report())):
+            b = QPushButton(text)
+            b.clicked.connect(slot)
+            row.addWidget(b)
+        row.addStretch(1)
+        root.addLayout(row)
+        self.out = QPlainTextEdit()
+        self.out.setReadOnly(True)
+        self.out.setStyleSheet("font-family: Consolas, 'DejaVu Sans Mono', monospace;")
+        root.addWidget(self.out, 3)
+
+    def compute(self) -> str:
+        try:
+            t = truss_fem.parse(self.edit.toPlainText())
+            text = truss_fem.report(t, truss_fem.solve(t), self.sy.value())
+        except Exception as exc:
+            text = f"Não foi possível calcular: {exc}"
+        self.out.setPlainText(text)
+        return text
+
+    def export_report(self, path: Optional[str] = None) -> Optional[str]:
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Exportar relatório", "trelica.md", "Markdown (*.md)")
+        if not path:
+            return None
+        from datetime import datetime
+        from pathlib import Path
+        Path(path).write_text(f"# Treliça (MEF de barras)\n\nGerado pelo NEXUS ENGINEERING LAB em {datetime.now():%Y-%m-%d %H:%M}\n\n## Modelo\n\n```\n"
+                              f"{self.edit.toPlainText()}\n```\n\n## Resultado\n\n```\n{self.out.toPlainText() or self.compute()}\n```\n", encoding="utf-8")
+        return path
 
 
 class LabTab(QWidget):
@@ -290,6 +363,9 @@ class LabTab(QWidget):
             w = CalcWidget(c, primary_name)
             self.widgets[c.key] = w
             self.tabs.addTab(w, c.title)
+        self.truss = TrussWidget()
+        self.widgets["truss"] = self.truss
+        self.tabs.addTab(self.truss, "Treliça (MEF de barras)")
         root.addWidget(self.tabs, 1)
 
     def run_all(self) -> dict:

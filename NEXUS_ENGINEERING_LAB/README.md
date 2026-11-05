@@ -197,3 +197,32 @@ flanges, chapas, tubos, vigas I/U, cantoneiras, mola helicoidal) — adicionadas
 - Todos os coeficientes (CdA, ClA, μ, Crr, K de torque, E, Sy…) são digitados por você; cada resultado lista as hipóteses. Os valores iniciais são exemplos genéricos.
 
 Testes: `tests/test_v22.py` (196 testes no total passam). Visualizador móvel atualizado (motor).
+
+## V2.3 — F1 2026 muito mais detalhado e animação completa
+
+**Geometria (193 peças, antes 118):** monocoque, nariz, sidepods, cobertura do motor, airbox, câmbio e estrutura traseira agora são **cascas ocas**
+(o corte de seção do NEXUS mostra o interior); asa dianteira com 4 elementos, sapatas, cascatas e aletas verticais; asa traseira com beam wing e aletas;
+aba lateral, cercas e 3 bargeboards por lado, aletas extras no difusor; aro do cockpit, painel, apoio de cabeça, pedais, volante com tela e botões;
+V6 a 90° com **virabrequim de 3 moentes, 6 bielas e pistões com pino**, tampas de válvulas, rotores de turbo com pás, disco de embreagem, escapamentos e ponteira;
+cada roda com disco furado de 72 furos, pinça em C, cubo, porca central e manga de eixo; suspensão com balancins, amortecedor de 2 peças (corpo + haste), cremalheira de direção e semi-eixos.
+
+**Animação (aba "Animar mecanismo" e visualizador de celular), ciclo de 720° com 4 curvas alternadas:**
+- chassi: arfagem (mergulho/agachamento), rolagem e afundamento por downforce — **amplitudes ilustrativas, exageradas ~3×**;
+- **suspensão cinemática real**: em cada canto o duplo-A é resolvido numericamente (braços girando nos pivôs, manga rígida, barra de direção e push/pull-rod de comprimento constante,
+  balancim e amortecedor telescópico); a roda é mantida no solo, então camber, bitola e convergência variam como na geometria (bump-steer incluído);
+- direção: cremalheira ±30 mm esterça as rodas (≈15°), volante gira 110° e o capacete vira; asas ativas passam do modo curva ao modo reta; 4 rodas, virabrequim (biela-manivela exato), turbo e embreagem giram.
+- Validação: restrições de comprimento verificadas em testes (manga, barra de direção, rods, amortecedor), ciclo fecha em 720°, e o celular reproduz o Python com erro máximo de ~0,17 mm.
+- **Limites honestos:** é movimento prescrito (cenário), sem dinâmica de veículo, rigidez de mola/pneu ou forças; pontos de suspensão plausíveis, não de um carro real;
+  as cascas ocas encostam nos componentes internos (varredura de interferência não é zero); sem compósitos no banco de materiais, a massa é parcial.
+- Correção do visualizador: o plano de recorte da câmera estava curto demais para modelos longos (o F1 aparecia vazio); agora acompanha o tamanho do modelo.
+
+## V2.4 — Treliça (MEF de barras) e relatórios rastreáveis
+
+- **Laboratório ▸ "Treliça (MEF de barras)"**: solver espacial de barras articuladas pelo método da rigidez direta (`modules/truss_fem.py`). Entrada em texto
+  (`NODE`, `BAR`, `LOAD`), saída com deslocamentos, reações, esforço axial e tensão por barra, coeficiente de segurança ao escoamento e triagem de Euler,
+  além do **erro de equilíbrio global** (≈1e-15 nos testes). Detecta mecanismos/estruturas hipostáticas e recusa resolvê-los. Exemplo: Warren plana com valores genéricos.
+  Validado contra fórmulas fechadas (triângulo simétrico, barra axial, reações e banzo central da Warren).
+- **Exportar relatório (.md)** em todos os testes do laboratório: entradas + resultado + hipóteses, para rastreabilidade.
+- **Limites honestos**: modelo linear, nós rotulados, cargas só nos nós, sem peso próprio automático, sem flambagem global/ligações/fadiga. Não é um FEA 3D de sólidos.
+- **Varredura de interferência do F1 (honesta)**: 264 pares com sobreposição >1 mm³ (casca do monocoque × piloto/tanque/bateria, elementos de asa entre si etc.) — o F1 é um modelo de referência visual/cinemático, não um conjunto livre de colisões.
+- **Analisar ▸ Verificação de interferência (estática)** (Ctrl+Shift+I): interseção booleana exata entre pares (filtro por caixa), lista ordenada por volume, seleção do par na cena, filtro "só selecionadas", limiar em mm³ e exportação CSV. Verificação na pose atual (não varre movimento); encaixes propositais aparecem como colisão.

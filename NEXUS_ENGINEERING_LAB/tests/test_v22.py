@@ -86,10 +86,10 @@ def test_lab_tab_runs_all_calculators():
     QApplication.instance() or QApplication([])
     from interface.lab_tab import LabTab
     out = LabTab().run_all()
-    assert len(out) == 9
+    assert len(out) == 10
     for k, text in out.items():
         assert "Não foi possível" not in text, (k, text)
-        assert "Hipóteses" in text
+        assert "Hipóteses" in text or "Hipotese" in text
     # entrada inválida vira mensagem, não exceção
     from interface.lab_tab import LabTab as T
     t = T()
@@ -136,31 +136,87 @@ def test_small_projects_build_and_export(tmp_path):
         assert len(list(res.root.leaves())) >= n_min, key
 
 
-def test_f1_mechanism_and_materials(tmp_path):
+def _f1_components():
     from core.cad_engine import CadEngine
     from modules.importer import ProjectImporter
-    from samples.mechanisms import build_mechanism
     pd = get("f1")
-    pd.step_path.parent.mkdir(exist_ok=True)
     path = pd.ensure_step()
     res = ProjectImporter(CadEngine()).import_file(path)
 
     class C:
         def leaves(self_inner):
             return list(res.root.leaves())
-    mech = build_mechanism(C())
-    assert len(mech.links) == 4                    # rodas diant., rodas tras., flap diant., elemento tras.
+    return C(), res
+
+
+def test_f1_mechanism_links_rigid_and_periodic():
+    from samples.mechanisms import build_mechanism
+    comps, _ = _f1_components()
+    mech = build_mechanism(comps)
+    assert len(mech.links) >= 55 and mech.period_deg == 720.0
+    ids = [i for ln in mech.links for i in ln.ids]
+    assert len(ids) == len(set(ids)) == len(comps.leaves())            # cada peça tem exatamente um movimento
     for link in mech.links:
-        for t in (0, 90, 360, 719):
-            m = np.asarray(link.matrix(t) if hasattr(link, "matrix") else link.fn(t))
+        for t in (0, 45, 90, 200, 359, 540):
+            m = np.asarray(link.fn(float(t)))
             assert np.all(np.isfinite(m))
             R = m[:3, :3]
-            assert np.allclose(R @ R.T, np.eye(3), atol=1e-9) and np.linalg.det(R) == pytest.approx(1.0)
-    flap = mech.links[2]
-    m0 = np.asarray(flap.fn(0))
-    m360 = np.asarray(flap.fn(360))
-    assert np.allclose(m0, np.eye(4), atol=1e-9) and not np.allclose(m360, np.eye(4))
-    assert np.allclose(np.asarray(flap.fn(720)), np.eye(4), atol=1e-9)             # periódico
+            assert np.allclose(R @ R.T, np.eye(3), atol=1e-8) and np.linalg.det(R) == pytest.approx(1.0, abs=1e-8), link.label
+        assert np.allclose(link.fn(0.0), link.fn(720.0), atol=1e-6), link.label      # ciclo fecha
+
+
+def test_f1_suspension_constraints_hold_through_the_cycle():
+    from samples import f1_mechanism as M, f1_2026 as F
+    for t in np.arange(0.0, 720.0, 23.0):
+        st = M.car_state(float(t))
+        Binv = np.linalg.inv(st["B"])
+        for (front, sign), cor in M._corners().items():
+            key = ("F" if front else "R") + M.SIDE_KEY[sign]
+            hp = cor.hp
+            r = st[key]
+            ap = lambda m, p: (Binv @ m @ np.append(p, 1.0))[:3]          # ponto no referencial do corpo
+            u_lo, u_up = ap(r["U"], hp["lo_u"]), ap(r["U"], hp["up_u"])
+            assert np.linalg.norm(u_up - u_lo) == pytest.approx(hp["d_bj"], abs=1e-6)                    # manga rígida
+            assert np.linalg.norm(u_lo - ap(r["LA"], hp["lo_u"])) < 1e-6                                 # rótula inferior sobre o braço inferior
+            assert np.linalg.norm(u_up - ap(r["UA"], hp["up_u"])) < 1e-6                                 # idem superior
+            rack = st["sc"]["rack"] if front else 0.0
+            assert np.linalg.norm(ap(r["U"], hp["tr_u"]) - (hp["tr_a"] + [rack, 0, 0])) == pytest.approx(hp["L_tr"], abs=1e-6)   # barra de direção
+            assert np.linalg.norm(ap(r["U"], hp["rod_u"]) - ap(r["RK"], hp["A0"])) == pytest.approx(hp["L_rod"], abs=1e-6)       # push/pull-rod
+            assert np.linalg.norm(ap(r["PR"], hp["A0"]) - ap(r["RK"], hp["A0"])) < 1e-6
+            assert np.linalg.norm(ap(r["DB"], hp["M"]) - hp["M"]) < 1e-9                                  # amortecedor preso ao chassi
+            assert np.linalg.norm(ap(r["DR"], hp["D0"]) - ap(r["RK"], hp["D0"])) < 1e-6                   # haste presa ao balancim
+            cz = (st[key]["U"] @ np.append(hp["C"], 1.0))[2]
+            assert cz == pytest.approx(F.AXLE_Z, abs=0.6)                                                # roda segue no solo
+
+
+def test_f1_scenario_steering_and_aero():
+    from samples import f1_mechanism as M
+    assert M.wheel_angle_deg(90.0) > 10 > 0 > M.wheel_angle_deg(270.0) < -10          # esquerda em 90°, direita em 270°
+    assert abs(M.wheel_angle_deg(180.0)) < 1.0                                      # reta: quase zero (só bump-steer)
+    assert M.scenario(0.0)["blend"] == pytest.approx(1.0) and M.scenario(90.0)["blend"] == pytest.approx(0.0, abs=1e-12)
+    assert M.car_state(90.0)["sc"]["roll"] > 0 > M.car_state(270.0)["sc"]["roll"]
+
+
+def test_f1_engine_slider_crank_exact():
+    from samples import f1_2026 as F, f1_mechanism as M
+    for sg in (1, -1):
+        for j in range(3):
+            for phi in np.linspace(0, 2 * np.pi, 13):
+                pp, cp = F.piston_pin(j, sg, phi), F.crank_pin(j, phi, sg)
+                assert np.linalg.norm(pp - cp) == pytest.approx(F.CONROD_L, abs=1e-9)                # biela de comprimento constante
+                ax = F.bank_axis(sg)
+                d = pp - F.cyl_origin(j, sg)
+                assert np.linalg.norm(d - np.dot(d, ax) * ax) < 1e-9                                 # pino fica no eixo do cilindro
+    # curso total do pistão = 53 mm (±erro da razão biela/manivela)
+    zs = [np.dot(F.piston_pin(0, 1, p) - F.cyl_origin(0, 1), F.bank_axis(1)) for p in np.linspace(0, 2 * np.pi, 721)]
+    assert max(zs) - min(zs) == pytest.approx(F.STROKE, abs=0.8)
+    assert np.allclose(M.piston_local(0.0, 0, 1), np.eye(4)) and np.allclose(M.rod_local(0.0, 1, -1), np.eye(4), atol=1e-9)
+    assert np.allclose(M.piston_local(90.0, 0, 1), np.eye(4), atol=1e-9)                              # 90° de entrada = 1 volta do virabrequim
+
+
+def test_f1_materials_registry():
+    assert get("f1").material_for("Halo arco direito") == "Titanium Ti-6Al-4V (Grade 5)"
+    assert get("f1").material_for("Rotor do compressor") is None
 
 
 # ------------------------------------------------------------------ janela
@@ -182,6 +238,81 @@ def test_window_predefined_library_and_materials(engine):
         assert len(w.project.components.leaves()) == 1
         w.open_lab()
         assert w.central_tabs.currentWidget() is w.lab_tab
+    finally:
+        w.project.dirty = False
+        w.close()
+
+
+# ------------------------------------------------------------------ treliça (MEF de barras) e relatório
+def test_truss_fem_closed_forms():
+    from modules import truss_fem as T
+    # triângulo: carga vertical P no ápice (simétrico) → barras inclinadas −P/(2 sin α), base em tração P/(2 tg α)
+    P = 1000.0
+    t = T.parse(f"NODE A 0 0 0 fix=xyz\nNODE B 1000 0 0 fix=yz\nNODE C 500 0 500 fix=y\nBAR a A C 100 200000\nBAR b B C 100 200000\nBAR c A B 100 200000\nLOAD C 0 0 -{P}")
+    r = T.solve(t)
+    assert r.force["a"] == pytest.approx(-P / (2 * math.sin(math.pi / 4)), rel=1e-9)
+    assert r.force["c"] == pytest.approx(P / (2 * math.tan(math.pi / 4)), rel=1e-9)
+    assert r.equilibrium_error < 1e-12
+    # barra axial simples: u = F L/(E A)
+    t = T.parse("NODE A 0 0 0 fix=xyz\nNODE B 200 0 0 fix=yz\nBAR a A B 50 210000\nLOAD B 5000 0 0")
+    assert T.solve(t).displacement["B"][0] == pytest.approx(5000 * 200 / (210000 * 50), rel=1e-12)
+
+
+def test_truss_warren_symmetry_and_errors():
+    from modules import truss_fem as T
+    t = T.parse(T.warren_example())
+    r = T.solve(t)
+    assert r.equilibrium_error < 1e-12
+    assert r.reactions["B0"][2] == pytest.approx(r.reactions["B6"][2]) == pytest.approx(125000.0)       # 5 cargas de 50 kN / 2
+    assert r.force["m7"] == pytest.approx(225000.0)                                                       # banzo inferior central: M/h = (125·6 − 50·(2+4)... ) = 225 kN
+    with pytest.raises(T.TrussError):
+        T.solve(T.parse("NODE A 0 0 0 fix=xyz\nNODE B 1000 0 0\nBAR a A B 100 200000\nLOAD B 0 0 -1"))      # mecanismo
+    with pytest.raises(T.TrussError):
+        T.parse("BAR x A B 1 1")                                                                           # nó inexistente
+    with pytest.raises(T.TrussError):
+        T.parse("FOO 1 2")
+
+
+def test_lab_report_export(tmp_path):
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from interface.lab_tab import LabTab
+    lab = LabTab()
+    p = lab.widgets["beam"].export_report(str(tmp_path / "viga.md"))
+    txt = open(p, encoding="utf-8").read()
+    assert "## Entradas" in txt and "Flecha máxima" in txt
+    q = lab.truss.export_report(str(tmp_path / "t.md"))
+    assert "NODE B0" in open(q, encoding="utf-8").read()
+
+
+# ------------------------------------------------------------------ interferência
+def test_interference_finder_and_dialog(tmp_path, engine):
+    from core.cad_engine import RawNode
+    from core.geometry import translation_matrix
+    from modules.importer import ProjectImporter
+    from modules.interference import find_interferences, to_csv
+    L = lambda n, s, x=0.0: RawNode(n, shape=s, local_matrix=translation_matrix([x, 0, 0]))
+    root = RawNode("t", children=[L("A", g.box(0, 20, 0, 20, 0, 20)), L("B", g.box(10, 30, 0, 20, 0, 20)), L("C", g.box(20, 40, 0, 20, 0, 20)),   # A×B = 10·20·20; B×C = 10·20·20
+                                  L("D", g.box(100, 120, 0, 20, 0, 20)), L("E", g.box(20, 40, 0, 20, 0, 20)) if False else L("F", g.box(120, 140, 0, 20, 0, 20))])
+    path = tmp_path / "t.step"
+    engine.write_step([root], path)
+    res = ProjectImporter(engine).import_file(path)
+
+    class C:
+        def leaves(self_inner):
+            return list(res.root.leaves())
+    cl = find_interferences(C(), 1.0)
+    assert len(cl) == 2 and all(abs(c.volume - 4000.0) < 1.0 for c in cl)            # D×F e A×C apenas se tocam em face: não contam
+    assert "volume_mm3" in to_csv(cl)
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from interface.main_window import MainWindow
+    w = MainWindow(engine=engine)
+    try:
+        w.import_model(str(path), background=False, ask_split=False)
+        dlg = w.show_interference()
+        assert len(dlg.run()) == 2
+        assert dlg.export_csv(str(tmp_path / "i.csv")) and (tmp_path / "i.csv").exists()
     finally:
         w.project.dirty = False
         w.close()
