@@ -1,0 +1,11 @@
+# NEXUS ENGINEERING LAB — lançador para o FreeCAD.
+# STATUS: NÃO TESTADO (o FreeCAD não estava disponível no ambiente de desenvolvimento).
+# O NEXUS é independente do FreeCAD; esta macro apenas abre o programa em outro processo.
+# Ajuste NEXUS_DIR para a pasta onde o projeto foi instalado.
+import subprocess
+import sys
+
+NEXUS_DIR = r"C:\NEXUS_ENGINEERING_LAB"
+PYTHON = "python"   # Python do ambiente onde o NEXUS foi instalado (não o do FreeCAD)
+
+subprocess.Popen([PYTHON, NEXUS_DIR + r"\main\main.py"], cwd=NEXUS_DIR)
