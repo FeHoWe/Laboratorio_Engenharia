@@ -226,3 +226,11 @@ cada roda com disco furado de 72 furos, pinça em C, cubo, porca central e manga
 - **Limites honestos**: modelo linear, nós rotulados, cargas só nos nós, sem peso próprio automático, sem flambagem global/ligações/fadiga. Não é um FEA 3D de sólidos.
 - **Varredura de interferência do F1 (honesta)**: 264 pares com sobreposição >1 mm³ (casca do monocoque × piloto/tanque/bateria, elementos de asa entre si etc.) — o F1 é um modelo de referência visual/cinemático, não um conjunto livre de colisões.
 - **Analisar ▸ Verificação de interferência (estática)** (Ctrl+Shift+I): interseção booleana exata entre pares (filtro por caixa), lista ordenada por volume, seleção do par na cena, filtro "só selecionadas", limiar em mm³ e exportação CSV. Verificação na pose atual (não varre movimento); encaixes propositais aparecem como colisão.
+
+## V2.5 — NEXUS Engineering Arsenal
+- `modules/arsenal.py` (SQLite, sem dependências novas): IDs `NEXUS-COMP-000001`, versões 1.0/1.1/…, **nunca sobrescreve** (restaurar cria nova versão),
+  comparar versões, duplicar/variantes com origem, categorias personalizadas, `instantiate` (cópia para o projeto sem alterar o original).
+- Compatibilidade apenas por interfaces declaradas (eixo/furo, rosca); sem dados → `COMPATIBILIDADE NÃO VERIFICADA`. Material não informado → `PROPRIEDADE NÃO INFORMADA`.
+  Propriedades do componente exigem origem (documentado/medido/calculado/estimado).
+- Interface: Ferramentas → "NEXUS Engineering Arsenal…" (Ctrl+Shift+A); banco em `~/.nexus_engineering_lab/arsenal.db`.
+- Limites: o componente guarda a receita paramétrica da biblioteca (ou caminho STEP); inserção de STEP guardado e juntas/restrições de montagem ainda não implementadas.

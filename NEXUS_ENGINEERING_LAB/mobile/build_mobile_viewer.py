@@ -24,7 +24,7 @@ from modules.importer import ProjectImporter  # noqa: E402
 from modules.measure_engine import MeasureEngine, axis_label  # noqa: E402
 from modules.solid_analyzer import can_split, split_into_solids  # noqa: E402
 
-VERSION = "2.4"
+VERSION = "2.5"
 
 
 def build(model: Path, out: Path, typical: bool = False) -> Path:
