@@ -86,7 +86,7 @@ def test_lab_tab_runs_all_calculators():
     QApplication.instance() or QApplication([])
     from interface.lab_tab import LabTab
     out = LabTab().run_all()
-    assert len(out) == 10
+    assert len(out) == 12
     for k, text in out.items():
         assert "Não foi possível" not in text, (k, text)
         assert "Hipóteses" in text or "Hipotese" in text
@@ -316,3 +316,17 @@ def test_interference_finder_and_dialog(tmp_path, engine):
     finally:
         w.project.dirty = False
         w.close()
+
+
+def test_lab_frame_widget(tmp_path):
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from interface.lab_tab import LabTab
+    lab = LabTab()
+    txt = lab.frame.compute()
+    assert "Pórtico espacial de vigas" in txt and "erro de equilíbrio global" in txt
+    p = lab.frame.export_report(str(tmp_path / "p.md"))
+    body = open(p, encoding="utf-8").read()
+    assert "Pórtico (MEF de vigas)" in body and "BEAM c1" in body
+    lab.frame.edit.setPlainText("NODE A 0 0 0 fix=xyz\nNODE B 1000 0 0\nBEAM b A B 1000 1e6 1e6 2e6 210000 80000\nLOAD B 0 0 -1\n")
+    assert "hipostática" in lab.frame.compute()

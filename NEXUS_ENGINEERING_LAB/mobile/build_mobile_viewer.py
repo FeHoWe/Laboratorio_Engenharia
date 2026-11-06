@@ -27,8 +27,8 @@ from modules.solid_analyzer import can_split, split_into_solids  # noqa: E402
 VERSION = "2.5"
 
 
-def build(model: Path, out: Path, typical: bool = False) -> Path:
-    """typical=True aplica os materiais típicos do exemplo do motor (didático) e embute massas."""
+def build_data(model: Path, typical: bool = False, material_for=None, interf: bool = False, title: str | None = None) -> dict:
+    """Gera o dicionário do projeto (malhas + peças + mecanismo). ``interf``: calcula interferências exatas (lento)."""
     eng = CadEngine()
     project = ProjectManager(eng).new_project(model.stem)
     project.set_root(ProjectImporter(eng, project.ids).import_file(str(model)).root)
@@ -39,7 +39,7 @@ def build(model: Path, out: Path, typical: bool = False) -> Path:
     mass_by_id: dict = {}
     if typical:
         from modules.bom import BomBuilder
-        from samples.motor_materials import material_for
+        material_for = material_for or __import__('samples.motor_materials', fromlist=['material_for']).material_for
         for leaf in project.components.leaves():
             mat = material_for(leaf.name)
             if mat and project.materials.get(mat):
@@ -95,7 +95,10 @@ def build(model: Path, out: Path, typical: bool = False) -> Path:
             shared_off[gi] = np.asarray(box.min, dtype=float) - origin     # caixa da peça - origem da malha
             if ikey is not None:
                 shared[ikey] = gi
+        pr_ = eng.properties(comp.shape) if comp.shape is not None else None
         parts.append({
+            "vol": None if pr_ is None or pr_.volume is None else round(float(pr_.volume), 1),
+            "area": None if pr_ is None or pr_.area is None else round(float(pr_.area), 1),
             "id": comp.id, "name": comp.name, "size": [round(float(x), 2) for x in box.size],
             "g": gi, "pos": [round(float(x), 2) for x in origin],
             "dia": [{"d": round(d.diameter, 3), "axis": axis_label(d.axis)} for d in diams[:4]],
@@ -112,8 +115,18 @@ def build(model: Path, out: Path, typical: bool = False) -> Path:
         mech = build_mechanism(project.components).mobile_spec(index_of)
     except Exception:  # noqa: BLE001 - modelo sem mecanismo: o visualizador funciona sem animação
         mech = None
-    data = json.dumps({"name": model.stem, "version": VERSION, "geoms": geoms, "parts": parts, "totals": totals, "mech": mech},
-                      separators=(",", ":"))
+    clashes = None
+    if interf:
+        from modules.interference import find_interferences
+        index_of = {p["id"]: n for n, p in enumerate(parts)}
+        clashes = [[index_of[c.a_id], index_of[c.b_id], round(c.volume, 1)] for c in find_interferences(project.components)]
+    return {"name": title or model.stem, "version": VERSION, "geoms": geoms, "parts": parts, "totals": totals, "mech": mech,
+            "clashes": clashes}
+
+
+def build(model: Path, out: Path, typical: bool = False) -> Path:
+    """Compatibilidade: HTML único antigo (somente o visualizador 3D)."""
+    data = json.dumps(build_data(model, typical), separators=(",", ":"))
     html = (ROOT / "mobile" / "viewer_template.html").read_text(encoding="utf-8").replace("__DATA__", data)
     out.write_text(html, encoding="utf-8")
     return out

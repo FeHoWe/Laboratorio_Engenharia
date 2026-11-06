@@ -234,3 +234,35 @@ cada roda com disco furado de 72 furos, pinça em C, cubo, porca central e manga
   Propriedades do componente exigem origem (documentado/medido/calculado/estimado).
 - Interface: Ferramentas → "NEXUS Engineering Arsenal…" (Ctrl+Shift+A); banco em `~/.nexus_engineering_lab/arsenal.db`.
 - Limites: o componente guarda a receita paramétrica da biblioteca (ou caminho STEP); inserção de STEP guardado e juntas/restrições de montagem ainda não implementadas.
+
+## V2.6 — Infraestrutura honesta (rastreabilidade, solvers, dinâmica veicular)
+- `modules/result_trace.py`: classe de cada resultado (ANALITICO / SIMULACAO_NUMERICA / VALIDADO / NAO_EXECUTADO / ANIMACAO_PRESCRITA); VALIDADO exige referência; NAO_EXECUTADO não carrega números.
+- `modules/solver_registry.py`: detecta CalculiX, OpenFOAM e Gmsh; ausente => "NÃO INSTALADO" (nunca resultado falso). Neste ambiente CalculiX e OpenFOAM NÃO estão instalados.
+- `modules/vehicle_dynamics.py`: dinâmica longitudinal 1D (RK4) separada da animação prescrita; validada contra velocidade terminal analítica.
+- `modules/interference_sweep.py`: varredura de interferência sobre poses do mecanismo.
+- `modules/fea3d.py`: FEA 3D linear-elástico Tet4 próprio (NEXUS-Tet4), malhas de caixa, carga de superfície consistente, escritor de .inp CalculiX. Validado: teste de patch (tração exata, erro <1e-6) e viga engastada (converge por baixo; Tet4 trava em flexão — malha 40×4×4 ≈ 79% do Euler-Bernoulli). Material (E, ν) sempre informado.
+- `modules/cfd_case.py`: aerodinâmica nível 1 e 2 (analíticos) e gerador de caso OpenFOAM (simpleFoam k-ω SST, snappyHexMesh). Só executa com OpenFOAM instalado; senão NAO_EXECUTADO, sem números.
+- `modules/workspace.py`: projetos (.nexus.json), histórico paramétrico com undo/redo, vitrine da biblioteca no Arsenal, uso por projeto, exclusão confirmada (bloqueada se em uso); Arsenal ganhou `export_component` e `delete_component`.
+- Menu "Solvers, vitrine e projetos…" (Ctrl+Shift+S). Celular: aba Veículo (RK4) validada JS×Python.
+- NÃO implementado: edição CAD paramétrica sobre B-rep importado, malhador para geometria arbitrária (Gmsh exige libGLU, indisponível aqui), CFD/CalculiX executados.
+- `modules/fea_voxel.py`: malha de voxels→tetraedros de QUALQUER sólido OCP (peça da biblioteca ou STEP); reporta erro de volume da malha (geometria em escada).
+- `modules/fea_study.py`: estudo completo peça→malha→NEXUS-Tet4→resultado rastreado; estudo de convergência de malha; FS só se o usuário informar o escoamento.
+- `modules/fea3d.py`: + análise modal (massa consistente; densidade informada) e exportação VTK (ParaView). Validado: f1 de viga engastada ≈ +8% vs Euler-Bernoulli (Tet4 é rígido).
+- Diálogo "Estudo FEA 3D de peça" (via Solvers…): estático, convergência, modal, salvar em projeto, exportar .vtk.
+- Laboratório: nova calculadora "Dinâmica longitudinal (RK4)". Celular v25: abas "FEA 3D" (viga maciça, validada JS×Python 3e-12) e "Veículo".
+
+## V2.6.1 — limites superados
+- **Travamento (Tet4)** → `modules/fea_tet10.py`: Tet10 quadrático isoparamétrico; viga: <5% vs Timoshenko em malha grossa; modal ≈ +3% (Tet4: +8%).
+- **Tensão local em escada** → `modules/fea_gmsh.py`: malha conforme via Gmsh/OpenCASCADE (erro de volume <0,1%); recuperação nodal de tensões; placa com furo vs Peterson: σmax −1%. Voxel continua disponível (marcado como não confiável localmente).
+- **Edição paramétrica de STEP** → `modules/cad_history.py` + diálogo: base STEP/peça + operações (mover, girar, escalar, furo, caixa±, filete, chanfro), editar parâmetro antigo reconstrói, suprimir, desfazer/refazer. Sem nomeação topológica persistente (seletores geométricos).
+- **CalculiX** → `modules/calculix_io.py`: escreve .inp (C3D4/C3D10), executa `ccx` se instalado, lê .dat (U, S) e compara com o NEXUS. O leitor é testado com amostras sintéticas do formato; a execução com `ccx` real NÃO foi testada aqui.
+- Celular v26: Tet10 na aba FEA 3D (JS×Python 1e-11).
+- Dica Linux/sandbox: o wheel do Gmsh exige libGLU/libXft; no Windows funciona direto com `pip install gmsh`.
+
+## V2.6.2 — desempenho e robustez
+- Abertura do programa 2,1 s → 0,9 s (import preguiçoso do trimesh, `core/lazy.py`).
+- Solver Tet4 vetorizado (52 mil tetraedros: 10,7 s → 4,0 s); Tet10 vetorizado.
+- FEA no diálogo roda em thread (interface não congela, botões bloqueados durante o cálculo).
+- Solvers verificam o resíduo: mecanismo/apoio insuficiente vira erro explícito, nunca número absurdo; limite de GDL do solver direto.
+- Celular v27: cópia para a área de transferência com fallback; limite antecipado de malha; auditoria automatizada de todas as abas sem erros.
+- `tests/test_robustness.py`: entradas inválidas/extremas viram erro explícito.

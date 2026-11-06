@@ -11,7 +11,7 @@ from typing import Callable, Optional
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QFileDialog, QPlainTextEdit, QPushButton, QTabWidget,
                                QVBoxLayout, QWidget)
 
-from modules import aero, structural as st, truss_fem
+from modules import aero, structural as st, truss_fem, frame_fem
 
 
 @dataclass
@@ -81,6 +81,28 @@ def run_vehicle(v: dict) -> str:
         out += f"  {kmh:>6} {aero.dynamic_pressure(veh.rho, ms):>8.0f} {veh.drag(ms):>11.0f} {veh.downforce(ms):>12.0f} {veh.power_required(ms) / 1000:>10.1f} {veh.braking_decel(ms):>14.2f}\n"
     out += ("\nHipóteses: CdA, ClA, μ do pneu, Crr e potência na roda são SEUS valores, constantes com a velocidade; sem transferência de carga, "
             "sem balanço de frenagem, sem limite de tração/marcha, sem variação do coeficiente com altura de rodagem/yaw. Não é simulação de volta.\n")
+    return out
+
+
+def run_dinlong(v: dict) -> str:
+    from modules.vehicle_dynamics import Veiculo, simular, resumo
+    rho = aero.isa(v["h"])["rho"]
+    ve = Veiculo(massa=v["mass"], cd=v["cd"], area=v["area"], crr=v["crr"], forca_motriz=v["F"], potencia=v["P"] * 1000, mu=v["mu"],
+                 fracao_peso_motriz=v["fr"], rho=rho, inclinacao=math.radians(v["slope"]))
+    h = simular(ve, v["tf"], 0.01, v["v0"] / 3.6)
+    r = resumo(ve, h)
+    out = _hdr("Dinâmica longitudinal (integração RK4)")
+    out += _row("ρ do ar (ISA)", rho, "kg/m³", 4)
+    out += _row("Velocidade final", h[-1][2] * 3.6, "km/h", 1)
+    out += _row("Velocidade máxima atingida", r.valores["v_max_ms"] * 3.6, "km/h", 1)
+    out += _row("Distância percorrida", h[-1][1], "m", 1)
+    t100 = next((x[0] for x in h if x[2] >= 100 / 3.6), None)
+    out += _row("0→100 km/h (se partiu de zero)", f"{t100:.2f} s" if t100 is not None else "não atingiu")
+    out += "\n  t[s]    v[km/h]   x[m]\n"
+    for k in range(0, len(h), max(1, len(h) // 10)):
+        out += f"  {h[k][0]:>5.1f} {h[k][2] * 3.6:>9.1f} {h[k][1]:>9.1f}\n"
+    out += ("\nHipóteses: classe ANALÍTICO. Ponto material 1D, F_trativa = min(força máx, P/v, μ·fração·m·g); sem slip de pneu, sem câmbio, sem "
+            "transferência de carga. Parâmetros são SEUS. Separado da animação prescrita do F1.\n")
     return out
 
 
@@ -187,6 +209,12 @@ def calcs() -> list[Calc]:
               f("power", "Potência na roda", 700, "kW", 1, 5000, 0), f("mu", "μ pneu–solo", 1.6, "", 0.1, 4, 2), f("crr", "Crr", 0.012, "", 0, 0.1, 4),
               f("h", "Altitude", 0, "m", -500, 5000, 0), f("radius", "Raio de curva (0 = pular)", 100, "m", 0, 10000, 0)], run_vehicle,
              intro="Valores iniciais são EXEMPLOS genéricos para você substituir pelos seus dados; não representam um carro específico."),
+        Calc("dinlong", "Dinâmica longitudinal (RK4)",
+             [f("mass", "Massa", 800, "kg", 1, 1e5, 1), f("cd", "Cd", 0.9, "", 0, 5, 3), f("area", "Área frontal", 1.5, "m²", 0.1, 50, 3), f("crr", "Crr", 0.015, "", 0, 0.1, 4),
+              f("F", "Força trativa máx.", 9000, "N", 1, 1e6, 0), f("P", "Potência máx.", 300, "kW", 1, 5000, 0), f("mu", "μ pneu", 1.6, "", 0.1, 4, 2),
+              f("fr", "Fração do peso sobre eixo motriz", 1.0, "", 0.1, 1, 2), f("slope", "Inclinação", 0, "°", -30, 30, 2), f("h", "Altitude", 0, "m", -500, 5000, 0),
+              f("tf", "Tempo simulado", 20, "s", 0.1, 600, 1), f("v0", "Velocidade inicial", 0, "km/h", 0, 1000, 1)], run_dinlong,
+             intro="Valores iniciais são EXEMPLOS genéricos; substitua pelos seus dados."),
         Calc("wing", "Asa — linha sustentadora",
              [f("span", "Envergadura b", 1.6, "m", 0.1, 100, 3), f("chord", "Corda na raiz", 0.35, "m", 0.01, 20, 3), f("taper", "Afilamento (ponta/raiz)", 1.0, "", 0.1, 1, 2),
               f("alpha", "Incidência na raiz", 8, "°", -20, 30, 2), f("twist", "Torção linear na ponta", 0, "°", -10, 10, 2), f("camber", "Camber NACA m", 4, "% corda", 0, 9, 2),
@@ -297,7 +325,11 @@ class CalcWidget(QWidget):
 
 
 class TrussWidget(QWidget):
+    TITLE = "Treliça (MEF de barras)"
     """Treliça espacial de barras (método da rigidez direta). Entrada em texto; ver modules/truss_fem.py para o formato."""
+
+    def _example(self) -> str:
+        return truss_fem.warren_example()
 
     def __init__(self) -> None:
         super().__init__()
@@ -307,7 +339,7 @@ class TrussWidget(QWidget):
         lab.setWordWrap(True)
         root.addWidget(lab)
         self.edit = QPlainTextEdit()
-        self.edit.setPlainText(truss_fem.warren_example())
+        self.edit.setPlainText(self._example())
         self.edit.setStyleSheet("font-family: Consolas, 'DejaVu Sans Mono', monospace;")
         root.addWidget(self.edit, 2)
         row = QHBoxLayout()
@@ -316,7 +348,7 @@ class TrussWidget(QWidget):
         self.sy.setValue(250)
         self.sy.setSuffix(" MPa (Sy, 0 = ignorar)")
         row.addWidget(self.sy)
-        for text, slot in (("Resolver", lambda: self.compute()), ("Carregar exemplo Warren", lambda: self.edit.setPlainText(truss_fem.warren_example())),
+        for text, slot in (("Resolver", lambda: self.compute()), ("Carregar exemplo", lambda: self.edit.setPlainText(self._example())),
                            ("Exportar relatório (.md)…", lambda: self.export_report())):
             b = QPushButton(text)
             b.clicked.connect(slot)
@@ -344,9 +376,39 @@ class TrussWidget(QWidget):
             return None
         from datetime import datetime
         from pathlib import Path
-        Path(path).write_text(f"# Treliça (MEF de barras)\n\nGerado pelo NEXUS ENGINEERING LAB em {datetime.now():%Y-%m-%d %H:%M}\n\n## Modelo\n\n```\n"
+        Path(path).write_text(f"# {self.TITLE}\n\nGerado pelo NEXUS ENGINEERING LAB em {datetime.now():%Y-%m-%d %H:%M}\n\n## Modelo\n\n```\n"
                               f"{self.edit.toPlainText()}\n```\n\n## Resultado\n\n```\n{self.out.toPlainText() or self.compute()}\n```\n", encoding="utf-8")
         return path
+
+
+class FrameWidget(TrussWidget):
+    TITLE = "Pórtico (MEF de vigas)"
+    """Pórtico espacial de vigas (6 GDL/nó, Euler–Bernoulli). Ver modules/frame_fem.py para o formato."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.layout().itemAt(0).widget().setText(
+            "Pórtico de vigas (MEF 3D, Euler–Bernoulli, linear). NODE id x y z [fix=xyzXYZ] · BEAM id n1 n2 A Iy Iz J E G [ref=vx,vy,vz] [c=mm] · "
+            "LOAD nó fx fy fz [mx my mz] · DLOAD viga wx wy wz  (mm, N, MPa, N·mm). Minúsculas = translações restritas, MAIÚSCULAS = rotações. "
+            "O exemplo é um pórtico bi-engastado com valores genéricos — troque pelos seus.")
+        self.edit.setPlainText(frame_fem.portal_example())
+
+    def _example(self) -> str:
+        return frame_fem.portal_example()
+
+    def compute(self) -> str:
+        try:
+            f = frame_fem.parse(self.edit.toPlainText())
+            text = frame_fem.report(f, frame_fem.solve(f), self.sy.value())
+            if f.beams and all(b.rho for b in f.beams.values()):
+                text += frame_fem.modal_report(frame_fem.modal(f, 6), f)
+            bk = frame_fem.buckling(f, 3)
+            if bk.factors:
+                text += frame_fem.buckling_report(bk)
+        except Exception as exc:
+            text = f"Não foi possível calcular: {exc}"
+        self.out.setPlainText(text)
+        return text
 
 
 class LabTab(QWidget):
@@ -366,6 +428,9 @@ class LabTab(QWidget):
         self.truss = TrussWidget()
         self.widgets["truss"] = self.truss
         self.tabs.addTab(self.truss, "Treliça (MEF de barras)")
+        self.frame = FrameWidget()
+        self.widgets["frame"] = self.frame
+        self.tabs.addTab(self.frame, "Pórtico (MEF de vigas)")
         root.addWidget(self.tabs, 1)
 
     def run_all(self) -> dict:

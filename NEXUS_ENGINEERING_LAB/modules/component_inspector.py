@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-import trimesh
+from core.lazy import lazy_import
+trimesh = lazy_import("trimesh")
 
 from core.component_manager import ComponentManager
 from core.geometry import BoundingBox, euler_from_matrix, mesh_area

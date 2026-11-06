@@ -208,6 +208,25 @@ class Arsenal:
                 "origin": f"{cid} v{c['version']}" + (" (com modificações locais)" if overrides else ""),
                 "interfaces": c["interfaces"], "material": c["material"]}
 
+    def export_component(self, cid: str) -> dict:
+        """Exporta componente + todas as versões (JSON serializável)."""
+        self._exists(cid)
+        comp = self.db.execute("SELECT id,name,category,description,created FROM components WHERE id=?", (cid,)).fetchone()
+        vers = [{"version": v, "created": c, "change": ch, "data": json.loads(d)} for v, c, d, ch in
+                self.db.execute("SELECT version,created,data,change FROM versions WHERE comp_id=? ORDER BY seq", (cid,))]
+        return {"id": comp[0], "name": comp[1], "category": comp[2], "description": comp[3], "created": comp[4], "versions": vers}
+
+    def delete_component(self, cid: str, confirm: bool = False, in_use_by: Optional[list] = None) -> None:
+        """Exclusão irreversível: exige confirm=True e recusa se há projetos usando o componente."""
+        self._exists(cid)
+        if not confirm:
+            raise ArsenalError("Exclusão exige confirmação explícita (confirm=True).")
+        if in_use_by:
+            raise ArsenalError(f"Componente em uso pelos projetos: {', '.join(in_use_by)}. Remova-o dos projetos antes.")
+        self.db.execute("DELETE FROM versions WHERE comp_id=?", (cid,))
+        self.db.execute("DELETE FROM components WHERE id=?", (cid,))
+        self.db.commit()
+
     def close(self) -> None:
         self.db.close()
 

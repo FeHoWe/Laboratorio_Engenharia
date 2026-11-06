@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-import trimesh
+from core.lazy import lazy_import
+trimesh = lazy_import("trimesh")
 
 from core.cad_engine import CadEngine
 from core.model import Component, ComponentKind, GeometryKind, IdGenerator, MeshData
