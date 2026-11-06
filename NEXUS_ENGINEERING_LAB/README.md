@@ -266,3 +266,20 @@ cada roda com disco furado de 72 furos, pinça em C, cubo, porca central e manga
 - Solvers verificam o resíduo: mecanismo/apoio insuficiente vira erro explícito, nunca número absurdo; limite de GDL do solver direto.
 - Celular v27: cópia para a área de transferência com fallback; limite antecipado de malha; auditoria automatizada de todas as abas sem erros.
 - `tests/test_robustness.py`: entradas inválidas/extremas viram erro explícito.
+
+## V2.7 — Sete novos projetos predefinidos (além de motores)
+
+Menu **Projetos** (e viewer de celular): todos com STEP gerado por OpenCascade, mecanismo animado e **0 interferências não intencionais** (peças só encostam).
+
+| Projeto | Peças | Animação (prescrita) |
+|---|---|---|
+| Motor rotativo **Wankel** (1 rotor) | 17 | eixo excêntrico θ; rotor a θ/3 sobre o excêntrico (vértices ficam na epitrocoide); ciclo 1080° |
+| Motor **V12 a 60°** | 71 | virabrequim, 12 bielas e 12 pistões (biela-manivela exata por banco, 720°) |
+| **Braço robótico** 6 eixos | 12 | ângulos senoidais por junta, cinemática direta (produto de exponenciais) |
+| **Bomba centrífuga** com voluta | 13 | rotação do eixo/rotor |
+| **Aerogerador** 3 pás (60 m) | 10 | rotação do rotor |
+| **Turbojato** axial (4 est. compressor, 2 turbina) | 29 | rotação do spool |
+| **Guindaste torre** treliçado | 146 | giro ±100° e carrinho/gancho |
+
+**Honestidade:** são modelos de referência geométricos, ilustrativos — não foram dimensionados nem analisados (sem termodinâmica, BEM, CFD, norma de guindaste etc.); materiais NÃO são atribuídos automaticamente (você escolhe). Animações são cenários prescritos, não dinâmica. No Wankel/V12 não há válvulas, vedações reais, óleo ou refrigeração; o punho 2 do robô é uma esfera simplificada; a verificação de colisão cobre a pose inicial (não varre o movimento).
+Celular: novos descritores de pose (`orb`, `rsn`, `tsn`, `vr`/`vs`), conferidos contra o Python (diferença ≤ 1e-10). Testes: `tests/test_new_projects.py` (`NEXUS_SLOW=1` inclui a checagem de interferência de V12 e guindaste).

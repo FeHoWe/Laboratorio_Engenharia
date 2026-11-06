@@ -71,7 +71,7 @@ def main(out: Path, keys: list[str]) -> None:
         (out / "data" / "biblioteca.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
         reg.append({"key": "biblioteca", "title": data["name"], "mech": False, "parts": len(data["parts"])})
     reg = []
-    for key in ("f1", "motor", "redutor", "suspensao", "ponte", "biblioteca"):      # registro a partir dos arquivos existentes
+    for key in [q.key for q in all_projects()] + ["biblioteca"]:      # registro a partir dos arquivos existentes (todos os projetos predefinidos)
         f = out / "data" / f"{key}.json"
         if f.exists():
             d = json.loads(f.read_text(encoding="utf-8"))

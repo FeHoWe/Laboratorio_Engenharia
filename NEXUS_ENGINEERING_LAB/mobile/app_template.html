@@ -165,6 +165,8 @@ function beltFrame(path,s){s=((s%path.length)+path.length)%path.length;let p,t,n
 function tabM(k,th){const tb=MECH.extra.tabs[k];let x=th%tb.per;if(x<0)x+=tb.per;const q=x/tb.step,i=Math.floor(q),f=q-i,n=tb.n,a=(i%n)*12,b=((i+1)%n)*12,d=tb.d,e=[];
  for(let j=0;j<12;j++)e[j]=d[a+j]*(1-f)+d[b+j]*f;
  return new THREE.Matrix4().set(e[0],e[1],e[2],e[3],e[4],e[5],e[6],e[7],e[8],e[9],e[10],e[11],0,0,0,1);}
+function _v12(d,th){const t=(d.ph+th)*Math.PI/180,hv=d.hv*Math.PI/180,ay=d.b*Math.sin(hv),az=Math.cos(hv),py=-d.r*Math.sin(t),pz=d.r*Math.cos(t),al=py*ay+pz*az,pe=py*az-pz*ay;
+ return {s:al+Math.sqrt(d.L*d.L-pe*pe),py:py,pz:pz,ay:ay,az:az};}
 function poseFor(d,th){const t=th*Math.PI/180;
  if(d.t==='tab')return tabM(d.k,th);
  if(d.t==='mul')return poseFor(d.a,th).multiply(poseFor(d.b,th));
@@ -172,6 +174,13 @@ function poseFor(d,th){const t=th*Math.PI/180;
  if(d.t==='rx')return _RxAbout(d.y,d.z,t*d.r);
  if(d.t==='rxcos')return _RxAbout(d.y,d.z,d.amp*Math.PI/180*(1-Math.cos(2*Math.PI*th/720))/2);
  if(d.t==='belt'){const B=MECH.extra.belt;const f0=beltFrame(B.path,d.s0),f1=beltFrame(B.path,d.s0+B.rc*t);return f1.multiply(f0.invert());}
+ if(d.t==='orb')return _T(d.e*(Math.cos(t)-1),d.e*Math.sin(t),0);
+ if(d.t==='rsn'){const ax=new THREE.Vector3(d.a[0],d.a[1],d.a[2]).normalize(),an=d.amp*Math.sin((d.f*th+d.ph)*Math.PI/180)*Math.PI/180;return _T(d.p[0],d.p[1],d.p[2]).multiply(new THREE.Matrix4().makeRotationAxis(ax,an)).multiply(_T(-d.p[0],-d.p[1],-d.p[2]));}
+ if(d.t==='tsn'){const v=d.amp*Math.sin((d.f*th+d.ph)*Math.PI/180);return _T(d.a[0]*v,d.a[1]*v,d.a[2]*v);}
+ if(d.t==='vr'||d.t==='vs'){const q=_v12(d,th),q0=_v12(d,0);
+  if(d.t==='vs')return _T(0,q.ay*(q.s-q0.s),q.az*(q.s-q0.s));
+  const ps=Math.atan2(q.az*q.s-q.pz,q.ay*q.s-q.py),ps0=Math.atan2(q0.az*q0.s-q0.pz,q0.ay*q0.s-q0.py);
+  return _T(0,q.py-q0.py,q.pz-q0.pz).multiply(_RxAbout(q0.py,q0.pz,ps-ps0));}
  const py=-d.zc*Math.sin(t),pz=d.zc*Math.cos(t),zp=pz+Math.sqrt(d.L*d.L-py*py);
  if(d.t==='rod')return _T(0,py,pz-d.zc).multiply(_T(d.cx,0,d.zc)).multiply(new THREE.Matrix4().makeRotationX(Math.atan2(py,zp-pz))).multiply(_T(-d.cx,0,-d.zc));
  if(d.t==='sl')return _T(0,0,zp-(d.zc+d.L));
