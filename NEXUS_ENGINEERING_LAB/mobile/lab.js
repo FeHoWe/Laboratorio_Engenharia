@@ -320,6 +320,50 @@ function vehDyn(v,tf,dt,v0,brakeAt,brakeF){const G=9.80665;v0=v0||0;let t=0,x=0,
  if(!(v.m>0&&v.area>0&&v.P>0&&v.F>0&&dt>0&&tf>0))throw new Error('Parâmetros devem ser positivos');
  while(t<tf-1e-12){const k1=acc(vel,t),k2=acc(vel+0.5*dt*k1,t+0.5*dt),k3=acc(vel+0.5*dt*k2,t+0.5*dt),k4=acc(vel+dt*k3,t+dt);
   const a=(k1+2*k2+2*k3+k4)/6;const vn=Math.max(vel+a*dt,0);x+=0.5*(vel+vn)*dt;vel=vn;t+=dt;out.push([t,x,vel,a]);}return out;}
-const LAB={feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+
+// ---- F1 (V2.8): volta quase-estacionária (espelho de modules/lapsim.py), massa/CG e regulamento
+const LAP_TRACK=[[900,0],[80,60],[350,0],[110,35],[250,0],[160,120],[700,0],[60,25],[200,0],[200,90],[400,0],[90,45]];
+function pyRound(x){const f=Math.floor(x),d=x-f;if(d<0.5)return f;if(d>0.5)return f+1;return f%2===0?f:f+1;}
+function lapSim(c,pista,ds){const G=9.80665;pista=pista||LAP_TRACK;ds=ds||2;c=Object.assign({crr:0.012,rho:1.225,pErs:0,eErs:0,vMax:120},c);
+ if(!(c.m>0&&c.pIce>0&&c.mu>0&&ds>0)||c.cda<0||c.cla<0)throw new Error('massa, potência, μ e ds devem ser positivos; CdA/ClA ≥ 0');
+ const R=[];pista.forEach(([Lg,r])=>{const n=Math.max(1,pyRound(Lg/ds));for(let i=0;i<n;i++)R.push(+r);});const n=R.length;
+ const vCurva=r=>{if(r<=0)return c.vMax;const den=c.m/r-0.5*c.mu*c.rho*c.cla;if(den<=1e-12)return c.vMax;return Math.min(c.vMax,Math.sqrt(c.mu*c.m*G/den));};
+ const elip=(v,r)=>{if(r<=0)return 1;const al=v*v/r,am=c.mu*(G+0.5*c.rho*c.cla*v*v/c.m);return Math.sqrt(Math.max(0,1-(al/am)*(al/am)));};
+ const aFreio=(v,r)=>{const f=c.mu*(c.m*G+0.5*c.rho*c.cla*v*v)*elip(v,r)+0.5*c.rho*c.cda*v*v+c.crr*c.m*G;return f/c.m;};
+ const aAcel=(v,r,p)=>{const vv=Math.max(v,1),tr=Math.min(p/vv,c.mu*(c.m*G+0.5*c.rho*c.cla*v*v)*elip(v,r));return(tr-0.5*c.rho*c.cda*v*v-c.crr*c.m*G)/c.m;};
+ const v=R.map(vCurva);
+ for(let k2=0;k2<2;k2++)for(let i=2*n-1;i>=0;i--){const j=i%n,k=(i+1)%n,ab=aFreio(v[k],R[j]);v[j]=Math.min(v[j],Math.sqrt(v[k]*v[k]+2*ab*ds));}
+ let i0=0;for(let q=1;q<n;q++)if(v[q]<v[i0])i0=q;if(v[i0]>=c.vMax-1e-9)v[i0]=1;
+ let eUsed=0;
+ for(let st=0;st<n;st++){const i=(i0+st)%n,k=(i+1)%n,p=c.pIce+(eUsed<c.eErs?c.pErs:0),aa=aAcel(v[i],R[i],p),vn=aa>0?Math.sqrt(Math.max(v[i]*v[i]+2*aa*ds,0)):v[i];
+  if(vn<v[k]&&k!==i0){if(aa>0&&eUsed<c.eErs&&c.pErs>0)eUsed+=c.pErs*(ds/Math.max(0.5*(v[i]+vn),1));v[k]=vn;}}
+ let t=0;for(let i=0;i<n;i++)t+=2*ds/(v[i]+v[(i+1)%n]);const comp=n*ds;
+ return{tempo:t,comp:comp,vMedia:comp/t*3.6,vMax:Math.max(...v)*3.6,vMin:Math.min(...v)*3.6,eMJ:Math.min(eUsed,c.eErs)/1e6,v:v,R:R,ds:ds};}
+function telemetry(c,pista,ds,nM,rpmMax,vTop,nSec){const G=9.80665;ds=ds||2;nM=nM==null?8:nM;rpmMax=rpmMax==null?15000:rpmMax;vTop=vTop==null?340:vTop;nSec=nSec==null?3:nSec;
+ if(!(nM>=1&&rpmMax>0&&vTop>0&&nSec>=1))throw new Error('marchas ≥ 1; rpm, velocidade de topo > 0; setores ≥ 1');
+ c=Object.assign({crr:0.012,rho:1.225,pErs:0,eErs:0},c);const b=lapSim(c,pista,ds),v=b.v,R=b.R,n=v.length;let i0=0;for(let q=1;q<n;q++)if(v[q]<v[i0])i0=q;
+ const K=['s','t','v','gLong','gLat','acel','freio','marcha','rpm','arrasto','downforce','ers'],ch={};K.forEach(k=>ch[k]=new Array(n).fill(0));const dv=vTop/3.6/nM;let t=0;
+ for(let i=0;i<n;i++){const k=(i+1)%n,a=(v[k]*v[k]-v[i]*v[i])/(2*ds),arr=0.5*c.rho*c.cda*v[i]*v[i],dwn=0.5*c.rho*c.cla*v[i]*v[i],roll=c.crr*c.m*G,grip=c.mu*(c.m*G+dwn);let ac=0,fr=0;
+  if(a>1e-6)ac=Math.min(100,Math.max(0,(c.m*a+arr+roll)*v[i]/(c.pIce+c.pErs)*100));else if(a<-1e-6)fr=Math.min(100,Math.max(0,(-c.m*a-arr-roll)/grip*100));else ac=Math.min(100,Math.max(0,(arr+roll)*v[i]/(c.pIce+c.pErs)*100));
+  const gear=Math.min(nM,1+Math.floor(v[i]/dv));ch.s[i]=i*ds;ch.t[i]=t;ch.v[i]=v[i]*3.6;ch.gLong[i]=a/G;ch.gLat[i]=R[i]>0?v[i]*v[i]/R[i]/G:0;ch.acel[i]=ac;ch.freio[i]=fr;ch.marcha[i]=gear;ch.rpm[i]=rpmMax*v[i]/(gear*dv);ch.arrasto[i]=arr;ch.downforce[i]=dwn;t+=2*ds/(v[i]+v[k]);}
+ let e=0;for(let st=0;st<n;st++){const i=(i0+st)%n;ch.ers[i]=e/1e6;if(ch.gLong[i]>0&&e<c.eErs&&c.pErs>0)e+=c.pErs*(ds/Math.max(0.5*(v[i]+v[(i+1)%n]),1));}
+ const sec=[];for(let q=0;q<nSec;q++){const a0=Math.floor(q*n/nSec),a1=Math.floor((q+1)*n/nSec);sec.push((a1<n?ch.t[a1]:t)-ch.t[a0]);}
+ return{tempo:t,setores:sec,gLatMax:Math.max(...ch.gLat),gFreioMax:-Math.min(...ch.gLong),gAcelMax:Math.max(...ch.gLong),rpmMax:Math.max(...ch.rpm),
+  pctPleno:100*ch.acel.filter(x=>x>=99).length/n,pctFreio:100*ch.freio.filter(x=>x>0).length/n,ch:ch};}
+function telemetryCsv(r){const K=[['s','s_m'],['t','t_s'],['v','v_kmh'],['gLong','g_long'],['gLat','g_lat'],['acel','acelerador_pct'],['freio','freio_pct'],['marcha','marcha'],['rpm','rpm'],['arrasto','arrasto_N'],['downforce','downforce_N'],['ers','ers_MJ']];
+ const rows=['# Telemetria sintética de volta — SIMULACAO_NUMERICA — NEXUS-Telemetria 1.0 — dados SINTÉTICOS (não são telemetria real)',K.map(k=>k[1]).join(',')];
+ for(let i=0;i<r.ch.s.length;i++)rows.push(K.map(k=>Number(r.ch[k[0]][i].toPrecision(6))).join(','));return rows.join('\n');}
+function f1Balance(items,yf,yr){items=items.filter(a=>a[1]>0);if(!items.length)throw new Error('sem itens com massa');const M=items.reduce((s,a)=>s+a[1],0);
+ const cg=[0,1,2].map(k=>items.reduce((s,a)=>s+a[1]*a[2][k],0)/M);const wb=Math.abs(yr-yf);if(!(wb>0))throw new Error('entre-eixos deve ser positivo');
+ const sg=yr>yf?1:-1,fp=100*(sg*(yr-cg[1]))/wb;const I=[[0,0,0],[0,0,0],[0,0,0]];
+ items.forEach(a=>{const d=[0,1,2].map(k=>(a[2][k]-cg[k])/1000),dd=d[0]*d[0]+d[1]*d[1]+d[2]*d[2];for(let r=0;r<3;r++)for(let q=0;q<3;q++)I[r][q]+=a[1]*((r===q?dd:0)-d[r]*d[q]);});
+ return{massa:M,cg:cg,pFront:fp,pRear:100-fp,altCg:cg[2],I:I};}
+const F1_REGS=[['C2.3.1','Meia-largura máx.','half_width_mm','<=',950,['2026','2027'],'FIA 2027 C2.3.1'],['C2.3.3','Entre-eixos','wheelbase_mm','<=',3400,['2026','2027'],'FIA 2027 C2.3.3'],
+ ['C2.3.5a','XA–XC mín.','xa_xc_mm','>=',1830,['2027'],'FIA 2027 C2.3.5'],['C2.3.5b','XA–XC máx.','xa_xc_mm','<=',2030,['2027'],'FIA 2027 C2.3.5'],['C2.3.6','XC–XPU mín.','xc_xpu_mm','>=',360,['2027'],'FIA 2027 C2.3.6'],
+ ['C3.6.1a','Prancha mín. (10±0,2)','plank_mm','>=',9.8,['2027'],'FIA 2027 C3.6.1'],['C3.6.1b','Prancha máx. (10±0,2)','plank_mm','<=',10.2,['2027'],'FIA 2027 C3.6.1'],
+ ['C4-2026','Massa mínima 2026','mass_kg','>=',768,['2026'],'Regulamento 2026 (valor do modelo)'],['C4-2027','Massa mínima 2027','mass_kg','>=',null,['2027'],'C4 não lido: informe o limite']];
+function f1Check(season,meas,massLimit){return F1_REGS.filter(r=>r[5].includes(season)).map(r=>{let lim=r[4];if(r[0]==='C4-2027'&&massLimit!=null)lim=massLimit;const v=meas[r[2]];
+ let st;if(lim==null)st='LIMITE_NAO_VERIFICADO';else if(v==null)st='SEM_MEDIDA';else st=(r[3]==='<='?v<=lim+1e-9:v>=lim-1e-9)?'CONFORME':'NAO_CONFORME';return{rule:r[0],title:r[1],field:r[2],op:r[3],limit:lim,value:v==null?null:v,status:st,src:r[6]};});}
+const LAB={lapSim,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;
 })(typeof window!=='undefined'?window:globalThis);

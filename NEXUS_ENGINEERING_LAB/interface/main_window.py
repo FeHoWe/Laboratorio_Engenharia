@@ -37,7 +37,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "2.7"
+APP_VERSION = "2.8"
 
 
 # --------------------------------------------------------------- console inferior
@@ -217,6 +217,8 @@ class MainWindow(QMainWindow):
           "Biblioteca central de componentes reutilizáveis: IDs NEXUS-COMP, versões, comparar/restaurar, variantes e compatibilidade")
         a("solvers", "Solvers, vitrine e projetos…", lambda: self.show_solvers(), "Ctrl+Shift+S", None,
           "Status de OpenFOAM/CalculiX/Gmsh (NÃO INSTALADO se ausentes), vitrine do Arsenal e projetos do usuário")
+        a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
+          "Conformidade geométrica com limites públicos do regulamento, massa/CG/inércia e simulação de volta quase-estacionária (estudo, não homologação)")
         a("lab", "Laboratório de testes (aba)…", lambda: self.open_lab(), "Ctrl+Shift+L", None,
           "Aerodinâmica, desempenho e testes estruturais analíticos (não é CFD nem FEA)")
         a("kinematics", "Animar mecanismo (motor de exemplo)…", lambda: self.open_kinematics(), "Ctrl+M", None,
@@ -284,7 +286,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "solvers", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "solvers", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -845,6 +847,10 @@ class MainWindow(QMainWindow):
     def show_solvers(self) -> None:
         from interface.solvers_dialog import SolversDialog
         SolversDialog(self).exec()
+
+    def show_f1tools(self) -> None:
+        from interface.f1_dialog import F1Dialog
+        F1Dialog(self).exec()
 
     def show_library(self) -> None:
         from interface.library_dialog import LibraryDialog

@@ -22,6 +22,21 @@ def veh_check():
     return max(abs(a - b) / max(abs(a), 1e-9) for a, b in zip(py, js))
 
 
+def lap_check():
+    from modules import lapsim, f1_mass
+    c = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
+    py = lapsim.volta(c).valores
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const r=L.lapSim({m:800,pIce:500e3,cda:1,cla:3,mu:1.6,pErs:300e3,eErs:4e6});const it=[["a",100,[0,0,100]],["b",300,[10,1000,300]],["c",50,[-40,400,55]]];const b=L.f1Balance(it,0,1000);console.log(JSON.stringify([r.tempo,r.vMedia,r.vMax,r.vMin,r.eMJ,b.massa,b.cg[0],b.cg[1],b.cg[2],b.pFront,b.I[0][0],b.I[1][1],b.I[2][2],b.I[0][2]]));', str(ROOT / 'mobile' / 'lab.js')], text=True))
+    b = f1_mass.balance([("a", 100, (0, 0, 100)), ("b", 300, (10, 1000, 300)), ("c", 50, (-40, 400, 55))], 0, 1000)
+    pyv = [py["tempo_s"], py["v_media_kmh"], py["v_max_kmh"], py["v_min_kmh"], py["energia_ers_usada_MJ"], b["massa_kg"], *b["cg_mm"], b["pct_dianteiro"],
+           b["inercia_kgm2"][0][0], b["inercia_kgm2"][1][1], b["inercia_kgm2"][2][2], b["inercia_kgm2"][0][2]]
+    from modules import telemetria
+    tp = telemetria.telemetria(c, None, 2.0, 8, 15000, 340, 3).valores
+    tj = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const T=L.telemetry({m:800,pIce:500e3,cda:1,cla:3,mu:1.6,pErs:300e3,eErs:4e6},null,2,8,15000,340,3);console.log(JSON.stringify([T.tempo,...T.setores,T.gLatMax,T.gFreioMax,T.gAcelMax,T.rpmMax,T.pctPleno,T.pctFreio,Math.max(...T.ch.ers)]));', str(ROOT / 'mobile' / 'lab.js')], text=True))
+    tv = [tp["tempo_s"], *tp["setores_s"], tp["g_lat_max"], tp["g_frenagem_max"], tp["g_acel_max"], tp["rpm_max_visto"], tp["tempo_acelerador_pleno_pct"], tp["tempo_freio_pct"], max(tp["canais"]["ers_MJ"])]
+    return max(max(abs(a - c2) / max(abs(a), 1e-9) for a, c2 in zip(pyv, js)), max(abs(a - c2) / max(abs(a), 1e-9) for a, c2 in zip(tv, tj)))
+
+
 def fea_check():
     import numpy as np
     from modules import fea3d as F
@@ -139,11 +154,13 @@ def main():
     print(f"unidades: {un} conversões JS×Python, erro relativo máx {ue:.2e}")
     ve = veh_check()
     print(f"veículo RK4: erro relativo máx JS×Python {ve:.2e}")
+    le = lap_check()
+    print(f"F1 volta + massa/CG/inércia: erro relativo máx JS×Python {le:.2e}")
     fe, same = fea_check()
     print(f"FEA Tet4 (viga): erro relativo JS×Python {fe:.2e}, mesmo nº de elementos: {same}")
     f10, same10 = fea10_check()
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
-    sys.exit(1 if bad or ue > 1e-12 or ve > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    sys.exit(1 if bad or ue > 1e-12 or ve > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()

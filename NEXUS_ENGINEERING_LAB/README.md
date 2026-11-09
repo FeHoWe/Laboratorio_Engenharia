@@ -283,3 +283,21 @@ Menu **Projetos** (e viewer de celular): todos com STEP gerado por OpenCascade, 
 
 **Honestidade:** são modelos de referência geométricos, ilustrativos — não foram dimensionados nem analisados (sem termodinâmica, BEM, CFD, norma de guindaste etc.); materiais NÃO são atribuídos automaticamente (você escolhe). Animações são cenários prescritos, não dinâmica. No Wankel/V12 não há válvulas, vedações reais, óleo ou refrigeração; o punho 2 do robô é uma esfera simplificada; a verificação de colisão cobre a pose inicial (não varre o movimento).
 Celular: novos descritores de pose (`orb`, `rsn`, `tsn`, `vr`/`vs`), conferidos contra o Python (diferença ≤ 1e-10). Testes: `tests/test_new_projects.py` (`NEXUS_SLOW=1` inclui a checagem de interferência de V12 e guindaste).
+
+
+## V2.8 — F1 (2027, clássicos), aeronaves e Engenharia/Telemetria F1
+
+**Novos projetos predefinidos** (todos com animação prescrita; `has_mechanism=True`):
+- **Protótipo de F1 2027** (`samples/f1_2027.py`): o modelo 2026 com as mudanças públicas de 2027 — asa traseira ~20 mm mais rasa, estai da asa traseira, piso/prancha 300 mm mais curtos (prancha 10 mm), tanque maior (ilustrativo). Massa mínima 2027 e volume do tanque **não verificados**.
+- **F1 clássicos** (`samples/f1_classicos.py`): Ferrari 312T (1975), McLaren MP4/4 (1988), Lotus 72 (1970–75). Entre-eixos e bitolas de fontes públicas; largura/altura da cabine do MP4/4 e quase tudo do Lotus 72 são **ESTIMADOS**; internos e suspensão plausíveis. Rodas giram (mesmo nº de voltas nas 4 — não é rolagem exata com raios diferentes) e as dianteiras esterçam ±20° (ilustrativo).
+- **Aeronaves** (`samples/aeronaves.py`): Cessna 172S, Supermarine Spitfire, Airbus A320-200. Hélice/fan giram; flapes, ailerons, profundor e leme oscilam. Sem aerodinâmica/CFD, sem estrutura interna.
+- Todos conferidos **sem interferência na pose inicial** (OpenCascade). Lição do A320: o loft "suave" da fuselagem gerava sólido inválido para booleanos (volume negativo) — usa-se loft reto.
+
+**Engenharia F1** (menu Analisar → *Engenharia F1…*, Ctrl+Alt+F; aba **F1** no celular), ferramentas de **estudo** com SEUS parâmetros:
+- **Regulamento** (`modules/f1_regs.py`): conferência geométrica 2026/2027 (meia-largura, entre-eixos, prancha, massa) com fonte e status; limites não lidos aparecem como `LIMITE_NAO_VERIFICADO`.
+- **Massa e CG** (`modules/f1_mass.py`): massa, CG, distribuição, altura do CG e inércia (massas pontuais), só com peças de material escolhido por você; lastro para alvo.
+- **Volta** (`modules/lapsim.py`): ponto material quase-estacionário, elipse de atrito, ERS por volta — `SIMULACAO_NUMERICA` (NEXUS-LapSim 1.0); pista de exemplo **sintética**.
+- **Telemetria** (`modules/telemetria.py`, NEXUS-Telemetria 1.0): canais sintéticos por distância — velocidade, tempo, g longitudinal/lateral, acelerador/freio (**estimados**), marcha/rotação (**ilustrativas**), arrasto, downforce, ERS, setores; faixas empilhadas e exportação CSV (cabeçalho avisa que são dados sintéticos). No celular: mesma matemática em JS (diferença JS×Python ≈ 5e-15) e CSV para baixar.
+- **Limites**: não é telemetria real nem de equipe; sem pneus reais, transferência de carga, combustível, temperaturas, DRS ou mapas de motor; não substitui os sistemas de uma equipe nem a homologação da FIA.
+
+**Fontes**: FIA 2027 Section C (iss.04) e The Race (regras 2027), RaceTeq (unidade de potência 2027), ultimatecarpage, f1technical, Wikipedia, AOPA e aerocorner (aeronaves).

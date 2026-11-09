@@ -19,8 +19,8 @@ from samples import geo as g
 from samples.mechanisms import build_mechanism
 from samples.projects import get
 
-KEYS = ["wankel", "v12", "braco", "bomba", "eolica", "turbojato", "guindaste"]
-N_MIN = {"wankel": 17, "v12": 71, "braco": 12, "bomba": 13, "eolica": 10, "turbojato": 29, "guindaste": 140}
+KEYS = ["wankel", "v12", "braco", "bomba", "eolica", "turbojato", "guindaste", "f1_2027", "f1_312t", "f1_mp44", "f1_lotus72", "cessna", "spitfire", "a320"]
+N_MIN = {"wankel": 17, "v12": 71, "braco": 12, "bomba": 13, "eolica": 10, "turbojato": 29, "guindaste": 140, "f1_2027": 194, "f1_312t": 58, "f1_mp44": 58, "f1_lotus72": 58, "cessna": 26, "spitfire": 23, "a320": 34}
 _CACHE: dict = {}
 
 

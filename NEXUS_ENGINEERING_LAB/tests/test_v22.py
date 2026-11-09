@@ -117,7 +117,7 @@ def test_library_rejects_out_of_range():
 # ------------------------------------------------------------------ projetos
 def test_registry_consistent():
     keys = [p.key for p in all_projects()]
-    assert keys == ["motor", "f1", "redutor", "suspensao", "ponte", "wankel", "v12", "braco", "bomba", "eolica", "turbojato", "guindaste"]
+    assert keys == ["motor", "f1", "f1_2027", "f1_312t", "f1_mp44", "f1_lotus72", "cessna", "spitfire", "a320", "redutor", "suspensao", "ponte", "wankel", "v12", "braco", "bomba", "eolica", "turbojato", "guindaste"]
     assert project_for_name("f1_2026").key == "f1" and project_for_name("nada") is None
     assert get("f1").material_for("Halo arco direito") == "Titanium Ti-6Al-4V (Grade 5)"
     assert get("f1").material_for("Monocoque (celula de sobrevivencia)") is None            # compósito: não consta do banco

@@ -11,7 +11,7 @@ def build_mechanism(components) -> Mechanism:
         return mech
     from samples import extra_mechanisms as xm
     for fn in (xm.build_wankel_mechanism, xm.build_v12_mechanism, xm.build_robot_mechanism, xm.build_pump_mechanism, xm.build_wind_mechanism,
-               xm.build_jet_mechanism, xm.build_crane_mechanism):
+               xm.build_jet_mechanism, xm.build_crane_mechanism, xm.build_classic_mechanism, xm.build_aircraft_mechanism):
         mech = fn(components)
         if mech.links:
             return mech

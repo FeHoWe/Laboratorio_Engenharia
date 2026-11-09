@@ -159,3 +159,69 @@ def build_crane_mechanism(components) -> Mechanism:
                            "Carrinho + gancho", js={"t": "mul", "a": sj, "b": {"t": "tsn", "a": [1, 0, 0], "amp": 9000.0, "ph": 90, "f": 2}}))
     mech.notes.append("Giro ±100° e translação do carrinho prescritos (senoidais).")
     return mech
+
+
+# ------------------------------------------------------------------ F1 clássicos (V2.8)
+CLASSIC_STEER_DEG = 20.0   # esterço máximo ILUSTRATIVO das rodas dianteiras
+
+
+def build_classic_mechanism(components) -> Mechanism:
+    """As 4 rodas giram o mesmo nº de voltas por ciclo e as dianteiras esterçam senoidalmente. Cenário prescrito, sem dinâmica."""
+    from samples.f1_classicos import SPECS
+    idx = _index(components)
+    mech = Mechanism("F1 clássico — rodas e esterço (prescrito)", "Ângulo de rotação (°)", 360.0)
+    if "Santo Antonio (arco de capotamento)" not in idx or "Pneu dianteira direita" not in idx:
+        return mech
+    tag = next((k for k in idx if k.startswith("Bloco do motor ")), "")
+    sp = SPECS[{"V12 boxer": "312t", "V6 turbo": "mp44", "V8 DFV": "lotus72"}[tag[len("Bloco do motor "):]]] if tag else None
+    if sp is None:
+        return mech
+    WB, TF, TR, RF, RR = sp["WB"], sp["TF"], sp["TR"], sp["RF"], sp["RR"]
+    turns = 2.0
+    for front in (True, False):
+        y, R, tr = (0.0, RF, TF) if front else (WB, RR, TR)
+        ratio = turns   # mesmo nº de voltas nos 4 pneus (periódico); NÃO respeita a diferença de raio entre eixos
+        axle = "dianteira" if front else "traseira"
+        for sgn, side in ((1, "direita"), (-1, "esquerda")):
+            ids = _ids(idx, *[f"{p} {axle} {side}" for p in ("Pneu", "Roda", "Cubo", "Disco de freio", "Disco de freio interno")])
+            xw = sgn * tr / 2.0
+            spin = {"t": "rx", "y": y, "z": R, "r": ratio}
+            sf = lambda t, y=y, R=R, ratio=ratio: rotation_about((0, y, R), X, math.radians(t * ratio))  # noqa: E731
+            if front:
+                st = lambda t, xw=xw, y=y: rotation_about((xw, y, 0.0), Z, math.radians(CLASSIC_STEER_DEG * math.sin(math.radians(t))))  # noqa: E731
+                fn = lambda t, st=st, sf=sf: st(t) @ sf(t)  # noqa: E731
+                js = {"t": "mul", "a": {"t": "rsn", "p": [xw, y, 0.0], "a": [0.0, 0.0, 1.0], "amp": CLASSIC_STEER_DEG, "ph": 0, "f": 1}, "b": spin}
+                label = f"Roda dianteira {side}: giro + esterço"
+            else:
+                fn, js, label = sf, spin, f"Roda traseira {side}: giro"
+            mech.links.append(Link(ids, fn, label, js=js))
+    mech.notes.append("As 4 rodas dão 2 voltas por ciclo (igual nos dois eixos, então NÃO é rolagem sem deslizamento com raios diferentes) e esterço senoidal de ±20°: ILUSTRATIVOS. Sem suspensão, sem dinâmica.")
+    return mech
+
+
+# ------------------------------------------------------------------ aeronaves (V2.8)
+def build_aircraft_mechanism(components) -> Mechanism:
+    """Hélice/fan girando e superfícies de comando oscilando (prescrito). Dados em samples.aeronaves.MECH (preenchido ao construir)."""
+    from samples import aeronaves as A
+    idx = _index(components)
+    key = "a320" if "Fan direito" in idx else "spitfire" if "Pa da helice 3" in idx else "cessna" if "Pa da helice 1" in idx else None
+    mech = Mechanism("Aeronave — rotação e superfícies de comando (prescrito)", "Fase do ciclo (°)", 360.0)
+    if key is None:
+        return mech
+    if key not in A.MECH:
+        A.BUILDERS[key]()   # registra MECH
+    spec = A.MECH[key]
+    for names, (py, pz), ratio in spec["spin"]:
+        ids = _ids(idx, *names)
+        if ids:
+            mech.links.append(Link(ids, lambda t, py=py, pz=pz, ratio=ratio: rotation_about((0, py, pz), X, math.radians(t * ratio)), "Hélice / fan",
+                                   js={"t": "rx", "y": float(py), "z": float(pz), "r": float(ratio)}))
+    for names, p, a, amp, ph in spec["surf"]:
+        ids = _ids(idx, *names)
+        if not ids:
+            continue
+        p, a = np.asarray(p, float), np.asarray(a, float)
+        mech.links.append(Link(ids, _rsn(p, a, amp, ph), "Superfície de comando",
+                               js={"t": "rsn", "p": [float(v) for v in p], "a": [float(v) for v in a], "amp": float(amp), "ph": float(ph), "f": 1}))
+    mech.notes.append("Deflexões senoidais ILUSTRATIVAS das superfícies; hélice/fan em rotação constante. Não é dinâmica de voo nem aerodinâmica.")
+    return mech

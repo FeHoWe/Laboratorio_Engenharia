@@ -33,7 +33,8 @@ class ProjectDef:
 
     def ensure_step(self) -> Path:
         if not self.step_path.exists():
-            importlib.import_module(self.module).write(self.step_path)
+            mod = importlib.import_module(self.module)
+            (getattr(mod, "write_" + self.key, None) or mod.write)(self.step_path)
         return self.step_path
 
     def material_for(self, part_name: str):
@@ -65,6 +66,28 @@ def all_projects() -> list[ProjectDef]:
                    "samples.f1_2026", "build_f1", "f1_2026.step",
                    "Referência baseada no regulamento 2026 — não é CAD de equipe; dimensões de pneus/asas/internos/suspensão não verificadas; cascas ocas encostam nos internos; sem compósitos no banco.",
                    _f1_typical(), True),
+        ProjectDef("f1_2027", "Protótipo de F1 2027 (derivado do 2026)", "Modelo 2026 com as mudanças públicas de 2027: asa traseira 20 mm mais rasa e estai, piso/prancha 300 mm mais curtos, tanque maior; mesma animação de curva/frenagem.",
+                   "samples.f1_2027", "build_f1_2027", "f1_2027.step",
+                   "PROTÓTIPO ilustrativo: só as mudanças de regulamento encontradas em fontes públicas; massa mínima 2027 e tanque NÃO verificados; não é CAD de equipe.",
+                   _f1_typical(), True),
+        ProjectDef("f1_312t", "Ferrari 312T (1975) — F1 clássico", "Monocoque de alumínio, V12 boxer (flat-12), caixa transversal, asas e 4 rodas; rodas giram e as dianteiras esterçam.",
+                   "samples.f1_classicos", "build_f1_312t", "f1_312t.step",
+                   "Referência por dimensões públicas (entre-eixos 2518 mm, bitolas 1510/1530); formas simplificadas, internos e suspensão plausíveis, NÃO é CAD original da Ferrari.", {}, True),
+        ProjectDef("f1_mp44", "McLaren MP4/4 (1988) — F1 clássico", "Monocoque, V6 turbo Honda, asas e 4 rodas; rodas giram e as dianteiras esterçam.",
+                   "samples.f1_classicos", "build_f1_mp44", "f1_mp44.step",
+                   "Entre-eixos 2875 mm e bitolas 1824/1670 de fontes públicas; largura/altura da cabine ESTIMADAS; NÃO é CAD original da McLaren.", {}, True),
+        ProjectDef("f1_lotus72", "Lotus 72 (1970–75) — F1 clássico", "Cunha com radiadores laterais, V8 Cosworth DFV, asas e 4 rodas; rodas giram e as dianteiras esterçam.",
+                   "samples.f1_classicos", "build_f1_lotus72", "f1_lotus72.step",
+                   "Entre-eixos/bitolas ESTIMADOS a partir de fontes públicas (valores variam entre versões); formas simplificadas; NÃO é CAD original da Lotus.", {}, True),
+        ProjectDef("cessna", "Cessna 172S Skyhawk (asa alta)", "Fuselagem, asa alta com montantes, flapes, ailerons, empenagem, trem e hélice bipá; hélice gira e superfícies oscilam.",
+                   "samples.aeronaves", "build_cessna172", "cessna.step",
+                   "Envergadura 11,0 m e área 16,2 m² de dados públicos; perfil e fuselagem simplificados; sem aerodinâmica/CFD nem carga estrutural.", {}, True),
+        ProjectDef("spitfire", "Supermarine Spitfire (asa elíptica)", "Fuselagem, asa elíptica com flapes e ailerons, empenagem, trem e hélice de 3 pás.",
+                   "samples.aeronaves", "build_spitfire", "spitfire.step",
+                   "Dimensões públicas (9,12 m; 11,23 m; 22,5 m²); perfil, fuselagem e trem simplificados; sem aerodinâmica/CFD.", {}, True),
+        ProjectDef("a320", "Airbus A320-200 (jato de linha)", "Fuselagem de corpo estreito, asa enflechada 25° com flapes e ailerons, empenagem, 2 nacelles (fan/núcleo/pilone) e trem triciclo.",
+                   "samples.aeronaves", "build_a320", "a320.step",
+                   "Dimensões públicas (37,6 m; 35,8 m; cauda 11,8 m); fan com 20 pás e núcleo simplificados; sem cabine/interior; sem CFD.", {}, True),
         ProjectDef("redutor", "Redutor de engrenagens 2 estágios (6:1)", "Carcaça, 3 eixos, 4 engrenagens evolventes engrazadas, rolamentos e parafusos.",
                    "samples.redutor", "build_redutor", "redutor_2_estagios.step",
                    "Evolvente simplificada; sem lubrificação, folgas de montagem ou rolamentos detalhados.", _typ("samples.redutor")),
