@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from samples._common import L, at, g, group, write_step, RawNode  # noqa: E402
+from samples._common import L, g, group, write_step, RawNode  # noqa: E402
 from samples.f1_2026 import wing_element, endplate  # noqa: E402
 
 X, Y, Z = g.X, g.Y, g.Z
@@ -94,7 +94,6 @@ def build_classic(key: str) -> RawNode:
                 L("Volante", g.cyl(150, 18, at=(0, WB * 0.12 + 18, sp["tub_h"] * 0.62 + 150), axis=Y))]
     kids.append(group("Chassi", *chassis))
     kids.append(group("Motor", *[L(n, s) for n, s in _engine(sp)]))
-    gb_y = WB - 160
     if sp["gearbox"] == "transversal":
         gb = g.cyl(150, 520, at=(-260, WB + 60, 330), axis=X)
     else:

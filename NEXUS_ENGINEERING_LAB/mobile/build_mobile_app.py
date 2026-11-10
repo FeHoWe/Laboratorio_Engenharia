@@ -60,12 +60,18 @@ def main(out: Path, keys: list[str]) -> None:
         mat_for = (lambda name, _p=p: _p.material_for(name)) if typical else None
         data = build_data(p.ensure_step(), typical=False, interf=p.key != "f1", title=p.title)
         data["note"] = p.note
+        from modules.appearance import appearance
+        for q in data["parts"]:
+            q["ap"] = list(appearance(p.key, q["name"]))
         data["description"] = p.description
         (out / "data" / f"{p.key}.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
         reg.append({"key": p.key, "title": p.title, "mech": data["mech"] is not None, "parts": len(data["parts"])})
         print(p.key, len(data["parts"]), "peças", "clashes:", None if data["clashes"] is None else len(data["clashes"]), flush=True)
     if not keys or "biblioteca" in keys:
         data = build_data(library_showcase(), title="Biblioteca de peças (parâmetros padrão)")
+        from modules.appearance import appearance
+        for q in data["parts"]:
+            q["ap"] = list(appearance("biblioteca", q["name"]))
         data["note"] = "Vitrine das 19 peças paramétricas do NEXUS desktop com valores padrão; para mudar parâmetros use o desktop (Ctrl+L)."
         data["description"] = "Parafusos, rolamentos, engrenagens, perfis, molas…"
         (out / "data" / "biblioteca.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
@@ -81,6 +87,8 @@ def main(out: Path, keys: list[str]) -> None:
     (out / "index.html").write_text(html, encoding="utf-8")
     for f in ("lab.js", "ui.js"):
         (out / f).write_text((ROOT / "mobile" / f).read_text(encoding="utf-8"), encoding="utf-8")
+    from mobile.build_f1sim import build as build_f1sim
+    build_f1sim(out)
     from modules.units import export_table
     (out / "units.json").write_text(export_table(), encoding="utf-8")
     (out / "materials.json").write_text(json.dumps(materials_json(), separators=(",", ":")), encoding="utf-8")

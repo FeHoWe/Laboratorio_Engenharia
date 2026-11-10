@@ -4,7 +4,6 @@ Ferramentas de ESTUDO com parâmetros seus — não substituem os sistemas de um
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (QApplication, QFileDialog, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QTableWidget,
                                QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)

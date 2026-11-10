@@ -301,3 +301,20 @@ Celular: novos descritores de pose (`orb`, `rsn`, `tsn`, `vr`/`vs`), conferidos 
 - **Limites**: não é telemetria real nem de equipe; sem pneus reais, transferência de carga, combustível, temperaturas, DRS ou mapas de motor; não substitui os sistemas de uma equipe nem a homologação da FIA.
 
 **Fontes**: FIA 2027 Section C (iss.04) e The Race (regras 2027), RaceTeq (unidade de potência 2027), ultimatecarpage, f1technical, Wikipedia, AOPA e aerocorner (aeronaves).
+
+
+## V2.9 — NEXUS F1 completo, análise estilo equipe, visual realista e vidros
+
+**NEXUS F1 integrado** (`nexus_f1/`, menu Analisar → *Simulador F1 completo…*, Ctrl+Alt+S): trazido da conversa "Simulador de Telemetria da F1". Simulador quase-estático por circuito (15 circuitos configuráveis, passes de frenagem/tração, pneus com janela térmica e desgaste, ERS, pista molhada), temporadas independentes em JSON com `status`/`src` por parâmetro (modo regulamentar × experimental, `create_season` nunca sobrescreve), estratégia de pit stop, comparação A/B/C, relatórios CSV/JSON/Markdown, telemetria com cursor, e **áudio procedural do motor** (síntese harmônica ligada ao RPM, Doppler, trocas de marcha, ambiente). Todos os parâmetros dos pneus/carro são **estimativas** e os tempos **resultam da simulação** (não são fixos). 52 testes originais passam.
+
+**Análise no estilo MoTeC i2 / ATLAS / OptimumLap** (`nexus_f1/core/analysis.py`, aba *Análise*): Δ-tempo entre voltas por distância (como o canal *time delta* do i2) e por segmento; canais matemáticos com avaliador seguro (AST, sem atributos/índices/imports); diagrama g-g com envelope; histogramas ponderados pelo tempo; uso de marchas e pedais; varredura de parâmetro; sensibilidade (s por +1 %); otimização de nível de asa (Monza × Mônaco dão resultados opostos) e de relação final (seção áurea). Varreduras rodam em modo experimental. São **tendências** com parâmetros estimados, não dados de equipe.
+
+**Celular**: abas *F1 Sim* (visualizador do NEXUS F1: pista animada, telemetria e som sintetizado, 15 circuitos; `f1sim.html`) e *F1 Análise* (`analise_f1.json`: sensibilidade, nível ótimo de asa, marchas e histograma por circuito).
+
+**Visual realista** (`modules/appearance.py`): cor/metal/rugosidade/opacidade por tipo de peça (pneu = borracha, vidro translúcido, rodas de liga, pintura por projeto — vermelho Ferrari 312T, preto/ouro Lotus 72, branco/azul A320, verde Spitfire…), no celular (botão *Visual: Realista/Holograma* + sombras) e no desktop (desligar *Holograma*). É **só estética**: não é material de engenharia e nunca alimenta massa/BOM. Nota técnica: o mapeamento de tons ACES foi retirado por renderizar preto em alguns drivers/GL por software.
+
+**Vidros** nos aviões, recortados da pele da fuselagem (encaixam no rebaixo, sem interferência): janelas da cabine do Cessna, canopy do Spitfire, parabrisa e janelas do A320. Correção: o loft *suave* da fuselagem do A320 gerava sólido inválido para booleanos (invisível no viewer); usa-se loft reto.
+
+**Estudo gratuito de F1 / engenharia de corrida** (base das ferramentas acima): Monlau Repsol (módulos *Introduction to Motorsport* e *Racing Team* gratuitos ao se matricular em outro), SimScale (série de workshops de F1 com CFD/modal/térmica/estática — encerrada, gravação no YouTube), HP Academy (análise de dados, canal de ganho/perda), MathWorks Racing Lounge (dinâmica veicular em Simulink), School of Race Engineering (módulo de simulação veicular). Softwares de referência: ATLAS (McLaren/Motion Applied), MoTeC i2, Ansys (CFD), MATLAB/Simulink, OptimumLap/OpenLAP.
+
+**Limites**: NEXUS F1 e análises usam dados sintéticos e parâmetros estimados; não substituem sistemas de equipe nem a homologação da FIA.

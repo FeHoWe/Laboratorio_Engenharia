@@ -170,7 +170,7 @@ class SectionToolBar(QToolBar):
         self.addWidget(self.flip_check)
         self.holo_check = QCheckBox("Holograma")
         self.holo_check.setChecked(True)
-        self.holo_check.setToolTip("Estilo de bancada holográfica (desligado: sólido técnico)")
+        self.holo_check.setToolTip("Estilo de bancada holográfica (desligado: visual realista — cores e acabamentos por tipo de peça, só estético)")
         self.addSeparator()
         self.addWidget(self.holo_check)
         for w in (self.enable_check, self.flip_check):

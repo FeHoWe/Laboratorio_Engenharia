@@ -80,10 +80,10 @@ def mesh_to_polydata(mesh: MeshData) -> vtkPolyData:
 
 
 class _PartActors:
-    __slots__ = ("body", "edges", "base_color")
+    __slots__ = ("body", "edges", "base_color", "opacity")
 
-    def __init__(self, body: vtkActor, edges: vtkActor, base_color: tuple[float, float, float]) -> None:
-        self.body, self.edges, self.base_color = body, edges, base_color
+    def __init__(self, body: vtkActor, edges: vtkActor, base_color: tuple[float, float, float], opacity: float = 1.0) -> None:
+        self.body, self.edges, self.base_color, self.opacity = body, edges, base_color, opacity
 
 
 class SceneController:
@@ -104,6 +104,7 @@ class SceneController:
         self.edges_visible = True
         self._measure_actors: list[vtkActor] = []
         self.holo = True
+        self.project_key: Optional[str] = None   # chave do projeto predefinido (para a aparência visual); None = genérico
         self._floor: Optional[vtkActor] = None
         self._section: Optional[tuple[int, float, bool]] = None
         self._hud_size = (0, 0)
@@ -137,7 +138,7 @@ class SceneController:
                 progress(i, len(leaves), comp.name)
             try:
                 mesh = components.render_mesh(comp)
-                self._add_part(comp.id, mesh, i)
+                self._add_part(comp.id, mesh, i, comp.name)
             except Exception as exc:  # peça sem faces (ex.: só arestas) não derruba o projeto
                 failures.append(f"{comp.name}: {exc}")
         if progress:
@@ -149,7 +150,7 @@ class SceneController:
             self.set_section(*self._section)
         return failures
 
-    def _add_part(self, comp_id: str, mesh: MeshData, index: int) -> None:
+    def _add_part(self, comp_id: str, mesh: MeshData, index: int, name: str = "") -> None:
         poly = mesh_to_polydata(mesh)
         mapper = vtkPolyDataMapper()
         mapper.SetInputData(poly)
@@ -159,11 +160,21 @@ class SceneController:
         body.SetMapper(mapper)
         color = styles.PART_COLORS[index % len(styles.PART_COLORS)]
         prop = body.GetProperty()
+        opacity = 1.0
+        if name:
+            # aparência VISUAL realista por tipo de peça (não é material de engenharia; ver modules/appearance.py)
+            from modules.appearance import appearance
+            hx, metal, rough, opacity = appearance(self.project_key or "", name)
+            color = tuple(int(hx[k:k + 2], 16) / 255.0 for k in (1, 3, 5))
+            prop.SetSpecular(0.25 + 0.55 * metal)
+            prop.SetSpecularPower(14 + 90 * (1.0 - rough))
+            prop.SetSpecularColor(*(tuple(0.6 + 0.4 * c for c in color) if metal > 0.5 else (1.0, 1.0, 1.0)))
+        else:
+            prop.SetSpecular(0.3)
+            prop.SetSpecularPower(28)
         prop.SetColor(*color)
         prop.SetAmbient(0.22)
         prop.SetDiffuse(0.8)
-        prop.SetSpecular(0.3)
-        prop.SetSpecularPower(28)
 
         feat = vtkFeatureEdges()
         feat.SetInputData(poly)
@@ -186,7 +197,7 @@ class SceneController:
 
         self.renderer.AddActor(body)
         self.renderer.AddActor(edges)
-        self.parts[comp_id] = _PartActors(body, edges, color)
+        self.parts[comp_id] = _PartActors(body, edges, color, opacity)
         self._actor_ids[body] = comp_id
         self._style(comp_id, False)
 
@@ -299,7 +310,7 @@ class SceneController:
             eprop.SetLineWidth(2.4 if selected else 1.5)
             eprop.SetOpacity(1.0)
             return
-        prop.SetOpacity(1.0)
+        prop.SetOpacity(1.0 if selected else pa.opacity)
         if selected:
             prop.SetColor(*styles.SELECTION_COLOR)
             prop.SetAmbient(0.30)

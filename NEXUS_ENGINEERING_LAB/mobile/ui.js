@@ -6,7 +6,7 @@ const nf=(x,d=4)=>{if(x===Infinity)return '∞';if(x===-Infinity)return '−∞'
  if(a!==0&&(a>=1e7||a<1e-3))return x.toExponential(3).replace('.',',');return x.toLocaleString('pt-BR',{maximumSignificantDigits:d});};
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const store={get(k,d){try{const v=localStorage.getItem('nexus.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('nexus.'+k,JSON.stringify(v));}catch(e){}}};
-const TABS=[['3d','3D'],['aero','Aero'],['estr','Estrutural'],['trel','Treliça'],['port','Pórtico'],['fad','Fadiga'],['fea','FEA 3D'],['veic','Veículo'],['f1','F1'],['massa','Massa'],['unid','Unidades'],['interf','Interferência'],['sobre','Sobre']];
+const TABS=[['3d','3D'],['aero','Aero'],['estr','Estrutural'],['trel','Treliça'],['port','Pórtico'],['fad','Fadiga'],['fea','FEA 3D'],['veic','Veículo'],['f1','F1'],['f1sim','F1 Sim'],['f1an','F1 Análise'],['massa','Massa'],['unid','Unidades'],['interf','Interferência'],['sobre','Sobre']];
 let cur='3d',project=null,MATS=null;const built={};
 // ---- construtor de cartões
 function card(title,note,fields,fn,opts={}){
@@ -292,8 +292,21 @@ function drawTel(cv,ch){const x=cv.getContext('2d'),W=cv.width,H=cv.height;x.fil
   x.fillStyle='#9fb4c4';x.font='12px sans-serif';x.fillText(ln[0]+'  ['+lo.toFixed(1)+' … '+hi.toFixed(1)+']',6,y0+13);
   ln[1].forEach((k,ci)=>{x.strokeStyle=ln[2][ci];x.lineWidth=1.3;x.beginPath();ch[k].forEach((b,i)=>{const px=5+(W-10)*s[i]/sm,py=y0+18+(lh-24)*(1-(b-lo)/(hi-lo));i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();});
   x.strokeStyle='#22384a';x.beginPath();x.moveTo(0,y0+lh);x.lineTo(W,y0+lh);x.stroke();});}
+
+function tabF1Sim(c){c.innerHTML='<p class="n">Simulador NEXUS F1 (somente leitura): 15 circuitos calculados no desktop com parâmetros ESTIMADOS — pista animada, telemetria sintética e som de motor sintetizado a partir do RPM. Toque em Som para ligar o áudio.</p><iframe src="f1sim.html" style="width:100%;height:78vh;border:1px solid #12394d;border-radius:8px;background:#06101a" title="NEXUS F1 Sim"></iframe>';}
+async function tabF1An(c){c.innerHTML='<p class="n">Análise no estilo MoTeC i2 / OptimumLap, pré-calculada no desktop para o carro-base 2025 (ESTIMADO). Mostra tendências, não dados de equipe.</p><div class="fld"><label>Circuito</label><select id="anc"></select></div><div id="ano"></div><canvas id="anp" width="640" height="260" style="width:100%;background:#0b1620;border-radius:8px"></canvas><canvas id="anh" width="640" height="220" style="width:100%;background:#0b1620;border-radius:8px;margin-top:8px"></canvas>';
+ let D;try{D=await (await fetch('analise_f1.json')).json();}catch(e){c.querySelector('#ano').innerHTML='<span class="warn">⚠ analise_f1.json indisponível</span>';return;}
+ const sel=c.querySelector('#anc');Object.entries(D.circuitos).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.nome;sel.appendChild(o);});
+ const line=(cv,xs,ys,tx,col,bar)=>{const x=cv.getContext('2d'),W=cv.width,H=cv.height;x.fillStyle='#0b1620';x.fillRect(0,0,W,H);const x0=Math.min(...xs),x1=Math.max(...xs);let y0=Math.min(...ys),y1=Math.max(...ys);if(bar)y0=Math.min(0,y0);if(y1-y0<1e-9)y1=y0+1;
+  const px=v=>40+(W-52)*(v-x0)/((x1-x0)||1),py=v=>22+(H-48)*(1-(v-y0)/(y1-y0));x.fillStyle='#9fb4c4';x.font='12px sans-serif';x.fillText(tx,8,14);x.fillText(y1.toPrecision(4),2,30);x.fillText(y0.toPrecision(4),2,H-24);x.fillText(x0.toPrecision(3)+' … '+x1.toPrecision(3),44,H-8);
+  x.strokeStyle=col;x.fillStyle=col;x.lineWidth=2;if(bar){const bw=Math.max(3,(W-52)/xs.length*0.8);xs.forEach((v,i)=>x.fillRect(px(v)-bw/2,Math.min(py(ys[i]),py(0)),bw,Math.abs(py(ys[i])-py(0))+1));}else{x.beginPath();xs.forEach((v,i)=>i?x.lineTo(px(v),py(ys[i])):x.moveTo(px(v),py(ys[i])));x.stroke();}};
+ const show=()=>{const d=D.circuitos[sel.value];const rows=d.sens.map(s=>'<tr><td>'+s.p+'</td><td>'+Number(s.v.toPrecision(4))+'</td><td style="color:'+(s.d>0?'#ff7b7b':'#3ddc84')+'">'+(s.d>=0?'+':'')+s.d.toFixed(4)+' s</td></tr>').join('');
+  const gs=Object.entries(d.gears).map(([g,t])=>g+'ª '+t.toFixed(1)+' s').join(' · ');
+  c.querySelector('#ano').innerHTML='<div class="res" style="display:block">volta-base <b>'+d.lap.toFixed(3)+' s</b> · melhor nível de asa <b>'+d.aero.best.toFixed(2)+'</b> (0 = baixo arrasto, 1 = alta carga) · acelerador pleno '+d.pedais.acelerador_pleno_pct.toFixed(0)+' % · freio '+d.pedais.freio_pct.toFixed(0)+' %<br>marchas: '+gs+'</div><table style="width:100%;font-size:13px;margin:8px 0"><tr><th align="left">Parâmetro</th><th align="left">Valor</th><th align="left">Δ volta por +1 %</th></tr>'+rows+'</table>';
+  line(c.querySelector('#anp'),d.aero.lv,d.aero.t,'Tempo de volta (s) × nível de asa','#33e0ff',false);line(c.querySelector('#anh'),d.hist.x,d.hist.s,'Histograma de velocidade (s por faixa, km/h)','#ffb02e',true);};
+ sel.onchange=show;show();}
 function LAB_TRACK_TXT(){return L.LAP_TRACK.map(a=>a.join(', ')).join('\n');}
-const BUILD={fea:tabFea,veic:tabVeic,f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
+const BUILD={f1sim:tabF1Sim,f1an:tabF1An,fea:tabFea,veic:tabVeic,f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
 function rebuild(id){const p=$('#panel');p.innerHTML='';BUILD[id](p);}
 function setTab(id){cur=id;document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===id));
  const p=$('#panel'),v=$('#view');if(id==='3d'){p.style.display='none';v.style.display='flex';setTimeout(()=>N().resizeNow(),30);return;}

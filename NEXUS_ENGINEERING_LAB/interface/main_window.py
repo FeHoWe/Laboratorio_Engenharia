@@ -37,7 +37,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "2.8"
+APP_VERSION = "2.9"
 
 
 # --------------------------------------------------------------- console inferior
@@ -219,6 +219,8 @@ class MainWindow(QMainWindow):
           "Status de OpenFOAM/CalculiX/Gmsh (NÃO INSTALADO se ausentes), vitrine do Arsenal e projetos do usuário")
         a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
           "Conformidade geométrica com limites públicos do regulamento, massa/CG/inércia e simulação de volta quase-estacionária (estudo, não homologação)")
+        a("f1sim", "Simulador F1 completo (volta, pneus, estratégia, telemetria, áudio, análise)…", lambda: self.show_f1sim(), "Ctrl+Alt+S", None,
+          "NEXUS F1: simulador quase-estático por circuito, pneus, estratégia de pit stop, comparação A/B/C, análise estilo i2/OptimumLap e som sintetizado do motor (dados sintéticos, parâmetros estimados)")
         a("lab", "Laboratório de testes (aba)…", lambda: self.open_lab(), "Ctrl+Shift+L", None,
           "Aerodinâmica, desempenho e testes estruturais analíticos (não é CFD nem FEA)")
         a("kinematics", "Animar mecanismo (motor de exemplo)…", lambda: self.open_kinematics(), "Ctrl+M", None,
@@ -286,7 +288,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "solvers", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "solvers", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -506,6 +508,7 @@ class MainWindow(QMainWindow):
 
         ``ask_split``: None = perguntar ao usuário; True/False = decidir sem perguntar.
         """
+        self.scene.project_key = self.__dict__.pop("_predef_next", None)   # aparência visual por projeto predefinido
         if self.busy:
             self.console.log("warn", "Aguarde o término da operação em andamento.")
             return
@@ -838,6 +841,7 @@ class MainWindow(QMainWindow):
             self._end_busy()
         self.console.log("info", pdef.note)
         if self._maybe_save():
+            self._predef_next = key
             self.import_model(str(pdef.step_path), ask_split=ask_split, background=background)
 
     def show_arsenal(self) -> None:
@@ -847,6 +851,16 @@ class MainWindow(QMainWindow):
     def show_solvers(self) -> None:
         from interface.solvers_dialog import SolversDialog
         SolversDialog(self).exec()
+
+    def show_f1sim(self) -> None:
+        """Abre o NEXUS F1 (janela própria); mantém referência para não ser coletada."""
+        from nexus_f1.ui.main_window import MainWindow as F1Window
+        from nexus_f1.ui.style import QSS
+        w = F1Window()
+        w.setStyleSheet(QSS)
+        w.setAttribute(Qt.WA_DeleteOnClose, True)
+        self._f1sim = w
+        w.show()
 
     def show_f1tools(self) -> None:
         from interface.f1_dialog import F1Dialog

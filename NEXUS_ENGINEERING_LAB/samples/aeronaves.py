@@ -38,6 +38,14 @@ def _orient(shape):
     return shape.Reversed() if pr.Mass() < 0 else shape
 
 
+def _plug(body, slab, core):
+    """Recorta da pele de `body` uma placa (`slab` menos o miolo `core`) e devolve (vidro, corpo_sem_a_placa).
+    O vidro encaixa exatamente no rebaixo da pele: sem interferência e o corpo continua conexo."""
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
+    glass = g.cut(BRepAlgoAPI_Common(body, slab).Shape(), core)
+    return glass, g.cut(body, glass)
+
+
 def mirror_y(shape):
     t = gp_Trsf()
     t.SetMirror(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 1, 0)))
@@ -130,7 +138,8 @@ def build_cessna172() -> RawNode:
     cowl = g.loft_x([(150, 760, 640, 0, 1050, 2.4), (1100, 1050, 1150, 0, 1230, 2.6)])
     cabin = g.loft_x([(1100, 1050, 1150, 0, 1230, 2.6), (2400, 1120, 1500, 0, 1300, 2.6), (3600, 950, 1350, 0, 1330, 2.6)])
     tail = g.loft_x([(3600, 950, 1350, 0, 1330, 2.6), (6000, 420, 700, 0, 1330, 2.6), (7900, 80, 160, 0, 1400, 2.4)])
-    kids.append(group("Fuselagem", L("Capo do motor", cowl), L("Cabine", cabin), L("Cone de cauda", tail)))
+    glass, cabin = _plug(cabin, g.box(1300, 3350, -700, 700, 1560, 1850), g.box(1250, 3400, -330, 330, 1500, 1900))
+    kids.append(group("Fuselagem", L("Capo do motor", cowl), L("Cabine", cabin), L("Janelas da cabine (vidro)", glass), L("Cone de cauda", tail)))
     # asa alta: b = 10998 mm, área 16,17 m²  →  corda média 1470 (raiz 1600, ponta 1340)
     cr, ct, half = 1600.0, 1340.0, 5499.0
     chord = lambda y: cr + (ct - cr) * y / half  # noqa: E731
@@ -139,8 +148,6 @@ def build_cessna172() -> RawNode:
     xle = 1500.0
     ys = [0.0, 1500.0, 3300.0, 5499.0]
     wing = wing_loft([(y, chord(y), xle, zle(y), 0.12) for y in ys], 0.02, 0.4)
-    sp = {}
-    surf = []
     fl_main, flap = split_aft(wing, 800, 3200, xle + 0.7 * chord(800), xle + 0.7 * chord(3200))
     ai_main, ail = split_aft(fl_main, 3300, 5400, xle + 0.7 * chord(3300), xle + 0.7 * chord(5400))
     wings = [L("Asa direita", ai_main), L("Asa esquerda", mirror_y(ai_main)), L("Flape direito", flap), L("Flape esquerdo", mirror_y(flap)),
@@ -163,7 +170,6 @@ def build_cessna172() -> RawNode:
                       L("Profundor direito", elev), L("Profundor esquerdo", mirror_y(elev))))
     ztop = zs + upper_max(cr_s, 0.09, 0.0, 0.4)
     fin = fin_loft([(ztop, 1200.0, 6900.0, 0.09), (2718.0, 650.0, 7600.0, 0.09)])
-    xhf = 6900.0 + 0.70 * 1200.0
     fin_main, rudder = split_aft_xz(fin, ztop - 10, 2800.0, 7740.0, 7600.0 + 0.7 * 650.0)
     kids.append(group("Empenagem vertical", L("Deriva", fin_main), L("Leme", rudder)))
     # trem de pouso triciclo fixo
@@ -204,16 +210,16 @@ def build_spitfire() -> RawNode:
     wing = wing_loft([(y, chord(y), xle(y), zle(y), thick(y)) for y in ys], 0.02, 0.4)
     fus = g.loft_x([(330, 560, 700, 0, 1500, 2.2), (1500, 850, 1000, 0, 1520, 2.2), (3500, 800, 1150, 0, 1600, 2.2), (6500, 450, 700, 0, 1560, 2.2), (8900, 100, 200, 0, 1620, 2.2)])
     hs, cs0, cs1, xs, zs = 1600.0, 900.0, 600.0, 8000.0, 1600.0
-    csf = lambda y: cs0 + (cs1 - cs0) * y / hs  # noqa: E731
     stab = wing_loft([(0.0, cs0, xs, zs, 0.09), (hs, cs1, xs + 150, zs, 0.09)], 0.0, 0.4)
     fin = fin_loft([(1500.0, 1100.0, 7700.0, 0.09), (3480.0, 520.0, 8450.0, 0.09)])
+    canopy, fus = _plug(fus, g.box(2900, 4600, -700, 700, 1850, 2300), g.box(2800, 4700, -250, 250, 1800, 2060))
     stab = g.cut(stab, fin)
     fus = g.cut(fus, wing, mirror_y(wing), stab, mirror_y(stab), fin)
     h_ai, h_fl = 0.75, 0.72
     hx = lambda y, h: xle(y) + h * chord(y)  # noqa: E731
     w1, flap = split_aft(wing, 700, 3100, hx(700, h_fl), hx(3100, h_fl))
     w2, ail = split_aft(w1, 3300, 5200, hx(3300, h_ai), hx(5200, h_ai))
-    kids = [group("Fuselagem", L("Fuselagem", fus))]
+    kids = [group("Fuselagem", L("Fuselagem", fus), L("Canopy (vidro)", canopy))]
     kids.append(group("Asa", L("Asa direita", w2), L("Asa esquerda", mirror_y(w2)), L("Flape direito", flap), L("Flape esquerdo", mirror_y(flap)),
                       L("Aileron direito", ail), L("Aileron esquerdo", mirror_y(ail))))
     xh = xs + 0.60 * 750.0
@@ -258,6 +264,9 @@ def build_a320() -> RawNode:
     fus = g.loft_x([(0, 300, 300, 0, 3300, 2.0), (900, 2200, 2400, 0, 3600, 2.0), (3000, 3800, 3900, 0, 3900, 2.0), (5000, 3950, 3950, 0, zc, 2.0), (27500, 3950, 3950, 0, zc, 2.0),
                     (34000, 1700, 1900, 0, 4500, 2.0), (37570, 300, 400, 0, 4900, 2.0)], False)   # loft reto: o suave gerava sólido inválido para booleanos
     fus = _orient(fus)
+    wind, fus = _plug(fus, g.box(2300, 3400, -2100, 2100, 4350, 4800), g.box(2200, 3500, -1650, 1650, 4300, 4850))
+    wr, fus = _plug(fus, g.box(6000, 26000, 0, 2100, 4400, 4600), g.box(5900, 26100, -10, 1700, 4300, 4700))
+    wl, fus = _plug(fus, g.box(6000, 26000, -2100, 0, 4400, 4600), g.box(5900, 26100, -1700, 10, 4300, 4700))
     hs = 6225.0
     cst = lambda y: 3600.0 + (1300.0 - 3600.0) * y / hs  # noqa: E731
     xst = lambda y: 33000.0 + y * math.tan(math.radians(29.0))  # noqa: E731
@@ -271,12 +280,11 @@ def build_a320() -> RawNode:
     for nm, y0, y1, h in (("Aileron", 13500.0, 17400.0, 0.78), ("Flape interno", 2300.0, 5300.0, 0.72), ("Flape externo", 6200.0, 12000.0, 0.72)):
         w, s = split_aft(w, y0, y1, hx(y0, h), hx(y1, h))
         surfs[nm] = (s, y0, y1, h)
-    kids = [group("Fuselagem", L("Fuselagem", fus))]
+    kids = [group("Fuselagem", L("Fuselagem", fus), L("Parabrisa da cabine de comando (vidro)", wind), L("Janelas da cabine direita (vidro)", wr), L("Janelas da cabine esquerda (vidro)", wl))]
     wl = [L("Asa direita", w), L("Asa esquerda", mirror_y(w))]
     for nm, (s, *_r) in surfs.items():
         wl += [L(f"{nm} direito", s), L(f"{nm} esquerdo", mirror_y(s))]
     kids.append(group("Asa", *wl))
-    xh = xst(0) + 0.70 * 1300.0
     st_main, elev = split_aft(stab, 0.0, hs, xst(hs) + 0.70 * 1300.0, xst(hs) + 0.70 * 1300.0)
     kids.append(group("Empenagem horizontal", L("Estabilizador direito", st_main), L("Estabilizador esquerdo", mirror_y(st_main)), L("Profundor direito", elev), L("Profundor esquerdo", mirror_y(elev))))
     xrud = lambda z: 29800.0 + (z - 4300.0) * (35000.0 - 29800.0) / (11760.0 - 4300.0) + 0.70 * (6200.0 + (2000.0 - 6200.0) * (z - 4300.0) / (11760.0 - 4300.0))  # noqa: E731

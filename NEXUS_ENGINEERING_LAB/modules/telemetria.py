@@ -10,7 +10,6 @@ Sem pneus, temperaturas, combustível, DRS nem sensores: esses canais não exist
 from __future__ import annotations
 
 import csv
-import math
 
 from . import lapsim
 from .lapsim import G, Carro

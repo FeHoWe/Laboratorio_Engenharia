@@ -20,7 +20,7 @@ from samples.mechanisms import build_mechanism
 from samples.projects import get
 
 KEYS = ["wankel", "v12", "braco", "bomba", "eolica", "turbojato", "guindaste", "f1_2027", "f1_312t", "f1_mp44", "f1_lotus72", "cessna", "spitfire", "a320"]
-N_MIN = {"wankel": 17, "v12": 71, "braco": 12, "bomba": 13, "eolica": 10, "turbojato": 29, "guindaste": 140, "f1_2027": 194, "f1_312t": 58, "f1_mp44": 58, "f1_lotus72": 58, "cessna": 26, "spitfire": 23, "a320": 34}
+N_MIN = {"wankel": 17, "v12": 71, "braco": 12, "bomba": 13, "eolica": 10, "turbojato": 29, "guindaste": 140, "f1_2027": 194, "f1_312t": 58, "f1_mp44": 58, "f1_lotus72": 58, "cessna": 27, "spitfire": 24, "a320": 37}
 _CACHE: dict = {}
 
 
@@ -154,3 +154,16 @@ def test_no_unintended_overlaps(key):
 @pytest.mark.parametrize("key", ["v12", "guindaste"])
 def test_no_unintended_overlaps_slow(key):
     assert _clashes(key) == []
+
+
+def test_appearance_rules():
+    from modules.appearance import appearance
+    assert appearance("a320", "Pneu principal direito")[0] == "#17181a"                      # borracha
+    assert appearance("f1_312t", "Roda dianteira direita")[1] > 0.8                          # liga metálica
+    assert appearance("spitfire", "Fuselagem")[0].lower() == "#55633a"                       # pintura do projeto
+    assert appearance("motor", "Parafuso M16")[1] > 0.7 and appearance("x", "Vidro")[3] < 1  # parafuso metálico, vidro translúcido
+    for k in KEYS:                                                                           # toda parte de todo projeto novo recebe aparência válida
+        import re
+        for leaf in _imported(k)[0].leaves():
+            c, m, r, o = appearance(k, leaf.name)
+            assert re.fullmatch(r"#[0-9a-f]{6}", c) and 0 <= m <= 1 and 0 <= r <= 1 and 0 < o <= 1
