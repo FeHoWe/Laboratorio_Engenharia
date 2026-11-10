@@ -22,6 +22,30 @@ def veh_check():
     return max(abs(a - b) / max(abs(a), 1e-9) for a, b in zip(py, js))
 
 
+def lat_check():
+    """Paridade JS × Python do modelo lateral (regime, limite, skidpad, cargas, pneu)."""
+    from modules import vehicle_lateral as vl
+    casos = [dict(m=1200, iz=1800, a=1.15, b=1.35, h=0.5, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.2, mu_r=1.2, cla=0.0),
+             dict(m=800, iz=1100, a=1.6, b=1.9, h=0.3, tf=1.6, tr=1.5, c_f=90000, c_r=70000, mu_f=1.7, mu_r=1.5, cla=3.5, frac_dt_aero=0.45,
+                  k_roll_f=80000, k_roll_r=50000, h_rc_f=0.04, h_rc_r=0.09)]
+    pontos = [(20.0, 120.0), (35.0, 80.0), (60.0, 150.0), (90.0, 40.0)]
+    worst = 0.0
+    for kw in casos:
+        v = vl.VeiculoLateral(**kw)
+        jv = dict(m=v.m, iz=v.iz, a=v.a, b=v.b, h=v.h, tf=v.tf, tr=v.tr, cF=v.c_f, cR=v.c_r, muF=v.mu_f, muR=v.mu_r, krF=v.k_roll_f, krR=v.k_roll_r,
+                  hRcF=v.h_rc_f, hRcR=v.h_rc_r, cla=v.cla, fracAero=v.frac_dt_aero)
+        for vel, R in pontos:
+            reg, lim, sp = vl.regime_curva(v, vel, R), vl.ay_limite(v, vel), vl.skidpad(v, R)
+            js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const v=JSON.parse(process.argv[2]);const a=+process.argv[3],R=+process.argv[4];console.log(JSON.stringify({r:L.regimeCurva(v,a,R),l:L.ayLimite(v,a),s:L.skidpad(v,R)}));',
+                                             str(ROOT / 'mobile' / 'lab.js'), json.dumps(jv), str(vel), str(R)]))
+            pairs = [(reg["ay_ms2"], js["r"]["ay"]), (lim["ay_ms2"], js["l"]["ay"]), (sp["v_ms"], js["s"]["v"]), (reg["cargas"]["dzf"], js["r"]["cargas"]["dzf"]), (reg["cargas"]["dzr"], js["r"]["cargas"]["dzr"])]
+            assert reg["saturado"] == js["r"]["saturado"] and lim["limite"] == js["l"]["limite"], (kw, vel, R)
+            if not reg["saturado"]:
+                pairs += [(reg["delta"], js["r"]["delta"]), (reg["beta"], js["r"]["beta"]), (reg["k_subesterco"], js["r"]["kSub"])]
+            worst = max(worst, max(abs(a - b) / max(abs(a), 1e-9) for a, b in pairs))
+    return worst
+
+
 def lap_check():
     from modules import lapsim, f1_mass
     c = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
@@ -154,13 +178,15 @@ def main():
     print(f"unidades: {un} conversões JS×Python, erro relativo máx {ue:.2e}")
     ve = veh_check()
     print(f"veículo RK4: erro relativo máx JS×Python {ve:.2e}")
+    ae = lat_check()
+    print(f"dinâmica lateral (bicicleta, escova, transferência de carga): erro relativo máx JS×Python {ae:.2e}")
     le = lap_check()
     print(f"F1 volta + massa/CG/inércia: erro relativo máx JS×Python {le:.2e}")
     fe, same = fea_check()
     print(f"FEA Tet4 (viga): erro relativo JS×Python {fe:.2e}, mesmo nº de elementos: {same}")
     f10, same10 = fea10_check()
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
-    sys.exit(1 if bad or ue > 1e-12 or ve > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    sys.exit(1 if bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()

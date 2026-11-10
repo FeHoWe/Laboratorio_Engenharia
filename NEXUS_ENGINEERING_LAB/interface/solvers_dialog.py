@@ -25,6 +25,7 @@ class SolversDialog(QDialog):
         self.store = ProjectStore(PROJECTS_DIR)
         v = QVBoxLayout(self)
         self.status = QLabel(solver_report()); self.status.setWordWrap(True); v.addWidget(self.status)
+        dg = QPushButton("Diagnóstico completo do ambiente (somente leitura)…"); dg.clicked.connect(self.diag); v.addWidget(dg)
         b = QPushButton("Popular Arsenal com a vitrine (peças paramétricas, sem material)"); b.clicked.connect(self.seed); v.addWidget(b)
         f = QPushButton("Estudo FEA 3D de peça (NEXUS-Tet4)…"); f.clicked.connect(self.fea); v.addWidget(f)
         c = QPushButton("Editor paramétrico com histórico (peça/STEP)…"); c.clicked.connect(self.cad); v.addWidget(c)
@@ -35,6 +36,10 @@ class SolversDialog(QDialog):
 
     def reload(self):
         self.lst.clear(); self.lst.addItems(self.store.list())
+
+    def diag(self):
+        from core import doctor
+        QMessageBox.information(self, "Diagnóstico do ambiente", doctor.report_text())
 
     def cad(self):
         from interface.cad_history_dialog import CadHistoryDialog

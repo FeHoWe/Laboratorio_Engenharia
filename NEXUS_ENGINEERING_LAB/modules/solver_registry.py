@@ -1,6 +1,6 @@
 """Detecção de solvers externos (OpenFOAM, CalculiX, Gmsh) — sem fabricar resultados."""
 from __future__ import annotations
-import shutil, subprocess
+import glob, os, shutil, subprocess
 from dataclasses import dataclass
 
 @dataclass
@@ -26,12 +26,36 @@ def _version(exe, args):
     except Exception:
         return ""
 
+def openfoam_bashrc() -> str | None:
+    """Caminho do `etc/bashrc` do OpenFOAM (necessário para executar solvers instalados por pacote). None se não achar."""
+    cands = []
+    if os.environ.get("WM_PROJECT_DIR"):
+        cands.append(os.path.join(os.environ["WM_PROJECT_DIR"], "etc", "bashrc"))
+    cands += ["/usr/share/openfoam/etc/bashrc", *sorted(glob.glob("/opt/openfoam*/etc/bashrc"), reverse=True),
+              *sorted(glob.glob("/usr/lib/openfoam/openfoam*/etc/bashrc"), reverse=True),
+              *sorted(glob.glob(os.path.expanduser("~/OpenFOAM/OpenFOAM-v*/etc/bashrc")), reverse=True)]
+    return next((c for c in cands if os.path.isfile(c)), None)
+
+
+def openfoam_shell(cmd: str) -> list:
+    """Lista argv que executa `cmd` (sh) com o ambiente OpenFOAM carregado, se houver bashrc."""
+    rc = openfoam_bashrc()
+    return ["bash", "-c", f"source '{rc}' >/dev/null 2>&1; {cmd}"] if rc else ["sh", "-c", cmd]
+
+
 def detect(nome: str) -> SolverStatus:
     cands, vargs, hint = _SOLVERS[nome]
     for c in cands:
         p = shutil.which(c)
         if p:
-            return SolverStatus(nome, True, p, _version(p, vargs), "PRONTO")
+            ver = _version(p, vargs)
+            if nome == "OpenFOAM":
+                try:
+                    r = subprocess.run(openfoam_shell("echo $WM_PROJECT_VERSION"), capture_output=True, text=True, timeout=15)
+                    ver = ("OpenFOAM " + r.stdout.strip()) if r.stdout.strip() else ver
+                except Exception:
+                    pass
+            return SolverStatus(nome, True, p, ver, "PRONTO")
     if nome == "Gmsh":
         try:
             import gmsh  # type: ignore

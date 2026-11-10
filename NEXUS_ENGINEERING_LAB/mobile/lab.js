@@ -364,6 +364,31 @@ const F1_REGS=[['C2.3.1','Meia-largura máx.','half_width_mm','<=',950,['2026','
  ['C4-2026','Massa mínima 2026','mass_kg','>=',768,['2026'],'Regulamento 2026 (valor do modelo)'],['C4-2027','Massa mínima 2027','mass_kg','>=',null,['2027'],'C4 não lido: informe o limite']];
 function f1Check(season,meas,massLimit){return F1_REGS.filter(r=>r[5].includes(season)).map(r=>{let lim=r[4];if(r[0]==='C4-2027'&&massLimit!=null)lim=massLimit;const v=meas[r[2]];
  let st;if(lim==null)st='LIMITE_NAO_VERIFICADO';else if(v==null)st='SEM_MEDIDA';else st=(r[3]==='<='?v<=lim+1e-9:v>=lim-1e-9)?'CONFORME':'NAO_CONFORME';return{rule:r[0],title:r[1],field:r[2],op:r[3],limit:lim,value:v==null?null:v,status:st,src:r[6]};});}
-const LAB={lapSim,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+// ---- Dinâmica lateral (V3.0): espelho de modules/vehicle_lateral.py (bicicleta + pneu de escova + transferência de carga)
+function latCheck(v){for(const k of ['m','iz','a','b','h','tf','tr','cF','cR','muF','muR','krF','krR']){if(!(v[k]>0&&isFinite(v[k])))throw new Error("parâmetro '"+k+"' deve ser positivo e finito");}
+ if(v.cla<0||v.fracAero<0||v.fracAero>1)throw new Error('ClA ≥ 0 e fração aerodinâmica em [0,1]');if(v.hRcF<0||v.hRcR<0)throw new Error('altura do centro de rolagem não pode ser negativa');}
+function latDefaults(v){return Object.assign({cla:0,fracAero:0.5,rho:1.225,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08},v);}
+function pneuFy(al,fz,c,mu){if(fz<=0)return 0;const th=c/(3*mu*fz),s=Math.abs(al)<Math.PI/2-1e-9?Math.abs(Math.tan(al)):1e9,x=th*s;const f=x<1?mu*fz*(3*x-3*x*x+x*x*x):mu*fz;return al<0?-f:f;}
+function latCargas(v,vel,ay){const G=9.80665,L=v.a+v.b,df=0.5*v.rho*v.cla*vel*vel,fzf0=v.m*G*v.b/L+df*v.fracAero,fzr0=v.m*G*v.a/L+df*(1-v.fracAero);
+ const hrc=(v.hRcF*v.b+v.hRcR*v.a)/L,hr=v.h-hrc,mr=v.m*ay*hr,kt=v.krF+v.krR;
+ const dzf=(v.m*ay*(v.b/L)*v.hRcF+mr*v.krF/kt)/v.tf,dzr=(v.m*ay*(v.a/L)*v.hRcR+mr*v.krR/kt)/v.tr;
+ return{fInt:fzf0/2+dzf,fExt:fzf0/2-dzf,rInt:fzr0/2+dzr,rExt:fzr0/2-dzr,dzf,dzr,fzf:fzf0,fzr:fzr0};}
+function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return pneuFy(al,Math.max(a,0),c,mu)+pneuFy(al,Math.max(b,0),c,mu);}
+function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return mu*(Math.max(a,0)+Math.max(b,0));}
+function alphaForca(v,e,req,vel,ay){if(req>fyMaxEixo(v,e,vel,ay)*(1-1e-9))return null;let lo=0,hi=60*Math.PI/180;if(fyEixo(v,e,hi,vel,ay)<req)return null;
+ for(let i=0;i<80;i++){const m=0.5*(lo+hi);if(fyEixo(v,e,m,vel,ay)<req)lo=m;else hi=m;}return 0.5*(lo+hi);}
+function regimeCurva(v0,vel,raio){const v=latDefaults(v0);latCheck(v);if(!(vel>0&&raio>0))throw new Error('velocidade e raio devem ser positivos');
+ const G=9.80665,ay=vel*vel/raio,L=v.a+v.b,fyf=v.m*ay*v.b/L,fyr=v.m*ay*v.a/L,af=alphaForca(v,'f',fyf,vel,ay),ar=alphaForca(v,'r',fyr,vel,ay),cg=latCargas(v,vel,ay);
+ const o={ay,ayG:ay/G,fyF:fyf,fyR:fyr,cargas:cg};
+ if(af==null||ar==null){o.saturado=true;o.eixoSaturado=(af==null&&ar==null)?'ambos':(af==null?'frente':'traseira');return o;}
+ const k=(af-ar)/ay;o.saturado=false;o.alphaF=af;o.alphaR=ar;o.delta=af-ar+L/raio;o.beta=v.b/raio-ar;o.kSub=k;o.comportamento=k>1e-9?'subesterçante':(k<-1e-9?'sobresterçante':'neutro');return o;}
+function ayLimite(v0,vel){const v=latDefaults(v0);latCheck(v);const G=9.80665,L=v.a+v.b;let lo=0,hi=8*G;
+ for(let i=0;i<80;i++){const ay=0.5*(lo+hi),f=v.m*ay*v.b/L,r=v.m*ay*v.a/L;if(f<=fyMaxEixo(v,'f',vel,ay)&&r<=fyMaxEixo(v,'r',vel,ay))lo=ay;else hi=ay;}
+ const ay=lo,f=v.m*ay*v.b/L,r=v.m*ay*v.a/L,rf=f/Math.max(fyMaxEixo(v,'f',vel,ay),1e-9),rr=r/Math.max(fyMaxEixo(v,'r',vel,ay),1e-9);
+ return{ay,ayG:ay/G,utilF:rf,utilR:rr,limite:rf>=rr?'subesterço (frente satura primeiro)':'sobresterço (traseira satura primeiro)'};}
+function skidpad(v0,raio){const v=latDefaults(v0);if(!(raio>0))throw new Error('raio deve ser positivo');const G=9.80665;let vel=Math.sqrt(0.5*G*raio);
+ for(let i=0;i<200;i++){const a=ayLimite(v,vel).ay,vn=Math.sqrt(a*raio);if(Math.abs(vn-vel)<1e-9){vel=vn;break;}vel=0.5*(vel+vn);}
+ const r=ayLimite(v,vel);return{v:vel,vKmh:vel*3.6,ayG:r.ayG,limite:r.limite,tVolta:2*Math.PI*raio/vel};}
+const LAB={lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;
 })(typeof window!=='undefined'?window:globalThis);

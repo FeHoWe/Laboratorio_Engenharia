@@ -21,7 +21,7 @@ from build_mobile_viewer import VERSION, build_data  # noqa: E402
 
 
 def library_showcase() -> Path:
-    """STEP com as 19 peças da biblioteca (parâmetros padrão) dispostas em grade, para visualizar no celular."""
+    """STEP com as 18 peças da biblioteca (parâmetros padrão) dispostas em grade, para visualizar no celular."""
     from core.cad_engine import CadEngine, RawNode
     from core.geometry import translation_matrix
     from samples import geo as g
@@ -72,7 +72,7 @@ def main(out: Path, keys: list[str]) -> None:
         from modules.appearance import appearance
         for q in data["parts"]:
             q["ap"] = list(appearance("biblioteca", q["name"]))
-        data["note"] = "Vitrine das 19 peças paramétricas do NEXUS desktop com valores padrão; para mudar parâmetros use o desktop (Ctrl+L)."
+        data["note"] = "Vitrine das 18 peças paramétricas do NEXUS desktop com valores padrão; para mudar parâmetros use o desktop (Ctrl+L)."
         data["description"] = "Parafusos, rolamentos, engrenagens, perfis, molas…"
         (out / "data" / "biblioteca.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
         reg.append({"key": "biblioteca", "title": data["name"], "mech": False, "parts": len(data["parts"])})

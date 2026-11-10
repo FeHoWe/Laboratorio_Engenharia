@@ -1,8 +1,9 @@
 """Integração CalculiX: executa `ccx` (se instalado) e LÊ resultados .dat; cruza com o NEXUS.
 
 Entrada gerada por `write_inp` (C3D4 ou C3D10) com `*NODE PRINT, U` e `*EL PRINT, S` em arquivo .dat (ASCII).
-STATUS DE TESTE: o analisador é testado com amostras sintéticas no formato documentado do CalculiX;
-a execução do `ccx` real NÃO foi testada neste ambiente (ccx indisponível). Veja `compare` para validar na sua máquina.
+STATUS DE TESTE: o analisador é testado com amostras sintéticas do formato documentado E, quando `ccx` existe, com execução real
+(tests/test_calculix_real.py: CalculiX 2.21, malha Gmsh Tet10, viga tubular — deslocamento NEXUS-Tet10 × ccx concordam e ambos
+ficam a poucos % de Timoshenko). Sem `ccx` instalado o resultado é NAO_EXECUTADO. Use `compare` para validar na sua máquina.
 """
 from __future__ import annotations
 import re, subprocess

@@ -32,7 +32,7 @@ def nivel2(cd_forma: float, area_frontal: float, area_molhada: float, compriment
         ["Cf de placa plana pode errar muito em corpos 3D", "Cd de forma depende do usuário"])
 
 def gerar_caso_openfoam(pasta, stl_nome: str, v_inf: float, comprimento_ref: float, area_ref: float,
-                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000) -> Path:
+                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000, celulas=(80, 32, 24)) -> Path:
     """Escreve system/ constant/ 0/ prontos. O STL deve ser copiado para constant/triSurface/ (em m)."""
     if v_inf <= 0 or area_ref <= 0 or comprimento_ref <= 0: raise ValueError("entradas inválidas")
     p = Path(pasta)
@@ -41,10 +41,10 @@ def gerar_caso_openfoam(pasta, stl_nome: str, v_inf: float, comprimento_ref: flo
     x0, x1, y0, y1, z0, z1 = caixa
     (p/"system/blockMeshDict").write_text(H % ("dictionary", "blockMeshDict") + f"""convertToMeters 1;
 vertices ( ({x0} {y0} {z0}) ({x1} {y0} {z0}) ({x1} {y1} {z0}) ({x0} {y1} {z0}) ({x0} {y0} {z1}) ({x1} {y0} {z1}) ({x1} {y1} {z1}) ({x0} {y1} {z1}) );
-blocks ( hex (0 1 2 3 4 5 6 7) (80 32 24) simpleGrading (1 1 1) );
+blocks ( hex (0 1 2 3 4 5 6 7) ({celulas[0]} {celulas[1]} {celulas[2]}) simpleGrading (1 1 1) );
 boundary ( inlet {{type patch; faces ((0 4 7 3));}} outlet {{type patch; faces ((1 2 6 5));}}
  ground {{type wall; faces ((0 3 2 1));}} top {{type symmetryPlane; faces ((4 5 6 7));}}
- sides {{type symmetryPlane; faces ((0 1 5 4) (3 7 6 2));}} );
+ sideL {{type symmetryPlane; faces ((0 1 5 4));}} sideR {{type symmetryPlane; faces ((3 7 6 2));}} );
 """)
     (p/"system/controlDict").write_text(H % ("dictionary", "controlDict") + f"""application simpleFoam; startFrom startTime; startTime 0; stopAt endTime;
 endTime {iteracoes}; deltaT 1; writeControl timeStep; writeInterval {iteracoes};
@@ -72,32 +72,211 @@ meshQualityControls {{ maxNonOrtho 65; maxBoundarySkewness 20; maxInternalSkewne
 mergeTolerance 1e-6;
 """)
     (p/"constant/transportProperties").write_text(H % ("dictionary", "transportProperties") + f"transportModel Newtonian; nu [0 2 -1 0 0 0 0] {nu};\n")
-    (p/"constant/momentumTransport").write_text(H % ("dictionary", "momentumTransport") + "simulationType RAS; RAS { model kOmegaSST; turbulence on; printCoeffs on; }\n")
+    # v2012+/Foundation leem momentumTransport (chave `model`); ESI v1912 e anteriores leem turbulenceProperties (chave `RASModel`)
+    for nome, chave in (("momentumTransport", "model"), ("turbulenceProperties", "RASModel")):
+        (p/f"constant/{nome}").write_text(H % ("dictionary", nome) + f"simulationType RAS; RAS {{ {chave} kOmegaSST; turbulence on; printCoeffs on; }}\n")
     I = 0.01; k = 1.5 * (v_inf * I) ** 2; om = k ** 0.5 / (0.09 ** 0.25 * comprimento_ref * 0.1)
     def field(cls, name, dims, internal, bc):
         (p/f"0/{name}").write_text(H % (cls, name) + f"dimensions {dims}; internalField {internal};\nboundaryField {{ {bc} }}\n")
     field("volVectorField", "U", "[0 1 -1 0 0 0 0]", f"uniform ({v_inf} 0 0)",
-          f"inlet {{type fixedValue; value uniform ({v_inf} 0 0);}} outlet {{type zeroGradient;}} ground {{type noSlip;}} body {{type noSlip;}} top {{type symmetryPlane;}} sides {{type symmetryPlane;}}")
+          f"inlet {{type fixedValue; value uniform ({v_inf} 0 0);}} outlet {{type zeroGradient;}} ground {{type noSlip;}} body {{type noSlip;}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "p", "[0 2 -2 0 0 0 0]", "uniform 0",
-          "inlet {type zeroGradient;} outlet {type fixedValue; value uniform 0;} ground {type zeroGradient;} body {type zeroGradient;} top {type symmetryPlane;} sides {type symmetryPlane;}")
+          "inlet {type zeroGradient;} outlet {type fixedValue; value uniform 0;} ground {type zeroGradient;} body {type zeroGradient;} top {type symmetryPlane;} sideL {type symmetryPlane;} sideR {type symmetryPlane;}")
     field("volScalarField", "k", "[0 2 -2 0 0 0 0]", f"uniform {k:.6g}",
-          f"inlet {{type fixedValue; value uniform {k:.6g};}} outlet {{type zeroGradient;}} ground {{type kqRWallFunction; value uniform {k:.6g};}} body {{type kqRWallFunction; value uniform {k:.6g};}} top {{type symmetryPlane;}} sides {{type symmetryPlane;}}")
+          f"inlet {{type fixedValue; value uniform {k:.6g};}} outlet {{type zeroGradient;}} ground {{type kqRWallFunction; value uniform {k:.6g};}} body {{type kqRWallFunction; value uniform {k:.6g};}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "omega", "[0 0 -1 0 0 0 0]", f"uniform {om:.6g}",
-          f"inlet {{type fixedValue; value uniform {om:.6g};}} outlet {{type zeroGradient;}} ground {{type omegaWallFunction; value uniform {om:.6g};}} body {{type omegaWallFunction; value uniform {om:.6g};}} top {{type symmetryPlane;}} sides {{type symmetryPlane;}}")
+          f"inlet {{type fixedValue; value uniform {om:.6g};}} outlet {{type zeroGradient;}} ground {{type omegaWallFunction; value uniform {om:.6g};}} body {{type omegaWallFunction; value uniform {om:.6g};}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "nut", "[0 2 -1 0 0 0 0]", "uniform 0",
-          "inlet {type calculated; value uniform 0;} outlet {type calculated; value uniform 0;} ground {type nutkWallFunction; value uniform 0;} body {type nutkWallFunction; value uniform 0;} top {type symmetryPlane;} sides {type symmetryPlane;}")
+          "inlet {type calculated; value uniform 0;} outlet {type calculated; value uniform 0;} ground {type nutkWallFunction; value uniform 0;} body {type nutkWallFunction; value uniform 0;} top {type symmetryPlane;} sideL {type symmetryPlane;} sideR {type symmetryPlane;}")
     (p/"Allrun").write_text("#!/bin/sh\nblockMesh && surfaceFeatureExtract 2>/dev/null; snappyHexMesh -overwrite && simpleFoam > log.simpleFoam 2>&1\n")
     return p
 
-def executar_openfoam(pasta, timeout=3600) -> TracedResult:
-    """Executa o caso se OpenFOAM instalado; senão NAO_EXECUTADO (sem números)."""
+def _ler_coeficientes(pasta: Path):
+    """Última linha de postProcessing/forceCoeffs/*/coefficient.dat → (iteração, Cd, Cl) ou None (nada é inventado)."""
+    arqs = sorted(Path(pasta).glob("postProcessing/forceCoeffs/*/coefficient*.dat"))
+    if not arqs:
+        return None
+    cab, ult = None, None
+    for ln in arqs[-1].read_text().splitlines():
+        if ln.startswith("#"):
+            if "Cd" in ln and "Cl" in ln:
+                cab = ln.lstrip("# ").split()
+            continue
+        if ln.strip():
+            ult = ln.split()
+    if not ult or not cab:
+        return None
+    d = dict(zip(cab, ult))
+    return int(float(d.get("Time", ult[0]))), float(d["Cd"]), float(d["Cl"])
+
+
+def ler_log_simplefoam(texto: str) -> dict:
+    """Convergência a partir do log do simpleFoam: nº de iterações, resíduos finais iniciais, flag 'convergiu', NaN/erro fatal."""
+    import re
+    n = len(re.findall(r"^Time = ", texto, flags=re.M))
+    res = {}
+    for campo in ("Ux", "Uy", "Uz", "p", "k", "omega"):
+        m = re.findall(rf"Solving for {campo}, Initial residual = ([0-9.eE+-]+)", texto)
+        if m:
+            res[campo] = float(m[-1])
+    return {"iteracoes": n, "residuos_iniciais_finais": res, "convergiu": "SIMPLE solution converged" in texto,
+            "erro_fatal": ("FOAM FATAL" in texto) or bool(re.search(r"(Initial residual|Final residual) = nan|\bsigFpe\b", texto, flags=re.I))}
+
+
+# ---------------------------------------------------------------- pós-processamento próprio (força de pressão)
+def _blocos_lista(texto: str):
+    """Interpreta o conteúdo de uma lista OpenFOAM ASCII `N ( ... )` → lista de linhas internas."""
+    i = texto.index("(", texto.index("\n", texto.find("FoamFile")) if "FoamFile" in texto else 0)
+    # pula até a primeira linha que contém só N (contagem) seguida de '('
+    import re
+    m = re.search(r"^\s*(\d+)\s*\n?\s*\(", texto, flags=re.M)
+    n = int(m.group(1))
+    corpo = texto[m.end():]
+    return n, corpo
+
+
+def _ler_patch_boundary(pasta: Path, patch: str):
+    import re
+    t = (Path(pasta) / "constant/polyMesh/boundary").read_text()
+    m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\}}", t, flags=re.S)
+    if not m:
+        raise KeyError(f"patch '{patch}' não existe na malha")
+    nf = int(re.search(r"nFaces\s+(\d+)", m.group(1)).group(1))
+    sf = int(re.search(r"startFace\s+(\d+)", m.group(1)).group(1))
+    return sf, nf
+
+
+def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float = 1.0, a_ref: float = 1.0,
+                   drag_dir=(1, 0, 0), lift_dir=(0, 0, 1), tempo: str | None = None) -> dict:
+    """Força de PRESSÃO sobre `patch` por integração própria: F = ρ·Σ p_cin·S_f (S_f aponta para dentro do corpo).
+
+    NÃO inclui atrito viscoso (tensão de cisalhamento) — logo `cd_pressao` ≤ Cd total para corpos com atrito relevante.
+    Existe porque certos builds de OpenFOAM abortam ao carregar função-objeto `forces`. Lê malha/campos ASCII.
+    """
+    import re
+    import numpy as np
+    pasta = Path(pasta)
+    sf, nf = _ler_patch_boundary(pasta, patch)
+    pm = pasta / "constant/polyMesh"
+    n_pts, corpo = _blocos_lista((pm / "points").read_text())
+    pts = np.array([[float(x) for x in ln.split()] for ln in re.findall(r"^\(([^)]*)\)", corpo, flags=re.M)][:n_pts], float)
+    n_f, corpo = _blocos_lista((pm / "faces").read_text())
+    faces = [[int(x) for x in m.split()] for m in re.findall(r"^\d+\(([^)]*)\)", corpo, flags=re.M)]
+    if len(pts) != n_pts or len(faces) != n_f:
+        raise ValueError("malha ilegível (formato não é ASCII?)")
+    if tempo is None:
+        tempos = sorted((float(d.name), d.name) for d in pasta.iterdir() if d.is_dir() and re.fullmatch(r"[0-9.]+", d.name) and float(d.name) > 0)
+        if not tempos:
+            raise FileNotFoundError("nenhum passo de tempo escrito (o solver não gravou resultado)")
+        tempo = tempos[-1][1]
+    ptxt = (pasta / tempo / "p").read_text()
+    m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\n\s*\}}", ptxt, flags=re.S)
+    if not m:
+        raise KeyError(f"campo p sem patch '{patch}'")
+    bloco = m.group(1)
+    mu = re.search(r"value\s+uniform\s+([-0-9.eE+]+)", bloco)
+    if mu:
+        pv = np.full(nf, float(mu.group(1)))
+    elif "nonuniform" not in bloco:
+        # zeroGradient não grava valor na parede: p_parede = p da célula dona da face (definição de zeroGradient)
+        n_o, corpo_o = _blocos_lista((pm / "owner").read_text())
+        owner = np.array(corpo_o.split(")")[0].split(), int)[:n_o]
+        mi = re.search(r"internalField\s+(uniform\s+([-0-9.eE+]+)|nonuniform\s+List<scalar>\s*\n?\s*(\d+)\s*\(([^)]*)\))", ptxt, flags=re.S)
+        if mi.group(2) is not None:
+            pv = np.full(nf, float(mi.group(2)))
+        else:
+            interno = np.array(mi.group(4).split(), float)
+            pv = interno[owner[sf:sf + nf]]
+    else:
+        k = bloco.index("nonuniform")
+        mm = re.search(r"(\d+)\s*\(([^)]*)\)", bloco[k:], flags=re.S)
+        pv = np.array(mm.group(2).split(), float)
+        if len(pv) != nf:
+            raise ValueError("campo p do patch com tamanho diferente do nº de faces")
+    F = np.zeros(3)
+    area = 0.0
+    for i in range(nf):
+        idx = faces[sf + i]
+        P = pts[idx]
+        Sf = 0.5 * sum(np.cross(P[k] - P[0], P[k + 1] - P[0]) for k in range(1, len(idx) - 1))
+        F += pv[i] * Sf * rho
+        area += np.linalg.norm(Sf)
+    q = 0.5 * rho * v_inf ** 2
+    dd, ld = np.array(drag_dir, float), np.array(lift_dir, float)
+    return {"tempo": tempo, "forca_N": F.tolist(), "area_patch_m2": float(area), "cd_pressao": float(F @ dd / (q * a_ref)),
+            "cl_pressao": float(F @ ld / (q * a_ref)), "obs": "somente pressão; sem atrito viscoso"}
+
+
+def _ler_rho(pasta) -> float:
+    import re
+    m = re.search(r"rhoInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text())
+    return float(m.group(1))
+
+
+def _ler_vinf(pasta) -> float:
+    import re
+    return float(re.search(r"magUInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text()).group(1))
+
+
+def _ler_aref(pasta) -> float:
+    import re
+    return float(re.search(r"Aref\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text()).group(1))
+
+
+def executar_openfoam(pasta, timeout=3600, cd_ref: float | None = None, cd_tol_pct: float = 10.0, ref_texto: str = "") -> TracedResult:
+    """Executa o caso se OpenFOAM instalado; senão NAO_EXECUTADO (sem números).
+
+    Devolve Cd/Cl (forceCoeffs), iterações e convergência lidos dos arquivos reais. Só vira VALIDADO se `cd_ref` (e `ref_texto`)
+    forem informados e o Cd concordar dentro de `cd_tol_pct`.
+    """
     st = sr.detect("OpenFOAM")
     if not st.instalado:
         return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST",
                             limitacoes=[f"OpenFOAM NÃO INSTALADO. {st.instrucao}"])
-    r = subprocess.run(["sh", "Allrun"], cwd=pasta, capture_output=True, text=True, timeout=timeout)
-    if r.returncode != 0:
-        return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST", limitacoes=["falha na execução: " + r.stderr[-300:]])
-    return TracedResult("CFD OpenFOAM", "SIMULACAO_NUMERICA", "simpleFoam RANS k-ω SST", {"log": str(Path(pasta)/"log.simpleFoam")},
-                        premissas=["regime permanente incompressível"], limitacoes=["sem estudo de malha → não validado"],
-                        solver="OpenFOAM", solver_versao=st.versao or "?")
+    try:
+        r = subprocess.run(sr.openfoam_shell("sh Allrun"), cwd=pasta, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST", limitacoes=[f"tempo limite de {timeout} s excedido"])
+    logp = Path(pasta) / "log.simpleFoam"
+    log = logp.read_text(errors="replace") if logp.exists() else ""
+    sem_funcoes = False
+    if "FOAM FATAL" in log and 'IOstream "sha1"' in log:
+        # defeito conhecido de certos pacotes/compilações do OpenFOAM (v1912 Debian): QUALQUER função-objeto aborta ao iniciar.
+        # O solver em si funciona: refaz sem `functions` (malha já existe) e declara que Cd/Cl NÃO estão disponíveis.
+        cd = Path(pasta) / "system" / "controlDict"
+        txt = cd.read_text()
+        i = txt.find("functions")
+        if i >= 0:
+            cd.with_name("controlDict.com_funcoes").write_text(txt)
+            cd.write_text(txt[:i])
+            r = subprocess.run(sr.openfoam_shell("simpleFoam > log.simpleFoam 2>&1"), cwd=pasta, capture_output=True, text=True, timeout=timeout)
+            log = logp.read_text(errors="replace") if logp.exists() else ""
+            sem_funcoes = True
+    if r.returncode != 0 or not log or "FOAM FATAL" in log:
+        return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST",
+                            limitacoes=["falha na execução: " + ((r.stderr or r.stdout or log)[-400:])])
+    conv = ler_log_simplefoam(log)
+    coef = _ler_coeficientes(pasta)
+    vals = {"log": str(logp), **conv}
+    if coef:
+        vals.update({"iteracao_coef": coef[0], "cd": coef[1], "cl": coef[2]})
+    lim = ["referência de área/comprimento/velocidade são as informadas no caso", "sem estudo de malha → não validado"]
+    if sem_funcoes:
+        try:
+            fp = forcas_pressao(pasta, "body", rho=_ler_rho(pasta), v_inf=_ler_vinf(pasta), a_ref=_ler_aref(pasta))
+            vals.update({"cd_pressao": fp["cd_pressao"], "cl_pressao": fp["cl_pressao"], "forca_pressao_N": fp["forca_N"], "coef_origem": "integração própria de pressão (sem atrito viscoso)"})
+        except Exception as e:                                          # sem passo de tempo gravado etc.: não inventa
+            vals["coef_pressao_erro"] = str(e)[:160]
+        lim.insert(0, "Cd/Cl totais NÃO DISPONÍVEIS: as funções-objeto (forces/forceCoeffs) falham neste build do OpenFOAM (erro 'sha1'); "
+                      "só há o Cd/Cl de PRESSÃO por integração própria (sem atrito viscoso)")
+    if not conv["convergiu"]:
+        lim.insert(0, "NÃO CONVERGIU dentro das iterações pedidas (resíduos acima das tolerâncias do residualControl) — valores são do último passo, não de regime")
+    classe, vref = "SIMULACAO_NUMERICA", ""
+    if cd_ref is not None and coef and conv["convergiu"]:
+        dif = abs(coef[1] - cd_ref) / abs(cd_ref) * 100
+        vals["cd_ref"], vals["cd_dif_pct"] = cd_ref, dif
+        if dif <= cd_tol_pct and ref_texto:
+            classe, vref = "VALIDADO", ref_texto
+    return TracedResult("CFD OpenFOAM", classe, "simpleFoam RANS k-ω SST", vals,
+                        premissas=["regime permanente incompressível", "domínio, condições de contorno e k-ω SST gerados por gerar_caso_openfoam"],
+                        limitacoes=lim, solver="OpenFOAM", solver_versao=st.versao or "?", validacao_ref=vref)

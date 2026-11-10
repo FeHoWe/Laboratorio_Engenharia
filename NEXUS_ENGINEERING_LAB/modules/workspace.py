@@ -124,5 +124,27 @@ class ProjectStore:
     def delete_arsenal_component(self, arsenal: Arsenal, cid: str, confirm: bool = False):
         arsenal.delete_component(cid, confirm=confirm, in_use_by=self.usage(cid))
 
-    def attach_result(self, proj: dict, traced) -> None:
-        proj["results"].append(traced.to_dict()); self.save(proj)
+    def attach_result(self, proj: dict, traced, geometry_fp: str | None = None, geometry_label: str = "") -> None:
+        """Anexa o resultado. Com `geometry_fp` o resultado fica amarrado à versão da geometria (ver modules.result_store)."""
+        if geometry_fp is None:
+            proj["results"].append(traced.to_dict())
+        else:
+            from .result_store import ResultStore
+            ResultStore(proj).attach(traced, geometry_fp, geometry_label)
+        self.save(proj)
+
+    def part_fingerprints(self, proj: dict) -> dict:
+        """{"<índice>:<nome>": impressão digital atual da receita} — use esse rótulo como `geometry_label` ao anexar."""
+        from .result_store import fingerprint_recipe
+        out = {}
+        for i, p in enumerate(proj["parts"]):
+            out[f"{i}:{p.get('name', '')}"] = fingerprint_recipe(p["part_key"], p["params"], p.get("arsenal_id", ""), p.get("version", ""))
+        return out
+
+    def refresh_results(self, proj: dict) -> list:
+        """Marca resultados cuja geometria mudou como OBSOLETOS (preservados) e salva."""
+        from .result_store import ResultStore
+        ch = ResultStore(proj).refresh(self.part_fingerprints(proj))
+        if ch:
+            self.save(proj)
+        return ch

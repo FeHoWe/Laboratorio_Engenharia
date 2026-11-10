@@ -86,7 +86,7 @@ def test_lab_tab_runs_all_calculators():
     QApplication.instance() or QApplication([])
     from interface.lab_tab import LabTab
     out = LabTab().run_all()
-    assert len(out) == 12
+    assert len(out) == 13 and "curva" in out
     for k, text in out.items():
         assert "Não foi possível" not in text, (k, text)
         assert "Hipóteses" in text or "Hipotese" in text

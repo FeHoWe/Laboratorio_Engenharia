@@ -1,4 +1,4 @@
-# NEXUS ENGINEERING LAB — V1.8
+# NEXUS ENGINEERING LAB — V3.0
 
 Laboratório digital de engenharia para Windows: importa modelos CAD, identifica a estrutura
 (montagens, grupos, peças, sólidos), mostra em 3D, faz **desmontagem virtual (explosão)** e
@@ -187,7 +187,7 @@ Nova aba ao lado da "Bancada 3D" (menu Ferramentas › *Simulação de fadiga*, 
 
 *Materiais típicos* (menu Material) só são aplicados a pedido e só às peças que o banco cobre.
 
-**Ferramentas ▸ Biblioteca de peças** (Ctrl+L): 19 peças paramétricas (parafusos ISO, porcas, arruelas, rolamentos, engrenagens, polias, eixos, discos de freio,
+**Ferramentas ▸ Biblioteca de peças** (Ctrl+L): 18 peças paramétricas (parafusos ISO, porcas, arruelas, rolamentos, engrenagens, polias, eixos, discos de freio,
 flanges, chapas, tubos, vigas I/U, cantoneiras, mola helicoidal) — adicionadas à montagem atual numa posição X/Y/Z, ou criadas como projeto novo. Rosca não é modelada.
 
 **Ferramentas ▸ Laboratório de testes** (aba, Ctrl+Shift+L) — **cálculo analítico, NÃO é CFD nem elementos finitos**:
@@ -318,3 +318,11 @@ Celular: novos descritores de pose (`orb`, `rsn`, `tsn`, `vr`/`vs`), conferidos 
 **Estudo gratuito de F1 / engenharia de corrida** (base das ferramentas acima): Monlau Repsol (módulos *Introduction to Motorsport* e *Racing Team* gratuitos ao se matricular em outro), SimScale (série de workshops de F1 com CFD/modal/térmica/estática — encerrada, gravação no YouTube), HP Academy (análise de dados, canal de ganho/perda), MathWorks Racing Lounge (dinâmica veicular em Simulink), School of Race Engineering (módulo de simulação veicular). Softwares de referência: ATLAS (McLaren/Motion Applied), MoTeC i2, Ansys (CFD), MATLAB/Simulink, OptimumLap/OpenLAP.
 
 **Limites**: NEXUS F1 e análises usam dados sintéticos e parâmetros estimados; não substituem sistemas de equipe nem a homologação da FIA.
+
+## V3.0 — NEXUS CORE, solvers reais, resultados ligados à geometria e dinâmica lateral
+Resumo (detalhes em `CHANGELOG.md`, `NEXUS_TECHNICAL_AUDIT.md`, `NEXUS_ARCHITECTURE.md`, `NEXUS_ROADMAP.md`):
+- **Fila de processos isolados** (`core/jobs.py`) e **diagnóstico de ambiente** (`core/doctor.py`, botão em *Solvers…*).
+- **CalculiX e OpenFOAM executados de verdade** (antes só gerávamos os arquivos). Bugs reais do gerador de casos corrigidos. Cd da esfera **não é validado** (malha grosseira, sem referência).
+- **Resultados amarrados à versão da geometria**: mudou a peça → resultado antigo fica OBSOLETO (preservado).
+- **Dinâmica lateral**: bicicleta + pneu de escova + transferência de carga; calculadora "Curva em regime" (desktop e celular).
+- Status honesto por fase: ver `NEXUS_ROADMAP.md` (nem tudo do Master Prompt está concluído).

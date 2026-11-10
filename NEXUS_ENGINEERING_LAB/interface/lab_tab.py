@@ -106,6 +106,31 @@ def run_dinlong(v: dict) -> str:
     return out
 
 
+def run_curva(v: dict) -> str:
+    from modules import vehicle_lateral as vl
+    ve = vl.VeiculoLateral(m=v["m"], iz=v["iz"], a=v["a"], b=v["b"], h=v["hcg"], tf=v["tf"], tr=v["tr"], c_f=v["cf"] * 1000, c_r=v["cr"] * 1000,
+                           mu_f=v["muf"], mu_r=v["mur"], k_roll_f=v["krf"] * 1000, k_roll_r=v["krr"] * 1000, h_rc_f=v["hrcf"], h_rc_r=v["hrcr"],
+                           cla=v["cla"], rho=aero.isa(v["h"])["rho"])
+    ms, R = v["v"] / 3.6, v["R"]
+    out = _hdr("Curva em regime — modelo bicicleta com transferência de carga")
+    reg = vl.regime_curva(ve, ms, R)
+    lim = vl.ay_limite(ve, ms)
+    out += _row("Aceleração lateral pedida", reg["ay_g"], "g", 3) + _row("Aceleração lateral limite nesta velocidade", lim["ay_g"], "g", 3)
+    out += f"  Limite de aderência: {lim['limite']}\n"
+    cg = reg["cargas"]
+    out += _row("Transferência de carga lateral — frente", cg["dzf"], "N", 0) + _row("Transferência de carga lateral — traseira", cg["dzr"], "N", 0)
+    if reg["saturado"]:
+        out += f"  ⚠ A aderência NÃO sustenta esta curva (satura: {reg['eixo_saturado']}). Nenhum esterçamento é calculado.\n"
+    else:
+        out += _row("Esterçamento (ângulo do eixo)", math.degrees(reg["delta"]), "°", 3) + _row("Deriva do CG β", math.degrees(reg["beta"]), "°", 3)
+        out += _row("Gradiente de subesterço K", math.degrees(reg["k_subesterco"]) * vl.G, "°/g", 3) + f"  Comportamento: {reg['comportamento']}\n"
+    sp = vl.skidpad(ve, R)
+    out += _row("Velocidade máxima no raio (skidpad)", sp["v_kmh"], "km/h", 1) + _row("Tempo de uma volta completa no raio", sp["tempo_volta_s"], "s", 2)
+    out += ("\nHipóteses: classe ANALÍTICO. Modelo de uma pista, pneu de escova (C e μ SEUS), rolagem em regime, sem cambagem, sem acoplamento com tração/freio. "
+            "Valores iniciais são ILUSTRATIVOS (carro leve genérico), não de um veículo real.\n")
+    return out
+
+
 def run_wing(v: dict) -> str:
     a = aero.isa(v["h"])
     c_root, taper = v["chord"], v["taper"]
@@ -215,6 +240,15 @@ def calcs() -> list[Calc]:
               f("fr", "Fração do peso sobre eixo motriz", 1.0, "", 0.1, 1, 2), f("slope", "Inclinação", 0, "°", -30, 30, 2), f("h", "Altitude", 0, "m", -500, 5000, 0),
               f("tf", "Tempo simulado", 20, "s", 0.1, 600, 1), f("v0", "Velocidade inicial", 0, "km/h", 0, 1000, 1)], run_dinlong,
              intro="Valores iniciais são EXEMPLOS genéricos; substitua pelos seus dados."),
+        Calc("curva", "Curva em regime (bicicleta + transferência de carga)",
+             [f("m", "Massa", 1200, "kg", 1, 1e5, 1), f("iz", "Inércia de guinada Iz", 1800, "kg·m²", 1, 1e6, 0), f("a", "CG → eixo dianteiro", 1.15, "m", 0.1, 5, 3),
+              f("b", "CG → eixo traseiro", 1.35, "m", 0.1, 5, 3), f("hcg", "Altura do CG", 0.50, "m", 0.05, 3, 3), f("tf", "Bitola dianteira", 1.5, "m", 0.3, 3, 3),
+              f("tr", "Bitola traseira", 1.5, "m", 0.3, 3, 3), f("cf", "Rigidez de curva por pneu dianteiro", 45, "kN/rad", 1, 1000, 1),
+              f("cr", "Rigidez de curva por pneu traseiro", 45, "kN/rad", 1, 1000, 1), f("muf", "μ de pico dianteiro", 1.2, "", 0.1, 4, 2), f("mur", "μ de pico traseiro", 1.2, "", 0.1, 4, 2),
+              f("krf", "Rigidez de rolagem dianteira", 60, "kN·m/rad", 1, 1000, 1), f("krr", "Rigidez de rolagem traseira", 40, "kN·m/rad", 1, 1000, 1),
+              f("hrcf", "Centro de rolagem dianteiro", 0.05, "m", 0, 1, 3), f("hrcr", "Centro de rolagem traseiro", 0.08, "m", 0, 1, 3),
+              f("cla", "ClA (downforce)", 0, "m²", 0, 100, 3), f("v", "Velocidade", 80, "km/h", 1, 500, 1), f("R", "Raio da curva", 100, "m", 5, 5000, 1), f("h", "Altitude", 0, "m", -500, 5000, 0)],
+             run_curva, intro="Valores iniciais ILUSTRATIVOS (carro leve genérico). Dinâmica lateral real exige seus dados de pneu e suspensão."),
         Calc("wing", "Asa — linha sustentadora",
              [f("span", "Envergadura b", 1.6, "m", 0.1, 100, 3), f("chord", "Corda na raiz", 0.35, "m", 0.01, 20, 3), f("taper", "Afilamento (ponta/raiz)", 1.0, "", 0.1, 1, 2),
               f("alpha", "Incidência na raiz", 8, "°", -20, 30, 2), f("twist", "Torção linear na ponta", 0, "°", -10, 10, 2), f("camber", "Camber NACA m", 4, "% corda", 0, 9, 2),
