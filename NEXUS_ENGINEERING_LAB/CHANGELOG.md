@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## V3.1 — 2026-11-10 (estabilidade e integração)
+Adicionado
+- **FEA em processo isolado na interface**: botão "Executar em PROCESSO ISOLADO" no diálogo de FEA, com barra de progresso, **Cancelar**, e erro real do solver mostrado (`modules/fea_job.py`). Opção de repetir no CalculiX e comparar.
+- **Leitura completa do `.frd` do CalculiX** (`calculix_io.parse_frd`, `vm_nodal`, `export_vtk_frd`): deslocamento e von Mises NODAIS, exportação VTK para ParaView. Verificado contra o `ccx` real: campo de deslocamento inteiro coincide com o NEXUS-Tet10 (<1e-4 do máximo) e von Mises nodal máx. dentro de 3 %.
+- `core/logs.py`: log central rotativo (`~/.nexus_engineering_lab/logs/nexus.log`); `JobManager` registra o desfecho de cada job.
+- `core/backup.py`: backup com carimbo e rotação; `ProjectStore.save` guarda a versão anterior do projeto (5 mais recentes); `restore_latest`.
+
+Esclarecimento (correção de uma afirmação da V3.0)
+- O diálogo de FEA **já executava em thread** (não congelava a interface). O que faltava — e agora existe — era isolamento de processo (um travamento do solver não derruba o NEXUS), progresso e cancelamento. O diálogo de **CFD ainda não existe na interface** (só a API `cfd_case`).
+
 ## V3.0 — 2026-11-10 (Master Prompt: plataforma de engenharia computacional)
 Adicionado
 - `core/jobs.py`, `core/job_worker.py`: fila de processos isolados com cancelamento, timeout, log e progresso.

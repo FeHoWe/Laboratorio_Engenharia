@@ -1,8 +1,8 @@
-# NEXUS — Relatório de testes (V3.0, 2026-11-10)
+# NEXUS — Relatório de testes (V3.1, 2026-11-10)
 
 Ambiente: Linux headless (Qt offscreen), Python 3.13, OCP 8.0, Gmsh 4.15, **CalculiX 2.21** e **OpenFOAM ESI v1912** instalados só neste ambiente de teste. **Nada foi executado em Windows 11.**
 
-**Suíte completa: 433 passaram, 3 foram ignorados, 0 falharam** (392 + 41 de `test_v22.py` rodados em separado; ~16 min).
+**Suíte completa V3.1: 440 passaram, 3 foram ignorados, 0 falharam** (399 + 41 de `test_v22.py` rodados em separado; ~20 min). Na V3.0 eram 433.
 Paridade JS × Python (`mobile/validate_lab.py`): máximo ≈ 6e-14 (lateral: 2,8e-15).
 
 | Módulo | Testes | O que prova |
@@ -12,6 +12,7 @@ Paridade JS × Python (`mobile/validate_lab.py`): máximo ≈ 6e-14 (lateral: 2,
 | CORE | test_jobs (6), test_doctor (4) | sucesso, falha, crash e solver ausente isolados; timeout; cancelamento; fila; diagnóstico sem fingir motor |
 | FEA | test_fea3d, test_fea_tet10, test_fea_gmsh, test_calculix_io, **test_calculix_real** | Tet10 vs Timoshenko/Peterson; **ccx real == NEXUS-Tet10 (~1e-5 %)** e ≈ Timoshenko (<8 %); ccx via fila isolada |
 | CFD | test_cfd_case | arquivos do caso; integração de pressão com solução analítica; parser de log; **execução real OpenFOAM (esfera)**: gera, resolve, não inventa |
+| V3.1 | test_core_v31, test_fea_study (+2), test_calculix_real (+2) | backup com rotação e restauração; log central; FEA em processo isolado pela interface (progresso, cancelar, falha real exibida); `.frd` completo e VTK; FEA+ccx em job isolado |
 | Veículo | test_vehicle_lateral (11) | K de subesterço = fórmula fechada; transferência de carga; skidpad = √(μgR); eixo que satura; degrau converge ao regime; pneu de escova |
 
 ## Ignorados (3)

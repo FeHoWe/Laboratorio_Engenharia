@@ -9,6 +9,8 @@
 2. Salve no Arsenal (Ctrl+Shift+A); cada alteração cria uma nova versão e o histórico é preservado.
 3. Defina o material (você escolhe) e insira a peça num projeto.
 4. FEA: *Estudo FEA 3D…* (Tet10 + malha Gmsh). Com `ccx` instalado, o mesmo caso pode ser exportado/executado no CalculiX e os deslocamentos são comparados (`calculix_io.compare`).
+   - **Executar em PROCESSO ISOLADO**: roda o estudo fora do NEXUS, com barra de progresso e **Cancelar**; marque "Repetir no CalculiX e comparar" para cruzar com o `ccx` (se instalado). O campo completo do CalculiX (`.frd`) é lido e salvo em VTK para o ParaView.
+   - Log central: `~/.nexus_engineering_lab/logs/nexus.log`. Ao salvar um projeto, a versão anterior vai para a pasta `backups/` ao lado dele.
 5. Anexe o resultado ao projeto **com a impressão digital da geometria**. Se alterar a peça, o resultado antigo fica **OBSOLETO** (preservado) e o novo é vigente. `result_store.compare` mostra a diferença entre versões.
 
 ## CFD

@@ -79,3 +79,35 @@ def test_fea_dialog_async_does_not_block():
     while d._busy and time.time() - t0 < 60: app.processEvents(); time.sleep(0.01)
     assert not d._busy and "SIMULACAO_NUMERICA" in d.out.toPlainText()
     d._worker.wait()
+
+
+def _dlg_chapa():
+    import os; os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from interface.fea_dialog import FeaDialog
+    d = FeaDialog(); d.part.setCurrentIndex(list(PARTS).index("chapa_furada"))
+    d.pspin["hole_d"].setValue(0); d.pspin["nx"].setValue(0); d.pspin["ny"].setValue(0); d.pspin["length"].setValue(60); d.pspin["width"].setValue(30)
+    d.E.setValue(70000); d.nu.setValue(0.33); d.h.setValue(3); d.F[0].setValue(300)
+    d.mesher.setCurrentIndex(d.mesher.findData("voxel")); d.order.setCurrentIndex(d.order.findData(1))
+    return d
+
+
+def test_fea_dialog_isolated_process_runs_with_progress():
+    d = _dlg_chapa(); d.run_isolated()
+    assert d._job is not None and not d.progress.isHidden() and not d.b_iso.isEnabled() and d.b_cancel.isEnabled()
+    assert d._job.wait(120)
+    d._poll()
+    assert d._job.state == "DONE" and d.progress.value() == 100 and d.b_iso.isEnabled() and not d.b_cancel.isEnabled()
+    t = d.out.toPlainText()
+    assert "SIMULACAO_NUMERICA" in t and "NEXUS-Tet" in t and d.last is not None and d.last.classe == "SIMULACAO_NUMERICA"
+
+
+def test_fea_dialog_isolated_cancel_and_failure_are_reported():
+    d = _dlg_chapa(); d.h.setValue(0.3)                    # malha enorme → demora; cancelamos
+    d.run_isolated(); d.cancel_isolated()
+    assert d._job.wait(60); d._poll()
+    assert d._job.state == "CANCELLED" and "Cancelado" in d.out.toPlainText() and d.last is None
+    d2 = _dlg_chapa(); d2.pspin["length"].setValue(60); d2.ff.setCurrentText("xmin"); d2.lf.setCurrentText("xmin")   # faces iguais → erro real do solver
+    d2.run_isolated(); assert d2._job.wait(60); d2._poll()
+    assert d2._job.state == "FAILED" and "face fixa e face carregada devem ser diferentes" in d2.out.toPlainText()

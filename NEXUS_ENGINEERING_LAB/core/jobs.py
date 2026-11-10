@@ -22,6 +22,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
+from core import logs
+
+_log = logs.get("jobs")
+
 STATES = ("QUEUED", "RUNNING", "DONE", "FAILED", "CANCELLED", "TIMEOUT")
 _PROGRESS = re.compile(r"NEXUS_PROGRESS\s+([0-9]+(?:\.[0-9]+)?)")     # linha "NEXUS_PROGRESS 42.5" no stdout do processo
 RESULT_MARK = "NEXUS_RESULT_JSON:"
@@ -171,6 +175,7 @@ class JobManager:
             if j.terminal:
                 return
             j.state, j.returncode, j.error, j.finished = state, rc, error, time.time()
+            (_log.info if state == "DONE" else _log.warning)("job %s '%s' → %s (rc=%s) %s", j.id, j.name, state, rc, error.splitlines()[0] if error else "")
             if state == "DONE":
                 j.progress = 100.0
         j._done.set()

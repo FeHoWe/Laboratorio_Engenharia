@@ -95,6 +95,9 @@ class ProjectStore:
 
     def save(self, proj: dict):
         proj["modified"] = time.time()
+        if self._path(proj["name"]).exists():
+            from core.backup import backup_file
+            backup_file(self._path(proj["name"]), keep=5, motivo="antes de salvar")
         tmp = self._path(proj["name"]).with_suffix(".tmp")
         tmp.write_text(json.dumps(proj, ensure_ascii=False, indent=1), encoding="utf-8")
         tmp.replace(self._path(proj["name"]))

@@ -40,3 +40,38 @@ def test_ccx_runs_through_isolated_job_queue(caso):
     # solver com arquivo de entrada inexistente: falha real é reportada, não mascarada
     k = JobManager().submit_cmd("ccx inexistente", [sr.detect("CalculiX").caminho, "nao_existe"], cwd=str(d), timeout=60)
     assert k.wait(70) and k.state == "FAILED"
+
+
+def test_frd_field_matches_nexus_and_vtk_is_valid(tmp_path):
+    """Leitura completa do .frd: deslocamento nodal e von Mises nodal contra o NEXUS-Tet10; VTK reabre."""
+    s = PARTS["tubo_redondo"].make(length=100, od=40, t=5)
+    m, _ = G.mesh_from_shape(s, 10, 2)
+    fx = {k: (0, 1, 2) for k in S.face_nodes(m, "xmin")}
+    loads = Q.surface_load10(m, S.face_nodes(m, "xmax"), (0, 0, -100))
+    u, vm, R, vol = Q.solve(m, E, NU, fx, loads)
+    _, vmn = Q.nodal_stress(m, u, E, NU)
+    C.write_inp(m, E, NU, fx, loads, tmp_path / "t.inp", frd=True)
+    r = C.run(tmp_path / "t.inp")
+    assert r.classe == "SIMULACAO_NUMERICA" and "vm_nodal_max_MPa" in r.valores
+    fr = C.parse_frd((tmp_path / "t.frd").read_text())
+    n = len(m.nodes)
+    assert len(fr["U"]) == n and len(fr["S"]) == n
+    U = np.array([fr["U"][i + 1] for i in range(n)])
+    assert np.abs(U - u.reshape(-1, 3)).max() < 1e-4 * np.abs(u).max()            # campo nodal inteiro, não só o máximo
+    assert max(C.vm_nodal(fr["S"]).values()) == pytest.approx(float(vmn.max()), rel=0.03)
+    C.export_vtk_frd(tmp_path / "o.vtk", m, fr)
+    import vtk
+    rd = vtk.vtkUnstructuredGridReader(); rd.SetFileName(str(tmp_path / "o.vtk")); rd.Update()
+    g = rd.GetOutput()
+    assert g.GetNumberOfPoints() == n and g.GetNumberOfCells() == len(m.tets) and g.GetPointData().GetArray("von_mises_MPa") is not None
+
+
+def test_fea_job_isolated_with_ccx_compare():
+    from core.jobs import JobManager
+    j = JobManager().submit_python("fea+ccx", "modules.fea_job", "run_static",
+                                   dict(part_key="tubo_redondo", part_params=dict(length=100, od=40, t=5), h=10, E=E, nu=NU, ff="xmin", lf="xmax",
+                                        force=[0, 0, -100], mesher="gmsh", order=2, ccx=True), timeout=300)
+    assert j.wait(310) and j.state == "DONE", j.error
+    r = j.result()
+    assert r["result"]["classe"] == "SIMULACAO_NUMERICA" and r["ccx"]["classe"] == "SIMULACAO_NUMERICA"
+    assert r["ccx"]["comparacao"]["status"] == "CONCORDA"
