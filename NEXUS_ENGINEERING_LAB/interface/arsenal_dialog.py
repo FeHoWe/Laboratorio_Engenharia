@@ -49,7 +49,7 @@ class ArsenalDialog(QDialog):
         row = QHBoxLayout()
         for text, fn in (("Salvar peça da biblioteca no Arsenal…", self._save_from_library), ("Inserir na montagem", self._insert),
                          ("Comparar com versão anterior", self._compare), ("Restaurar versão selecionada", self._restore),
-                         ("Duplicar (variante)", self._dup)):
+                         ("Duplicar (variante)", self._dup), ("Exportar…", self._export), ("Importar…", self._import)):
             b = QPushButton(text)
             b.clicked.connect(fn)
             row.addWidget(b)
@@ -145,6 +145,27 @@ class ArsenalDialog(QDialog):
         except ArsenalError as exc:
             QMessageBox.warning(self, "Arsenal", str(exc))
         self._show()
+
+    def _export(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        cid = self._cid()
+        if not cid:
+            return
+        p, _ = QFileDialog.getSaveFileName(self, "Exportar componente", f"{cid}.json", "JSON (*.json)")
+        if p:
+            self.arsenal.export_to_file([cid], p)
+
+    def _import(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        p, _ = QFileDialog.getOpenFileName(self, "Importar do Arsenal", "", "JSON (*.json)")
+        if not p:
+            return
+        try:
+            ids = self.arsenal.import_file(p)
+        except ArsenalError as exc:
+            QMessageBox.warning(self, "Arsenal", str(exc)); return
+        QMessageBox.information(self, "Arsenal", f"{len(ids)} componente(s) importado(s) com novos IDs: {', '.join(ids)}")
+        self._fill()
 
     def _dup(self) -> None:
         cid = self._cid()

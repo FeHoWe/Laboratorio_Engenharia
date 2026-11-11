@@ -28,6 +28,7 @@ class SolversDialog(QDialog):
         dg = QPushButton("Diagnóstico completo do ambiente (somente leitura)…"); dg.clicked.connect(self.diag); v.addWidget(dg)
         b = QPushButton("Popular Arsenal com a vitrine (peças paramétricas, sem material)"); b.clicked.connect(self.seed); v.addWidget(b)
         f = QPushButton("Estudo FEA 3D de peça (NEXUS-Tet4)…"); f.clicked.connect(self.fea); v.addWidget(f)
+        g = QPushButton("CFD — OpenFOAM (processo isolado, Cp no visualizador)…"); g.clicked.connect(self.cfd); v.addWidget(g)
         c = QPushButton("Editor paramétrico com histórico (peça/STEP)…"); c.clicked.connect(self.cad); v.addWidget(c)
         self.lst = QListWidget(); v.addWidget(QLabel("Projetos do usuário:")); v.addWidget(self.lst)
         n = QPushButton("Novo projeto…"); n.clicked.connect(self.new); v.addWidget(n)
@@ -48,6 +49,10 @@ class SolversDialog(QDialog):
     def fea(self):
         from interface.fea_dialog import FeaDialog
         FeaDialog(self).exec()
+
+    def cfd(self):
+        from interface.cfd_dialog import CfdDialog
+        CfdDialog(self).exec()
 
     def seed(self):
         a = open_arsenal(); ids = seed_showcase(a); a.close()

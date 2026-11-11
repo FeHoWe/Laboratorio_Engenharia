@@ -6,7 +6,7 @@ const nf=(x,d=4)=>{if(x===Infinity)return '∞';if(x===-Infinity)return '−∞'
  if(a!==0&&(a>=1e7||a<1e-3))return x.toExponential(3).replace('.',',');return x.toLocaleString('pt-BR',{maximumSignificantDigits:d});};
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const store={get(k,d){try{const v=localStorage.getItem('nexus.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('nexus.'+k,JSON.stringify(v));}catch(e){}}};
-const TABS=[['3d','3D'],['aero','Aero'],['estr','Estrutural'],['trel','Treliça'],['port','Pórtico'],['fad','Fadiga'],['fea','FEA 3D'],['veic','Veículo'],['f1','F1'],['f1sim','F1 Sim'],['f1an','F1 Análise'],['massa','Massa'],['unid','Unidades'],['interf','Interferência'],['sobre','Sobre']];
+const TABS=[['3d','3D'],['aero','Aero'],['estr','Estrutural'],['trel','Treliça'],['port','Pórtico'],['fad','Fadiga'],['fea','FEA 3D'],['veic','Veículo'],['f1','F1'],['f1sim','F1 Sim'],['f1an','F1 Análise'],['prod','Produtos'],['massa','Massa'],['unid','Unidades'],['interf','Interferência'],['sobre','Sobre']];
 let cur='3d',project=null,MATS=null;const built={};
 // ---- construtor de cartões
 function card(title,note,fields,fn,opts={}){
@@ -319,7 +319,22 @@ async function tabF1An(c){c.innerHTML='<p class="n">Análise no estilo MoTeC i2 
   line(c.querySelector('#anp'),d.aero.lv,d.aero.t,'Tempo de volta (s) × nível de asa','#33e0ff',false);line(c.querySelector('#anh'),d.hist.x,d.hist.s,'Histograma de velocidade (s por faixa, km/h)','#ffb02e',true);};
  sel.onchange=show;show();}
 function LAB_TRACK_TXT(){return L.LAP_TRACK.map(a=>a.join(', ')).join('\n');}
-const BUILD={f1sim:tabF1Sim,f1an:tabF1An,fea:tabFea,veic:p=>{tabVeic(p);tabCurva(p);},f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
+function tabProd(p){const P=window.__produtos||[],G=window.__glossario||{};const ic={PRONTO:'✅',PARCIAL:'🟡',PLANEJADO:'⬜'};
+ const c=document.createElement('section');c.className='card';
+ c.innerHTML=`<h2>Produtos NEXUS</h2><p class="n">Mapa honesto do que existe: ✅ pronto e testado · 🟡 parcial (com limites) · ⬜ planejado (não existe ainda).</p>`+P.map(x=>`<div class="res" style="display:block"><b>${esc(x.nome)}</b> ${ic[x.estado]||''}\n${esc(x.missao)}\n`+x.caps.map(k=>`${ic[k.estado]} ${esc(k.rotulo)}${k.nota?' — '+esc(k.nota):''}`).join('\n')+`\n<i>Limites: ${x.lacunas.map(esc).join(' · ')}</i></div>`).join('');
+ p.append(c);
+ const d=document.createElement('section');d.className='card';
+ d.innerHTML=`<h2>NEXUS INTELLIGENCE — fator de segurança</h2><p class="n">Parecer por regras (não é IA generativa; não inventa números). Informe a tensão von Mises máxima e o escoamento do SEU material.</p>
+ <div class="fld"><label>von Mises máx. (MPa)</label><input id="iv" inputmode="decimal" type="text" value="${store.get('i.v','150')}"></div>
+ <div class="fld"><label>Escoamento do material (MPa) — informe</label><input id="is" inputmode="decimal" type="text" value="${store.get('i.s','250')}"></div>
+ <button class="p" id="ig">Interpretar</button><div class="res" style="display:block" id="ir"></div>
+ <div class="fld"><label>Glossário</label><select id="gt">${Object.keys(G).map(k=>`<option>${esc(k)}</option>`).join('')}</select></div><div class="res" style="display:block" id="gr"></div>`;p.append(d);
+ const num=s=>parseFloat(String(s).replace(',','.'));
+ d.querySelector('#ig').onclick=()=>{const vm=num(d.querySelector('#iv').value),sy=num(d.querySelector('#is').value);store.set&&store.set('i.v',d.querySelector('#iv').value);store.set&&store.set('i.s',d.querySelector('#is').value);
+  try{const r=LAB.interpFS(vm,sy);const t={CRITICO:'Escoamento previsto no ponto de máxima tensão.',ATENCAO:'Margem baixa (depende de cargas reais, fadiga e concentração).',INFO:'Margem sobre o escoamento (estático, sem fadiga).'}[r.nivel];
+   d.querySelector('#ir').innerHTML=`Fator de segurança <b>${nf(r.fs)}</b> → <b>${r.nivel}</b>\n${t}\nFonte: von Mises=${vm} MPa, escoamento=${sy} MPa (informados por você).`;}catch(e){d.querySelector('#ir').textContent='⚠ '+e.message;}};
+ const g=d.querySelector('#gt');g.onchange=()=>{d.querySelector('#gr').textContent=g.value+': '+G[g.value];};g.onchange();}
+const BUILD={prod:tabProd,f1sim:tabF1Sim,f1an:tabF1An,fea:tabFea,veic:p=>{tabVeic(p);tabCurva(p);},f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
 function rebuild(id){const p=$('#panel');p.innerHTML='';BUILD[id](p);}
 function setTab(id){cur=id;document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===id));
  const p=$('#panel'),v=$('#view');if(id==='3d'){p.style.display='none';v.style.display='flex';setTimeout(()=>N().resizeNow(),30);return;}

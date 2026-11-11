@@ -37,7 +37,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "3.1"
+APP_VERSION = "3.3"
 
 
 # --------------------------------------------------------------- console inferior
@@ -217,6 +217,12 @@ class MainWindow(QMainWindow):
           "Biblioteca central de componentes reutilizáveis: IDs NEXUS-COMP, versões, comparar/restaurar, variantes e compatibilidade")
         a("solvers", "Solvers, vitrine e projetos…", lambda: self.show_solvers(), "Ctrl+Shift+S", None,
           "Status de OpenFOAM/CalculiX/Gmsh (NÃO INSTALADO se ausentes), vitrine do Arsenal e projetos do usuário")
+        a("hub", "NEXUS — Produtos (CAD, Structural, Aerodynamics, Vehicle, Intelligence)…", lambda: self.show_hub(), "Ctrl+Shift+H", None,
+          "Mapa dos cinco produtos do NEXUS e das funções reais de cada um, com estado honesto (pronto/parcial/planejado)")
+        a("intelligence", "NEXUS INTELLIGENCE — interpretar resultados e revisar projeto…", lambda: self.show_intelligence(), "Ctrl+Shift+I", None,
+          "Assistente técnico por regras: parecer sobre resultados, revisão de projeto, comparação e glossário (não inventa números)")
+        a("clearfield", "Limpar mapa de tensões/pressão do visualizador", lambda: self.clear_field_map(), None, None,
+          "Remove o mapa de cores (FEA/CFD) exibido no visualizador 3D e devolve as peças")
         a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
           "Conformidade geométrica com limites públicos do regulamento, massa/CG/inércia e simulação de volta quase-estacionária (estudo, não homologação)")
         a("f1sim", "Simulador F1 completo (volta, pneus, estratégia, telemetria, áudio, análise)…", lambda: self.show_f1sim(), "Ctrl+Alt+S", None,
@@ -288,7 +294,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "solvers", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -847,6 +853,18 @@ class MainWindow(QMainWindow):
     def show_arsenal(self) -> None:
         from interface.arsenal_dialog import ArsenalDialog
         ArsenalDialog(self).exec()
+
+    def show_hub(self) -> None:
+        from interface.hub_dialog import HubDialog
+        HubDialog(self).exec()
+
+    def show_intelligence(self) -> None:
+        from interface.hub_dialog import IntelligenceDialog
+        IntelligenceDialog(self).exec()
+
+    def clear_field_map(self) -> None:
+        """Remove o mapa de cores (FEA/CFD) e restaura as peças."""
+        self.viewport.clear_field()
 
     def show_solvers(self) -> None:
         from interface.solvers_dialog import SolversDialog

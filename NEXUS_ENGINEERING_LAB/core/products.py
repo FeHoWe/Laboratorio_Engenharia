@@ -1,0 +1,77 @@
+"""Visão de produto do NEXUS: cinco produtos sobre um núcleo comum. Cada capacidade aponta para uma AÇÃO real da janela principal
+(`actions_by_key`) e declara um estado HONESTO: PRONTO (existe e é testado), PARCIAL (existe com limites declarados) ou PLANEJADO (não existe).
+Nada aqui executa cálculo — é o mapa que a interface (Hub) e a documentação usam, para o produto não prometer o que não entrega.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+PRONTO, PARCIAL, PLANEJADO = "PRONTO", "PARCIAL", "PLANEJADO"
+
+
+@dataclass(frozen=True)
+class Capacidade:
+    rotulo: str
+    acao: str | None          # chave em MainWindow.actions_by_key (None = ainda não existe)
+    estado: str
+    nota: str = ""
+
+
+@dataclass(frozen=True)
+class Produto:
+    chave: str
+    nome: str
+    missao: str
+    capacidades: tuple = field(default_factory=tuple)
+    lacunas: tuple = field(default_factory=tuple)
+
+    def estado(self) -> str:
+        es = {c.estado for c in self.capacidades}
+        return PLANEJADO if es <= {PLANEJADO} else (PRONTO if es == {PRONTO} else PARCIAL)
+
+
+PRODUTOS: tuple = (
+    Produto("cad", "NEXUS CAD", "Desenvolvimento e edição de componentes mecânicos.",
+            (Capacidade("Biblioteca de peças paramétricas (B-rep real)", "library", PRONTO, "18 peças; parâmetros editáveis"),
+             Capacidade("Editor paramétrico com histórico (undo/redo, STEP)", "solvers", PARCIAL, "dentro de Solvers…; sem edição de sketch"),
+             Capacidade("Arsenal de componentes versionados (exportar/importar, backup)", "arsenal", PRONTO),
+             Capacidade("Montagem, BOM, interferência, juntas", "bom", PRONTO),
+             Capacidade("Operações booleanas/extrusão interativas sobre peça importada", None, PLANEJADO)),
+            ("Edição de sketch 2D", "Booleanas interativas na GUI sobre geometria importada")),
+    Produto("structural", "NEXUS STRUCTURAL", "Análise estrutural, resistência e fadiga.",
+            (Capacidade("FEA 3D estático (Tet10, Gmsh) + CalculiX real", "solvers", PRONTO, "verificado vs Timoshenko/Peterson; mapa de von Mises no 3D"),
+             Capacidade("Frequências naturais e convergência de malha", "solvers", PRONTO),
+             Capacidade("Fadiga (aba)", "fatigue", PARCIAL, "modelos de vida por tensão; dados de material são do usuário"),
+             Capacidade("Resultados ligados à versão da geometria", "solvers", PRONTO),
+             Capacidade("Contato, plasticidade, multi-material por região", None, PLANEJADO)),
+            ("Sem contato/plasticidade", "Tensão em quina viva é singular (depende da malha)")),
+    Produto("aero", "NEXUS AERODYNAMICS", "Dinâmica dos fluidos e aerodinâmica.",
+            (Capacidade("Aerodinâmica analítica (níveis 1 e 2)", "lab", PRONTO, "classe ANALÍTICO — não é CFD"),
+             Capacidade("CFD OpenFOAM isolado, progresso/cancelar, Cp sobre as peças", "solvers", PARCIAL, "Cd/Cl por integração própria; sem validação ampla"),
+             Capacidade("Camada limite (addLayers), linhas de corrente", None, PLANEJADO)),
+            ("Cd da esfera sem validação conclusiva", "Atrito viscoso é estimativa de 1ª ordem")),
+    Produto("vehicle", "NEXUS VEHICLE", "Dinâmica veicular e desempenho.",
+            (Capacidade("Dinâmica longitudinal e volta quase-estacionária", "f1tools", PRONTO),
+             Capacidade("Dinâmica lateral (bicicleta, pneu de escova, Milliken)", "lab", PRONTO),
+             Capacidade("Simulador F1 (volta, pneus, estratégia, telemetria sintética)", "f1sim", PARCIAL, "telemetria é SINTÉTICA, não real"),
+             Capacidade("Pneu combinado e suspensão com geometria", None, PLANEJADO)),
+            ("Ferramentas não substituem sistemas da equipe nem homologação FIA",)),
+    Produto("intelligence", "NEXUS INTELLIGENCE", "Assistente técnico para interpretar projetos, resultados e auxiliar nas decisões de engenharia.",
+            (Capacidade("Interpretar um resultado (classe, validade, alertas, próximos passos)", "intelligence", PRONTO, "baseado em REGRAS auditáveis"),
+             Capacidade("Revisar um projeto (resultados obsoletos, materiais não informados, não validados)", "intelligence", PRONTO),
+             Capacidade("Comparar resultados e explicar termos de engenharia", "intelligence", PRONTO),
+             Capacidade("Assistente generativo (linguagem natural livre)", None, PLANEJADO)),
+            ("Não é IA generativa: não inventa números; só lê o que o NEXUS calculou",)),
+)
+
+
+def produto(chave: str) -> Produto:
+    for p in PRODUTOS:
+        if p.chave == chave:
+            return p
+    raise KeyError(chave)
+
+
+def resumo() -> list[dict]:
+    return [{"chave": p.chave, "nome": p.nome, "estado": p.estado(), "pronto": sum(c.estado == PRONTO for c in p.capacidades),
+             "parcial": sum(c.estado == PARCIAL for c in p.capacidades), "planejado": sum(c.estado == PLANEJADO for c in p.capacidades)} for p in PRODUTOS]

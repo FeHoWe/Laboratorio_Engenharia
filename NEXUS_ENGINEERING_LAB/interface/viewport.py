@@ -107,6 +107,9 @@ class SceneController:
         self.project_key: Optional[str] = None   # chave do projeto predefinido (para a aparência visual); None = genérico
         self._floor: Optional[vtkActor] = None
         self._section: Optional[tuple[int, float, bool]] = None
+        self._field_actors: list = []
+        self._field_hidden: list = []
+        self.field_info: Optional[dict] = None
         self._hud_size = (0, 0)
         self._hud_lines: list[str] = []
         self._hud_frame = vtkActor2D()
@@ -118,6 +121,7 @@ class SceneController:
 
     # ------------------------------------------------------------------ cena
     def clear(self) -> None:
+        self.clear_field(restore=False)
         for pa in self.parts.values():
             self.renderer.RemoveActor(pa.body)
             self.renderer.RemoveActor(pa.edges)
@@ -512,6 +516,153 @@ class SceneController:
                 boxes.append(BoundingBox(np.array([b[0], b[2], b[4]]), np.array([b[1], b[3], b[5]])))
         return BoundingBox.union(boxes)
 
+    # ------------------------------------------------------------------ campos de resultado (FEA/CFD) sobre a malha
+    def clear_field(self, restore: bool = True) -> None:
+        """Remove o mapa de cores e (se `restore`) devolve a visibilidade das peças que ele escondeu."""
+        if self._field_actors:
+            self.renderer.RemoveActor(self._field_actors[0])
+            self.renderer.RemoveViewProp(self._field_actors[1])
+        self._field_actors = []
+        if restore:
+            for act, vis in self._field_hidden:
+                act.SetVisibility(vis)
+        self._field_hidden = []
+        self.field_info = None
+
+    def _hide_parts_for_field(self) -> None:
+        self._field_hidden = []
+        for pa in self.parts.values():
+            for act in (pa.body, pa.edges):
+                self._field_hidden.append((act, act.GetVisibility()))
+                act.SetVisibility(False)
+
+    def _field_finish(self, mapper_input, scalars_range, title: str, unit: str, point_data: bool, hide_parts: bool, info: dict) -> dict:
+        from vtkmodules.vtkCommonCore import vtkLookupTable
+        from vtkmodules.vtkRenderingAnnotation import vtkScalarBarActor
+        from vtkmodules.vtkRenderingCore import vtkPolyDataMapper
+        lut = vtkLookupTable()
+        lut.SetNumberOfTableValues(256)
+        lut.SetHueRange(0.667, 0.0)                      # azul (baixo) → vermelho (alto)
+        lut.SetRange(*scalars_range)
+        lut.Build()
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputConnection(mapper_input.GetOutputPort())
+        mapper.SetLookupTable(lut)
+        mapper.SetScalarRange(*scalars_range)
+        if point_data:
+            mapper.SetScalarModeToUsePointData()
+        else:
+            mapper.SetScalarModeToUseCellData()
+        mapper.ScalarVisibilityOn()
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().SetInterpolation(1 if point_data else 0)
+        bar = vtkScalarBarActor()
+        bar.SetLookupTable(lut)
+        bar.SetTitle(f"{title} ({unit})" if unit else title)
+        bar.SetNumberOfLabels(6)
+        bar.SetWidth(0.09)
+        bar.SetHeight(0.6)
+        bar.SetPosition(0.88, 0.2)
+        if hide_parts:
+            self._hide_parts_for_field()
+        self.renderer.AddActor(actor)
+        self.renderer.AddViewProp(bar)
+        self._field_actors = [actor, bar]
+        self.field_info = {**info, "titulo": title, "unidade": unit, "min": float(scalars_range[0]), "max": float(scalars_range[1])}
+        return self.field_info
+
+    def set_field(self, points, tets, scalars, location: str = "point", title: str = "von Mises", unit: str = "MPa",
+                  vrange: Optional[tuple[float, float]] = None, displacement=None, disp_scale: float = 1.0, hide_parts: bool = True) -> dict:
+        """Mapa de cores de um campo escalar sobre a SUPERFÍCIE de uma malha de tetraedros (Tet4 ou Tet10).
+
+        `scalars` por nó (location="point") ou por elemento ("cell"). `displacement` (n,3) opcional deforma a malha por `disp_scale`
+        (a deformada é só exibição). Sólidos/atores originais ficam escondidos até `clear_field()`.
+        """
+        from vtkmodules.vtkCommonDataModel import vtkUnstructuredGrid
+        from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
+        pts = np.asarray(points, float).reshape(-1, 3)
+        tets = np.asarray(tets, np.int64)
+        sc = np.asarray(scalars, float).ravel()
+        if tets.ndim != 2 or tets.shape[1] not in (4, 10):
+            raise ValueError("malha precisa ser Tet4 ou Tet10")
+        n_expected = len(pts) if location == "point" else len(tets)
+        if len(sc) != n_expected:
+            raise ValueError(f"{len(sc)} valores para {n_expected} {'nós' if location == 'point' else 'elementos'}")
+        if not np.all(np.isfinite(sc)):
+            raise ValueError("campo contém NaN/inf")
+        if displacement is not None:
+            d = np.asarray(displacement, float).reshape(-1, 3)
+            if len(d) != len(pts):
+                raise ValueError("deslocamento com tamanho diferente do nº de nós")
+            pts = pts + disp_scale * d
+        self.clear_field()
+        k = tets.shape[1]
+        ug = vtkUnstructuredGrid()
+        vp = vtkPoints()
+        vp.SetData(numpy_to_vtk(np.ascontiguousarray(pts), deep=True))
+        ug.SetPoints(vp)
+        ca = vtkCellArray()
+        ca.SetData(numpy_to_vtkIdTypeArray(np.arange(0, k * (len(tets) + 1), k, dtype=np.int64), deep=True),
+                   numpy_to_vtkIdTypeArray(tets.ravel(), deep=True))
+        ug.SetCells(10 if k == 4 else 24, ca)
+        arr = numpy_to_vtk(sc, deep=True)
+        arr.SetName("campo")
+        (ug.GetPointData() if location == "point" else ug.GetCellData()).SetScalars(arr)
+        surf = vtkDataSetSurfaceFilter()
+        surf.SetInputData(ug)
+        surf.SetNonlinearSubdivisionLevel(1)
+        surf.Update()
+        lo, hi = vrange if vrange else (float(sc.min()), float(sc.max()))
+        if hi <= lo:
+            hi = lo + 1e-12
+        return self._field_finish(surf, (lo, hi), title, unit, location == "point", hide_parts,
+                                  {"tipo": "volume", "nos": len(pts), "elementos": len(tets), "deformada": displacement is not None})
+
+    def set_surface_field(self, points, polys, cell_scalars, title: str = "Cp", unit: str = "",
+                          vrange: Optional[tuple[float, float]] = None, hide_parts: bool = False) -> dict:
+        """Campo por FACE sobre uma superfície de polígonos (ex.: pressão no corpo, vinda do CFD)."""
+        pts = np.asarray(points, float).reshape(-1, 3)
+        sc = np.asarray(cell_scalars, float).ravel()
+        if len(sc) != len(polys):
+            raise ValueError(f"{len(sc)} valores para {len(polys)} faces")
+        if not np.all(np.isfinite(sc)):
+            raise ValueError("campo contém NaN/inf")
+        self.clear_field()
+        from vtkmodules.vtkFiltersCore import vtkTriangleFilter
+        pd = vtkPolyData()
+        vp = vtkPoints()
+        vp.SetData(numpy_to_vtk(np.ascontiguousarray(pts), deep=True))
+        pd.SetPoints(vp)
+        ca = vtkCellArray()
+        lens = [len(f) for f in polys]
+        conn = np.concatenate([np.asarray(f, np.int64) for f in polys])
+        ca.SetData(numpy_to_vtkIdTypeArray(np.concatenate([[0], np.cumsum(lens)]).astype(np.int64), deep=True), numpy_to_vtkIdTypeArray(conn, deep=True))
+        pd.SetPolys(ca)
+        arr = numpy_to_vtk(sc, deep=True)
+        arr.SetName("campo")
+        pd.GetCellData().SetScalars(arr)
+        tri = vtkTriangleFilter()
+        tri.SetInputData(pd)
+        tri.Update()
+        lo, hi = vrange if vrange else (float(sc.min()), float(sc.max()))
+        if hi <= lo:
+            hi = lo + 1e-12
+        return self._field_finish(tri, (lo, hi), title, unit, False, hide_parts,
+                                  {"tipo": "superficie", "nos": len(pts), "faces": len(polys)})
+
+    def field_bounds(self) -> Optional[BoundingBox]:
+        if not self._field_actors:
+            return None
+        b = self._field_actors[0].GetBounds()
+        return BoundingBox(np.array([b[0], b[2], b[4]]), np.array([b[1], b[3], b[5]]))
+
+    def fit_field(self) -> None:
+        b = self.field_bounds()
+        if b is not None:
+            self.renderer.ResetCamera(b.min[0], b.max[0], b.min[1], b.max[1], b.min[2], b.max[2])
+            self.renderer.ResetCameraClippingRange()
+
     def fit(self) -> None:
         b = self._all_bounds()          # só as peças: chão e HUD não entram no enquadramento
         if b is not None:
@@ -678,6 +829,25 @@ class Viewport(QWidget):
         if QGuiApplication.platformName() == "offscreen":
             return          # sem contexto OpenGL utilizável (testes/CI): o desenho real só ocorre com tela
         self._render_window.Render()
+
+    def show_field(self, *args, fit: bool = True, **kw) -> dict:
+        """Mapa de cores de volume (Tet4/Tet10) — ver SceneController.set_field."""
+        info = self.scene.set_field(*args, **kw)
+        if fit:
+            self.scene.fit_field()
+        self.refresh()
+        return info
+
+    def show_surface_field(self, *args, fit: bool = True, **kw) -> dict:
+        info = self.scene.set_surface_field(*args, **kw)
+        if fit:
+            self.scene.fit_field()
+        self.refresh()
+        return info
+
+    def clear_field(self) -> None:
+        self.scene.clear_field()
+        self.refresh()
 
     def render_to_image(self, path: str) -> None:
         """Salva a vista atual em PNG (usado em testes e documentação)."""

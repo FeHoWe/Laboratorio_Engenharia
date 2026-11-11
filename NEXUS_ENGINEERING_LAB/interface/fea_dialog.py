@@ -58,6 +58,14 @@ class FeaDialog(QDialog):
         b3 = QPushButton("Frequências naturais (engaste na face fixa)"); b3.clicked.connect(self.modal); v.addWidget(b3)
         b5 = QPushButton("Exportar último estudo estático para ParaView (.vtk)…"); b5.clicked.connect(self.export_vtk); v.addWidget(b5)
         self.data = None
+        self._campos = {}                                    # origem → dict(nodes,tets,u,vm_nodal) (do estudo síncrono ou do processo isolado)
+        r3 = QHBoxLayout()
+        self.src = QComboBox(); self.src.addItem("NEXUS (último estudo)", "nexus")
+        r3.addWidget(self.src)
+        self.defscale = _spin(0, 0, 1e6, 2); self.defscale.setToolTip("Fator de escala da deformada (0 = sem deformação). Só exibição.")
+        r3.addWidget(QLabel("deformada ×")); r3.addWidget(self.defscale)
+        v.addLayout(r3)
+        b6 = QPushButton("Mostrar mapa de tensões (von Mises) no visualizador 3D"); b6.clicked.connect(self.show_in_viewer); v.addWidget(b6)
         b4 = QPushButton("Salvar último resultado em um projeto…"); b4.clicked.connect(self.save_result); v.addWidget(b4)
         self.last = None
         self.out = QTextEdit(); self.out.setReadOnly(True); v.addWidget(self.out)
@@ -84,7 +92,10 @@ class FeaDialog(QDialog):
                 self.out.setPlainText(f"ERRO: {err}"); return
             r, d = res
             self.last = r
-            if store_data: self.data = d
+            if store_data:
+                self.data = d
+                self._campos["nexus"] = dict(nodes=d["mesh"].nodes, tets=d["mesh"].tets, u=d["u"].reshape(-1, 3),
+                                                  vm=d["vm_nodal"] if d["vm_nodal"] is not None else d["vm"], loc="point" if d["vm_nodal"] is not None else "cell")
             self.out.setPlainText(r.to_json())
         self._busy = True
         if self.sync:
@@ -147,10 +158,44 @@ class FeaDialog(QDialog):
             if r.get("ccx"):
                 txt += "\n\n--- CalculiX ---\n" + json.dumps(r["ccx"], ensure_ascii=False, indent=2)
             self.out.setPlainText(txt)
+            self._load_campos(r)
         elif j.state == "CANCELLED":
             self.out.setPlainText("Cancelado pelo usuário. Nenhum resultado foi gravado.")
         else:
             self.out.setPlainText(f"{j.state}: {j.error}\n\n--- log do processo ---\n" + "\n".join(j.log.splitlines()[-25:]))
+
+    def _load_campos(self, r: dict) -> None:
+        """Lê os .npz gravados pelo processo isolado (NEXUS e, se houver, CalculiX)."""
+        import numpy as np
+        paths = [("nexus", r.get("campo")), ("ccx", (r.get("ccx") or {}).get("campo"))]
+        for k, pth in paths:
+            if pth:
+                try:
+                    z = np.load(pth)
+                    self._campos[k] = {n: z[n] for n in z.files}; self._campos[k]["loc"] = str(self._campos[k]["loc"])
+                except Exception as e:
+                    self.out.append(f"\n[campo {k} não carregado: {e}]")
+        if "ccx" in self._campos and self.src.findData("ccx") < 0:
+            self.src.addItem("CalculiX (.frd)", "ccx")
+
+    def show_in_viewer(self) -> None:
+        """Pinta o von Mises NODAL (MPa) na superfície da malha, no visualizador 3D da janela principal."""
+        c = self._campos.get(self.src.currentData())
+        if not c:
+            QMessageBox.information(self, "FEA", "Execute um estudo estático primeiro (síncrono ou isolado)."); return
+        w = self.parent()
+        while w is not None and not hasattr(w, "viewport"):
+            w = w.parent() if hasattr(w, "parent") else None
+        if w is None:
+            QMessageBox.information(self, "FEA", "Visualizador 3D indisponível neste contexto."); return
+        s = self.defscale.value()
+        info = w.viewport.show_field(c["nodes"], c["tets"], c["vm"], c["loc"], "von Mises", "MPa",
+                                     displacement=c["u"] if s > 0 else None, disp_scale=s)
+        self.last_field_info = info
+        self.out.append(f"\n[Mapa no visualizador 3D: von Mises ({'nodal suavizado' if c['loc'] == 'point' else 'média por elemento'}) {info['min']:.3g}–{info['max']:.3g} MPa; origem {self.src.currentText()}. "
+                        "Suavizado por nó (valor de pico pode diferir do por-elemento). Limpe em Visualizar → Limpar mapa.]")
+        if not self.sync:
+            self.accept()                                      # o diálogo é modal: fecha para o mapa ficar visível
 
     def _shape(self):
         return PARTS[self.part.currentData()].make(**{k: s.value() for k, s in self.pspin.items()})

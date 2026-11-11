@@ -1,4 +1,4 @@
-# NEXUS ENGINEERING LAB — V3.1
+# NEXUS ENGINEERING LAB — V3.3
 
 Laboratório digital de engenharia para Windows: importa modelos CAD, identifica a estrutura
 (montagens, grupos, peças, sólidos), mostra em 3D, faz **desmontagem virtual (explosão)** e
@@ -326,6 +326,12 @@ Resumo (detalhes em `CHANGELOG.md`, `NEXUS_TECHNICAL_AUDIT.md`, `NEXUS_ARCHITECT
 - **Resultados amarrados à versão da geometria**: mudou a peça → resultado antigo fica OBSOLETO (preservado).
 - **Dinâmica lateral**: bicicleta + pneu de escova + transferência de carga; calculadora "Curva em regime" (desktop e celular).
 - Status honesto por fase: ver `NEXUS_ROADMAP.md` (nem tudo do Master Prompt está concluído).
+
+## V3.3 — cinco produtos e NEXUS INTELLIGENCE
+CAD · STRUCTURAL · AERODYNAMICS · VEHICLE · INTELLIGENCE (assistente por regras). Importação de Arsenal, Cp em mm sobre as peças, atrito viscoso estimado, caminho WSL2/GPU e script de verificação para Windows. Ver `CHANGELOG.md`.
+
+## V3.2 — resultados dentro do NEXUS
+Mapa de von Mises no visualizador 3D, diálogo de CFD (OpenFOAM isolado, progresso, cancelar, Cp no corpo) e backup automático do Arsenal. Detalhes e limites em `CHANGELOG.md`.
 
 ## V3.1 — estabilidade e integração
 FEA em **processo isolado** na interface (progresso + Cancelar + comparação com CalculiX), leitura do campo **.frd** (U e von Mises nodal → VTK), **log central** e **backup** de projetos ao salvar. Detalhes e esclarecimentos em `CHANGELOG.md`. Ainda não validado em Windows 11.

@@ -49,6 +49,9 @@ def _version_str(seq: int) -> str:
 class Arsenal:
     def __init__(self, path: str | Path = ":memory:") -> None:
         self.path = str(path)
+        if self.path != ":memory:":
+            from core.backup import backup_sqlite
+            backup_sqlite(self.path, keep=10, motivo="abertura do Arsenal")      # antes de qualquer migração de esquema
         self.db = sqlite3.connect(self.path)
         self.db.executescript(_SCHEMA)
         for c in DEFAULT_CATEGORIES:
@@ -216,6 +219,56 @@ class Arsenal:
                 self.db.execute("SELECT version,created,data,change FROM versions WHERE comp_id=? ORDER BY seq", (cid,))]
         return {"id": comp[0], "name": comp[1], "category": comp[2], "description": comp[3], "created": comp[4], "versions": vers}
 
+    def export_to_file(self, cids: list[str], path: str | Path) -> int:
+        """Grava os componentes (todas as versões) num JSON `nexus-arsenal-export` que `import_file` lê de volta."""
+        pay = {"formato": "nexus-arsenal-export", "formato_versao": 1, "componentes": [self.export_component(c) for c in cids]}
+        Path(path).write_text(json.dumps(pay, ensure_ascii=False, indent=1), encoding="utf-8")
+        return len(cids)
+
+    def import_component(self, payload: dict) -> str:
+        """Importa UM componente exportado (todas as versões) como componente NOVO: recebe sempre um ID novo (nunca sobrescreve nada).
+
+        Valida cada versão (mesmas regras de `add_component`); se qualquer uma for inválida nada é gravado. Categoria inexistente é criada.
+        """
+        for k in ("name", "category", "versions"):
+            if k not in payload:
+                raise ArsenalError(f"Exportação inválida: falta '{k}'.")
+        vers = payload["versions"]
+        if not isinstance(vers, list) or not vers:
+            raise ArsenalError("Exportação inválida: sem versões.")
+        limpas = []
+        for v in vers:
+            if not isinstance(v, dict) or "version" not in v or "data" not in v:
+                raise ArsenalError("Exportação inválida: versão sem 'version'/'data'.")
+            limpas.append((str(v["version"]), v.get("created") or _now(), self._clean(v["data"]), v.get("change") or ""))
+        if len({x[0] for x in limpas}) != len(limpas):
+            raise ArsenalError("Exportação inválida: versões repetidas.")
+        if payload["category"] not in self.categories():
+            self.add_category(payload["category"])
+        cid = self._next_id()
+        origem = payload.get("id", "?")
+        self.db.execute("INSERT INTO components VALUES(?,?,?,?,?,NULL,NULL)",
+                        (cid, payload["name"], payload["category"], (payload.get("description") or "") + f" [importado de {origem}]", payload.get("created") or _now()))
+        for seq, (ver, cr, data, ch) in enumerate(limpas, 1):
+            self.db.execute("INSERT INTO versions VALUES(?,?,?,?,?,?)", (cid, ver, seq, cr, json.dumps(data), ch))
+        self.db.commit()
+        return cid
+
+    def import_file(self, path: str | Path) -> list[str]:
+        """Lê um arquivo de `export_to_file` (ou o JSON de um único `export_component`). Faz backup antes; atômico por componente."""
+        try:
+            pay = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise ArsenalError(f"Arquivo ilegível: {e}")
+        itens = pay["componentes"] if isinstance(pay, dict) and pay.get("formato") == "nexus-arsenal-export" else [pay]
+        if not all(isinstance(i, dict) for i in itens):
+            raise ArsenalError("Arquivo não é uma exportação do Arsenal.")
+        self.backup("antes de importar")
+        ids = []
+        for it in itens:
+            ids.append(self.import_component(it))
+        return ids
+
     def delete_component(self, cid: str, confirm: bool = False, in_use_by: Optional[list] = None) -> None:
         """Exclusão irreversível: exige confirm=True e recusa se há projetos usando o componente."""
         self._exists(cid)
@@ -223,9 +276,51 @@ class Arsenal:
             raise ArsenalError("Exclusão exige confirmação explícita (confirm=True).")
         if in_use_by:
             raise ArsenalError(f"Componente em uso pelos projetos: {', '.join(in_use_by)}. Remova-o dos projetos antes.")
+        self.backup("antes de excluir " + cid, keep=10)
         self.db.execute("DELETE FROM versions WHERE comp_id=?", (cid,))
         self.db.execute("DELETE FROM components WHERE id=?", (cid,))
         self.db.commit()
+
+    def backup(self, motivo: str = "manual", keep: int = 10):
+        """Backup consistente do banco (`backups/` ao lado). Em memória não há o que salvar → None."""
+        if self.path == ":memory:":
+            return None
+        from core.backup import backup_sqlite
+        self.db.commit()
+        return backup_sqlite(self.path, keep=keep, motivo=motivo)
+
+    @staticmethod
+    def list_backups(path: str | Path) -> list[dict]:
+        """Backups existentes (mais novo primeiro) com nº de componentes de cada um, para o usuário escolher."""
+        p = Path(path)
+        out = []
+        for b in sorted((p.parent / "backups").glob(p.name + ".*.bak"), reverse=True):
+            try:
+                con = sqlite3.connect(f"file:{b}?mode=ro", uri=True)
+                n = con.execute("SELECT count(*) FROM components").fetchone()[0]
+                con.close()
+            except sqlite3.DatabaseError:
+                n = None
+            out.append({"arquivo": str(b), "componentes": n})
+        return out
+
+    @staticmethod
+    def restore_backup(path: str | Path, backup_file: str | Path | None = None):
+        """Restaura um backup por cima do banco (feche o Arsenal antes). Sem `backup_file`, usa o mais recente CUJO CONTEÚDO DIFERE do
+        estado atual (restaurar algo idêntico não adiantaria). O estado atual vira backup antes de ser substituído."""
+        import shutil
+        from core.backup import _digest_sqlite, backup_sqlite
+        p = Path(path)
+        if backup_file:
+            src = Path(backup_file)
+        else:
+            cur = _digest_sqlite(p) if p.is_file() and p.stat().st_size else None
+            src = next((b for b in sorted((p.parent / "backups").glob(p.name + ".*.bak"), reverse=True) if _digest_sqlite(b) != cur), None)
+        if src is None or not src.is_file():
+            raise ArsenalError("Nenhum backup (diferente do estado atual) encontrado.")
+        backup_sqlite(p, keep=10, motivo="antes de restaurar backup", only_if_changed=False)
+        shutil.copy2(src, p)
+        return src
 
     def close(self) -> None:
         self.db.close()

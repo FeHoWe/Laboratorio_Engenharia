@@ -390,5 +390,7 @@ function skidpad(v0,raio){const v=latDefaults(v0);if(!(raio>0))throw new Error('
  for(let i=0;i<200;i++){const a=ayLimite(v,vel).ay,vn=Math.sqrt(a*raio);if(Math.abs(vn-vel)<1e-9){vel=vn;break;}vel=0.5*(vel+vn);}
  const r=ayLimite(v,vel);return{v:vel,vKmh:vel*3.6,ayG:r.ayG,limite:r.limite,tVolta:2*Math.PI*raio/vel};}
 const LAB={lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+LAB.nivelFS=fs=>fs<1?'CRITICO':(fs<1.5?'ATENCAO':'INFO');
+LAB.interpFS=(vm,sy)=>{if(!(vm>0)||!(sy>0))throw new Error('vm e sy devem ser positivos');const fs=sy/vm;return {fs,nivel:LAB.nivelFS(fs)};};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;
 })(typeof window!=='undefined'?window:globalThis);

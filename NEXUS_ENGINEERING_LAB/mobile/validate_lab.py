@@ -22,6 +22,15 @@ def veh_check():
     return max(abs(a - b) / max(abs(a), 1e-9) for a, b in zip(py, js))
 
 
+def intel_check():
+    """Regra do fator de segurança (NEXUS INTELLIGENCE): nível idêntico em JS e Python, inclusive nas fronteiras 1 e 1,5."""
+    from modules import intelligence as I
+    vals = [(100, 250), (250, 250), (200, 250), (150, 250), (100, 150), (100, 99), (300, 250), (166.0, 249.0)]
+    py = [(sy / vm, I.nivel_fs(sy / vm)) for vm, sy in vals]
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);console.log(JSON.stringify(JSON.parse(process.argv[2]).map(p=>L.interpFS(p[0],p[1]))));', str(ROOT / 'mobile' / 'lab.js'), json.dumps(vals)], text=True))
+    return sum(1 for (fs, n), j in zip(py, js) if n != j['nivel'] or abs(fs - j['fs']) > 1e-12), len(vals)
+
+
 def lat_check():
     """Paridade JS × Python do modelo lateral (regime, limite, skidpad, cargas, pneu)."""
     from modules import vehicle_lateral as vl
@@ -186,7 +195,9 @@ def main():
     print(f"FEA Tet4 (viga): erro relativo JS×Python {fe:.2e}, mesmo nº de elementos: {same}")
     f10, same10 = fea10_check()
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
-    sys.exit(1 if bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    ib, n_i = intel_check()
+    print(f"NEXUS INTELLIGENCE (fator de segurança): {n_i - ib}/{n_i} casos idênticos JS×Python")
+    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()

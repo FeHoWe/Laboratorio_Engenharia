@@ -65,7 +65,7 @@ relaxationFactors { equations { U 0.9; ".*" 0.9; } }
     (p/"system/snappyHexMeshDict").write_text(H % ("dictionary", "snappyHexMeshDict") + f"""castellatedMesh true; snap true; addLayers false;
 geometry {{ {stl_nome} {{ type triSurfaceMesh; name body; }} }}
 castellatedMeshControls {{ maxLocalCells 2000000; maxGlobalCells 4000000; minRefinementCells 10; nCellsBetweenLevels 3; resolveFeatureAngle 30;
- features (); refinementSurfaces {{ body {{ level (2 3); patchInfo {{ type wall; }} }} }} refinementRegions {{}} locationInMesh ({x0+0.5} 0.0 {z1-0.5}); allowFreeStandingZoneFaces true; }}
+ features (); refinementSurfaces {{ body {{ level (2 3); patchInfo {{ type wall; }} }} }} refinementRegions {{}} locationInMesh ({x0+0.05*(x1-x0)} 0.0 {z1-0.05*(z1-z0)}); allowFreeStandingZoneFaces true; }}
 snapControls {{ nSmoothPatch 3; tolerance 2.0; nSolveIter 30; nRelaxIter 5; nFeatureSnapIter 10; }}
 addLayersControls {{ layers {{}} relativeSizes true; expansionRatio 1.2; finalLayerThickness 0.3; minThickness 0.1; nGrow 0; featureAngle 60; nRelaxIter 3; nSmoothSurfaceNormals 1; nSmoothNormals 3; nSmoothThickness 10; maxFaceThicknessRatio 0.5; maxThicknessToMedialRatio 0.3; minMedialAxisAngle 90; nBufferCellsNoExtrude 0; nLayerIter 50; }}
 meshQualityControls {{ maxNonOrtho 65; maxBoundarySkewness 20; maxInternalSkewness 4; maxConcave 80; minVol 1e-13; minTetQuality 1e-15; minArea -1; minTwist 0.02; minDeterminant 0.001; minFaceWeight 0.05; minVolRatio 0.01; minTriangleTwist -1; nSmoothScale 4; errorReduction 0.75; }}
@@ -147,7 +147,7 @@ def _ler_patch_boundary(pasta: Path, patch: str):
 
 
 def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float = 1.0, a_ref: float = 1.0,
-                   drag_dir=(1, 0, 0), lift_dir=(0, 0, 1), tempo: str | None = None) -> dict:
+                   drag_dir=(1, 0, 0), lift_dir=(0, 0, 1), tempo: str | None = None, detalhe: bool = False) -> dict:
     """Força de PRESSÃO sobre `patch` por integração própria: F = ρ·Σ p_cin·S_f (S_f aponta para dentro do corpo).
 
     NÃO inclui atrito viscoso (tensão de cisalhamento) — logo `cd_pressao` ≤ Cd total para corpos com atrito relevante.
@@ -195,6 +195,10 @@ def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float 
             raise ValueError("campo p do patch com tamanho diferente do nº de faces")
     F = np.zeros(3)
     area = 0.0
+    if detalhe:                                                      # geometria + p cinemático por face (para mapa de Cp no visualizador)
+        usados = sorted({k for i in range(nf) for k in faces[sf + i]})
+        remap = {k: j for j, k in enumerate(usados)}
+        det = {"pontos": pts[usados], "faces": [[remap[k] for k in faces[sf + i]] for i in range(nf)], "p_cin": np.asarray(pv, float)}
     for i in range(nf):
         idx = faces[sf + i]
         P = pts[idx]
@@ -203,14 +207,114 @@ def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float 
         area += np.linalg.norm(Sf)
     q = 0.5 * rho * v_inf ** 2
     dd, ld = np.array(drag_dir, float), np.array(lift_dir, float)
-    return {"tempo": tempo, "forca_N": F.tolist(), "area_patch_m2": float(area), "cd_pressao": float(F @ dd / (q * a_ref)),
-            "cl_pressao": float(F @ ld / (q * a_ref)), "obs": "somente pressão; sem atrito viscoso"}
+    out = {"tempo": tempo, "forca_N": F.tolist(), "area_patch_m2": float(area), "cd_pressao": float(F @ dd / (q * a_ref)),
+           "cl_pressao": float(F @ ld / (q * a_ref)), "obs": "somente pressão; sem atrito viscoso"}
+    if detalhe:
+        out.update(det)
+        out["cp"] = det["p_cin"] / (0.5 * v_inf ** 2)                # Cp = p_cin/(½V²), pressão de referência = 0 (saída)
+    return out
+
+
+def _ler_malha(pasta: Path):
+    """points, faces, owner, neighbour (ASCII) → (pts, faces, owner, neigh)."""
+    import re
+    import numpy as np
+    pm = Path(pasta) / "constant/polyMesh"
+    n_pts, corpo = _blocos_lista((pm / "points").read_text())
+    pts = np.array([[float(x) for x in ln.split()] for ln in re.findall(r"^\(([^)]*)\)", corpo, flags=re.M)][:n_pts], float)
+    n_f, corpo = _blocos_lista((pm / "faces").read_text())
+    faces = [[int(x) for x in m.split()] for m in re.findall(r"^\d+\(([^)]*)\)", corpo, flags=re.M)]
+    n_o, co = _blocos_lista((pm / "owner").read_text())
+    owner = np.array(co.split(")")[0].split(), int)[:n_o]
+    n_n, cn = _blocos_lista((pm / "neighbour").read_text())
+    neigh = np.array(cn.split(")")[0].split(), int)[:n_n]
+    return pts, faces, owner, neigh
+
+
+def _lista_campo(txt: str, vetor: bool):
+    """Primeira lista `nonuniform List<...> N (...)` do texto → array (N,) ou (N,3)."""
+    import re
+    import numpy as np
+    m = re.search(r"nonuniform\s+List<(?:scalar|vector)>\s*\n?\s*(\d+)\s*\n?\s*\(", txt)
+    if not m:
+        return None
+    n = int(m.group(1))
+    corpo = txt[m.end():]
+    if vetor:
+        v = np.array([[float(x) for x in ln.split()] for ln in re.findall(r"^\(([^)]*)\)", corpo, flags=re.M)][:n], float)
+    else:
+        v = np.array(corpo.split(")")[0].split(), float)[:n]
+    return v if len(v) == n else None
+
+
+def forcas_viscosas(pasta, patch: str = "body", rho: float = 1.225, nu: float = 1.5e-5, v_inf: float = 1.0, a_ref: float = 1.0,
+                    drag_dir=(1, 0, 0), lift_dir=(0, 0, 1), tempo: str | None = None) -> dict:
+    """ESTIMATIVA do atrito viscoso: τ_w = ρ(ν+ν_t,parede)·U_t/y por face (lei da parede), integrada sobre `patch`.
+
+    U_t = velocidade da célula dona menos sua componente normal; y = distância do centro da célula à face (centro da célula por média
+    dos centros de suas faces — aproximação). ν_t,parede vem do `nut` gravado pelo nutkWallFunction. NÃO é a função-objeto
+    `wallShearStress` (quebrada neste build): é uma estimativa de 1ª ordem, adequada a ordem de grandeza e tendência, não a valores finos.
+    """
+    import re
+    import numpy as np
+    pasta = Path(pasta)
+    sf, nf = _ler_patch_boundary(pasta, patch)
+    pts, faces, owner, neigh = _ler_malha(pasta)
+    if tempo is None:
+        tempos = sorted((float(d.name), d.name) for d in pasta.iterdir() if d.is_dir() and re.fullmatch(r"[0-9.]+", d.name) and float(d.name) > 0)
+        if not tempos:
+            raise FileNotFoundError("nenhum passo de tempo escrito")
+        tempo = tempos[-1][1]
+    U = _lista_campo((pasta / tempo / "U").read_text(), True)
+    if U is None:
+        raise ValueError("U com internalField uniforme/ilegível")
+    nut_txt = (pasta / tempo / "nut").read_text()
+    m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\n\s*\}}", nut_txt, flags=re.S)
+    nutw = _lista_campo(m.group(1), False) if m else None
+    if nutw is None or len(nutw) != nf:
+        raise ValueError("nut do patch ausente (sem função de parede) — atrito não estimado")
+    ncell = len(U)
+    # centros de face e de célula
+    fc, fa = [], []
+    for idx in faces:
+        P = pts[idx]; c0 = P.mean(0); S = np.zeros(3); wsum = 0.0; cc = np.zeros(3)
+        for k in range(len(idx)):
+            a, b = P[k], P[(k + 1) % len(idx)]
+            ar = 0.5 * np.cross(a - c0, b - c0); w = np.linalg.norm(ar)
+            S += ar; wsum += w; cc += w * (c0 + a + b) / 3
+        fc.append(cc / wsum if wsum > 0 else c0); fa.append(S)
+    fc = np.array(fc); fa = np.array(fa)
+    cen = np.zeros((ncell, 3)); cnt = np.zeros(ncell)
+    for i, o in enumerate(owner):
+        cen[o] += fc[i]; cnt[o] += 1
+    for i, n in enumerate(neigh):
+        cen[n] += fc[i]; cnt[n] += 1
+    cen /= np.maximum(cnt, 1)[:, None]
+    F = np.zeros(3); area = 0.0; ymin, ymax = 1e9, 0.0
+    for i in range(nf):
+        f = sf + i; Sf = fa[f]; A = np.linalg.norm(Sf)
+        n = Sf / A; c = owner[f]
+        y = abs((cen[c] - fc[f]) @ n)
+        Ut = U[c] - (U[c] @ n) * n
+        F += rho * (nu + nutw[i]) * Ut / max(y, 1e-12) * A
+        area += A; ymin, ymax = min(ymin, y), max(ymax, y)
+    q = 0.5 * rho * v_inf ** 2
+    dd, ld = np.array(drag_dir, float), np.array(lift_dir, float)
+    return {"tempo": tempo, "forca_N": F.tolist(), "area_patch_m2": float(area), "cd_atrito": float(F @ dd / (q * a_ref)), "cl_atrito": float(F @ ld / (q * a_ref)),
+            "y_primeira_celula_m": [float(ymin), float(ymax)],
+            "obs": "ESTIMATIVA de 1ª ordem (lei da parede, centro de célula aproximado); não é a função-objeto wallShearStress"}
 
 
 def _ler_rho(pasta) -> float:
     import re
     m = re.search(r"rhoInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text())
     return float(m.group(1))
+
+
+def _ler_nu(pasta) -> float:
+    import re
+    t = (Path(pasta) / "constant/transportProperties").read_text()
+    return float(re.search(r"\bnu\s+(?:\[[^\]]*\]\s+)?([-0-9.eE+]+)", t).group(1))
 
 
 def _ler_vinf(pasta) -> float:
@@ -264,11 +368,18 @@ def executar_openfoam(pasta, timeout=3600, cd_ref: float | None = None, cd_tol_p
     if sem_funcoes:
         try:
             fp = forcas_pressao(pasta, "body", rho=_ler_rho(pasta), v_inf=_ler_vinf(pasta), a_ref=_ler_aref(pasta))
-            vals.update({"cd_pressao": fp["cd_pressao"], "cl_pressao": fp["cl_pressao"], "forca_pressao_N": fp["forca_N"], "coef_origem": "integração própria de pressão (sem atrito viscoso)"})
+            vals.update({"cd_pressao": fp["cd_pressao"], "cl_pressao": fp["cl_pressao"], "forca_pressao_N": fp["forca_N"], "coef_origem": "integração própria de pressão"})
+            try:
+                fv = forcas_viscosas(pasta, "body", rho=_ler_rho(pasta), nu=_ler_nu(pasta), v_inf=_ler_vinf(pasta), a_ref=_ler_aref(pasta))
+                vals.update({"cd_atrito_estimado": fv["cd_atrito"], "forca_atrito_N": fv["forca_N"], "cd_total_estimado": fp["cd_pressao"] + fv["cd_atrito"],
+                             "cl_total_estimado": fp["cl_pressao"] + fv["cl_atrito"], "coef_origem": "pressão (integração própria) + atrito ESTIMADO por lei da parede",
+                             "y_primeira_celula_m": fv["y_primeira_celula_m"]})
+            except Exception as e:
+                vals["atrito_erro"] = str(e)[:160]
         except Exception as e:                                          # sem passo de tempo gravado etc.: não inventa
             vals["coef_pressao_erro"] = str(e)[:160]
         lim.insert(0, "Cd/Cl totais NÃO DISPONÍVEIS: as funções-objeto (forces/forceCoeffs) falham neste build do OpenFOAM (erro 'sha1'); "
-                      "só há o Cd/Cl de PRESSÃO por integração própria (sem atrito viscoso)")
+                      "Cd/Cl vêm de integração PRÓPRIA: pressão exata do campo + atrito viscoso ESTIMADO por lei da parede (1ª ordem). O total é estimado, não medido")
     if not conv["convergiu"]:
         lim.insert(0, "NÃO CONVERGIU dentro das iterações pedidas (resíduos acima das tolerâncias do residualControl) — valores são do último passo, não de regime")
     classe, vref = "SIMULACAO_NUMERICA", ""

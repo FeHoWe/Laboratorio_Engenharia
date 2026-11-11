@@ -103,6 +103,33 @@ def _check_occ() -> Check:
         return Check("OpenCASCADE (OCP)", "motor", False, "", f"{type(e).__name__}: {str(e)[:120]}", "pip install cadquery-ocp", True)
 
 
+def _check_gpu() -> Check:
+    """Cria uma janela VTK fora da tela e lê o renderizador OpenGL: GPU real × renderização por software (lenta)."""
+    try:
+        from vtkmodules.vtkRenderingCore import vtkRenderWindow
+        import vtkmodules.vtkRenderingOpenGL2  # noqa: F401
+        rw = vtkRenderWindow()
+        rw.SetOffScreenRendering(1)
+        rw.Render()
+        info = rw.ReportCapabilities()
+        def pick(k):
+            for ln in info.splitlines():
+                if ln.strip().lower().startswith(k):
+                    return ln.split(":", 1)[1].strip()
+            return ""
+        rend, ver = pick("opengl renderer"), pick("opengl version")
+        if not rend:
+            return Check("GPU / OpenGL", "motor", False, "", "não foi possível ler o renderizador OpenGL (sem contexto gráfico)",
+                         "Atualize o driver da placa de vídeo; em servidor sem tela use QT_QPA_PLATFORM=offscreen")
+        soft = any(w in rend.lower() for w in ("llvmpipe", "softpipe", "swrast", "generic", "software", "gdi"))
+        if soft:
+            return Check("GPU / OpenGL", "motor", False, ver, f"renderização POR SOFTWARE ({rend}) — funciona, porém lenta em montagens grandes",
+                         "Instale/atualize o driver da GPU (NVIDIA/AMD/Intel); no WSL2 use WSLg com driver compatível")
+        return Check("GPU / OpenGL", "motor", True, ver, f"renderizador: {rend}")
+    except Exception as e:
+        return Check("GPU / OpenGL", "motor", False, "", f"{type(e).__name__}: {str(e)[:120]}", "Verifique a instalação do VTK e o driver gráfico")
+
+
 def run_all() -> list[Check]:
     py_ok = sys.version_info >= (3, 10)
     out = [Check("Python", "python", py_ok, platform.python_version(), sys.executable, "" if py_ok else "Instale Python ≥ 3.10", True)]
@@ -112,7 +139,7 @@ def run_all() -> list[Check]:
     out += [_check_occ(), _check_gmsh(),
             _check_exe("CalculiX", ["ccx", "ccx_2.21", "ccx_2.20"], ["-v"], "Instale CalculiX (ccx) e adicione ao PATH (Windows: binários do projeto CalculiX; Linux: apt install calculix-ccx)."),
             _check_exe("OpenFOAM", ["simpleFoam", "blockMesh"], ["-help"], "Instale OpenFOAM dentro do WSL2 (Windows 11) ou Docker; carregue o ambiente (source etc/bashrc)."),
-            _check_wsl(),
+            _check_wsl(), _check_gpu(),
             _check_exe("ParaView", ["pvpython", "paraview"], ["--version"], "Instale ParaView (paraview.org) e adicione ao PATH.")]
     return out
 

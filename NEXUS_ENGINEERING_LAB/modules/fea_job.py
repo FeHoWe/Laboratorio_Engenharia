@@ -23,7 +23,7 @@ def run_static(part_key: str, part_params: dict, h: float, E: float, nu: float, 
     _p(15)
     res, d = fea_study.run(shape, h, E, nu, ff, lf, tuple(force), sy, nome=f"FEA {part_key}", mesher=mesher, order=order)
     _p(60)
-    out = {"result": res.to_dict(), "vtk": None, "ccx": None}
+    out = {"result": res.to_dict(), "vtk": None, "ccx": None, "campo": None}
     od = Path(out_dir) if out_dir else Path(tempfile.mkdtemp(prefix="nexus_fea_"))
     od.mkdir(parents=True, exist_ok=True)
     try:
@@ -34,6 +34,16 @@ def run_static(part_key: str, part_params: dict, h: float, E: float, nu: float, 
             out["vtk"] = str(vtk)
     except Exception as e:                                           # exportação é opcional; o resultado numérico segue válido
         out["vtk_erro"] = str(e)
+    try:                                                              # campo para o visualizador 3D (nós, tetraedros, deslocamento, von Mises)
+        import numpy as np
+        m = d["mesh"]
+        np.savez_compressed(od / "campo_nexus.npz", nodes=np.asarray(m.nodes, float), tets=np.asarray(m.tets, np.int64),
+                            u=np.asarray(d["u"], float).reshape(-1, 3),
+                            vm=np.asarray(d["vm_nodal"] if d["vm_nodal"] is not None else d["vm"], float).ravel(),
+                            loc=np.array("point" if d["vm_nodal"] is not None else "cell"))
+        out["campo"] = str(od / "campo_nexus.npz")
+    except Exception as e:
+        out["campo_erro"] = str(e)
     if ccx:
         st = sr.detect("CalculiX")
         if not st.instalado:
@@ -56,6 +66,13 @@ def run_static(part_key: str, part_params: dict, h: float, E: float, nu: float, 
                     fr = C.parse_frd(frd.read_text())
                     C.export_vtk_frd(od / "resultado_ccx.vtk", mesh, fr)
                     o["vtk"] = str(od / "resultado_ccx.vtk")
+                    n = len(mesh.nodes)
+                    vmc = C.vm_nodal(fr["S"]) if fr["S"] else {}
+                    if vmc:
+                        np.savez_compressed(od / "campo_ccx.npz", nodes=np.asarray(mesh.nodes, float), tets=np.asarray(mesh.tets, np.int64),
+                                            u=np.array([fr["U"].get(i + 1, [0, 0, 0]) for i in range(n)], float),
+                                            vm=np.array([vmc.get(i + 1, 0.0) for i in range(n)], float), loc=np.array("point"))
+                        o["campo"] = str(od / "campo_ccx.npz")
             out["ccx"] = o
     _p(100)
     return out
