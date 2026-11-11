@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## V3.4 — 2026-11-11 (melhorias nas pendências)
+- **Esfera**: domínio de **ar livre simétrico** (`ar_livre`) → Cl de −0,18 para ≈0; **área frontal projetada real** como referência padrão (antes: caixa); 3 refinos de razão 1,5 → sequência **monotônica** (0,503 → 0,481 → 0,470), **GCI 2,8 %**, Cd extrapolado ≈0,459 (`modules/cfd_gci.py`, que se recusa a calcular em sequência oscilatória). Continua NÃO VALIDADO (sem convergência de resíduos em 1500 it., atrito estimado, `forceCoeffs` indisponível). Ver `NEXUS_CFD_SPHERE_STUDY.md` rev. 2.
+- **NEXUS INTELLIGENCE generativo OPCIONAL** (`modules/intelligence_llm.py`): exige `ANTHROPIC_API_KEY` e confirmação de envio; recebe só os fatos do parecer; **a resposta é verificada** — número que não esteja nos resultados/pergunta é marcado como sem fundamento. Sem chave, o assistente por regras continua.
+- Diálogo de CFD: opção *Ar livre*; área de referência 0 = projetada. Guia passo a passo de **Windows 11 + WSL2 + OpenFOAM** em `NEXUS_INSTALLATION.md`.
+- Não mudou: nada foi testado em Windows real (computador não conectado).
+
 ## V3.3 — 2026-11-11 (visão de produto + pendências da V3.2)
 Adicionado
 - **Cinco produtos** (`core/products.py`, `interface/hub_dialog.py`, menu Analyze → *NEXUS — Produtos…*): NEXUS CAD, STRUCTURAL, AERODYNAMICS, VEHICLE e INTELLIGENCE. Cada capacidade aponta para uma ação REAL da janela e declara PRONTO / PARCIAL / PLANEJADO; teste garante que nada "pronto" fica sem função atrás.

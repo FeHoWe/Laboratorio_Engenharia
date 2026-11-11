@@ -8,14 +8,17 @@ Path(OUT).mkdir(parents=True, exist_ok=True)
 import json,sys,time,numpy as np,trimesh
 from modules import cfd_job
 res=[]
-for tag,cel,it in (("grossa",(40,16,16),500),("media",(60,24,24),700),("fina",(80,32,32),900)):
+for tag,cel,it in (("grossa",(48,24,24),1500),("media",(72,36,36),1500),("fina",(108,54,54),1500)):
     t=time.time()
     m=trimesh.creation.icosphere(subdivisions=4,radius=0.5)
-    # esfera D=1 m, em m, STL já em metros
     p=f"{OUT}/esfera.stl"; m.export(p)
-    r=cfd_job.run_case(stl_path=p,stl_unit="m",v_inf=20.0,iteracoes=it,celulas=list(cel),gap_m=4.0,a_ref=np.pi/4,nu=2e-4,
-        out_dir=f"{OUT}/{tag}",timeout=3000)
+    r=cfd_job.run_case(stl_path=p,stl_unit="m",v_inf=20.0,iteracoes=it,celulas=list(cel),ar_livre=True,nu=2e-4,
+        out_dir=f"{OUT}/{tag}",timeout=6000)
     x=r["result"]; v=x["valores"]
-    res.append({"malha":tag,"celulas":cel,"iter":it,"classe":x["classe"],"conv":v.get("convergiu"),"cd_p":v.get("cd_pressao"),"cd_f":v.get("cd_atrito_estimado"),
-      "cd_tot":v.get("cd_total_estimado"),"cl":v.get("cl_total_estimado"),"bloq":r["info"]["bloqueio_pct"],"s":time.time()-t,"lim":x["limitacoes"][:2]})
+    res.append({"malha":tag,"celulas":cel,"h_rel":1.0/cel[0],"iter":v.get("iteracoes"),"classe":x["classe"],"conv":v.get("convergiu"),"cd_p":v.get("cd_pressao"),"cd_f":v.get("cd_atrito_estimado"),
+      "cd_tot":v.get("cd_total_estimado"),"cl":v.get("cl_total_estimado"),"bloq":r["info"]["bloqueio_pct"],"a_ref":r["info"]["a_ref_m2"],"s":time.time()-t})
     json.dump(res,open(f"{OUT}/res.json","w"),ensure_ascii=False,indent=1)
+if len(res)==3 and all(r["cd_tot"] is not None for r in res):
+    from modules.cfd_gci import gci3
+    g=gci3(tuple(r["h_rel"] for r in reversed(res)),tuple(r["cd_tot"] for r in reversed(res)))
+    json.dump(g,open(f"{OUT}/gci.json","w"),ensure_ascii=False,indent=1); print("GCI",g)

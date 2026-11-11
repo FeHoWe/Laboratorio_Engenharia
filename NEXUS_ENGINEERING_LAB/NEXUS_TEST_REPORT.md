@@ -1,8 +1,8 @@
-# NEXUS — Relatório de testes (V3.3, 2026-11-11)
+# NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
 Ambiente: Linux headless (Qt offscreen), Python 3.13, OCP 8.0, Gmsh 4.15, **CalculiX 2.21** e **OpenFOAM ESI v1912** instalados só neste ambiente de teste. **Nada foi executado em Windows 11.**
 
-**Suíte completa V3.3: 470 passaram, 4 foram ignorados, 0 falharam** (429 + 41 de `test_v22.py`; novos: test_products_intelligence, test_windows_wsl, importação do Arsenal, Cp em mm). **Windows 11/WSL2/GPU: lógica testada com Windows SIMULADO; nunca executado em Windows real.** Histórico — V3.2: 457 passaram, 4 foram ignorados, 0 falharam** (416 + 41 de `test_v22.py` em separado; novos: test_field_overlay, test_cfd_dialog com OpenFOAM real, test_arsenal_backup). Histórico — V3.1: 440 passaram, 3 foram ignorados, 0 falharam** (399 + 41 de `test_v22.py` rodados em separado; ~20 min). Na V3.0 eram 433.
+**Suíte completa V3.4: 480 passaram, 4 foram ignorados, 0 falharam** (439 + 41 de `test_v22.py`; novos: test_cfd_gci, test_intelligence_llm, área projetada/ar livre). Windows real: nunca executado. Histórico — V3.3: 470 passaram, 4 foram ignorados, 0 falharam** (429 + 41 de `test_v22.py`; novos: test_products_intelligence, test_windows_wsl, importação do Arsenal, Cp em mm). **Windows 11/WSL2/GPU: lógica testada com Windows SIMULADO; nunca executado em Windows real.** Histórico — V3.2: 457 passaram, 4 foram ignorados, 0 falharam** (416 + 41 de `test_v22.py` em separado; novos: test_field_overlay, test_cfd_dialog com OpenFOAM real, test_arsenal_backup). Histórico — V3.1: 440 passaram, 3 foram ignorados, 0 falharam** (399 + 41 de `test_v22.py` rodados em separado; ~20 min). Na V3.0 eram 433.
 Paridade JS × Python (`mobile/validate_lab.py`): máximo ≈ 6e-14 (lateral: 2,8e-15).
 
 | Módulo | Testes | O que prova |

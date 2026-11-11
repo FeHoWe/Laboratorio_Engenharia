@@ -91,7 +91,7 @@ def interpretar(res) -> Parecer:
     if ent.get("bloqueio_pct", 0) > 5:
         A.append(Achado(ATENCAO, f"Bloqueio do domínio {ent['bloqueio_pct']:.1f} % (>5 %): as paredes alteram o escoamento.", "entradas.bloqueio_pct"))
         P.append("Aumente o domínio ou reduza o corpo.")
-    if "a_ref_origem" in ent and "caixa" in str(ent["a_ref_origem"]):
+    if "a_ref_origem" in ent and "caixa" in str(ent["a_ref_origem"]).replace("não a da caixa", ""):
         A.append(Achado(ATENCAO, "A área de referência é a da CAIXA frontal (só normalização): o Cd não é comparável a valores publicados com a área frontal real.", "entradas.a_ref_origem"))
     # estrutural
     if "vm_max_MPa" in v:

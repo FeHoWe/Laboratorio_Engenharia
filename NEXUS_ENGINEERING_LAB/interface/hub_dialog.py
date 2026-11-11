@@ -64,7 +64,7 @@ class IntelligenceDialog(QDialog):
         self.proj = QComboBox(); self.proj.addItems(self.store.list()); v.addWidget(self.proj)
         r = QHBoxLayout()
         for t, f in (("Revisar projeto", self.revisar), ("Interpretar último resultado do projeto", self.interpretar), ("Comparar os dois últimos resultados", self.comparar),
-                     ("Explicar termo…", self.termo)):
+                     ("Explicar termo…", self.termo), ("Perguntar à IA (opcional)…", self.perguntar)):
             b = QPushButton(t); b.clicked.connect(f); r.addWidget(b)
         v.addLayout(r)
         self.out = QTextEdit(); self.out.setReadOnly(True); v.addWidget(self.out)
@@ -93,6 +93,29 @@ class IntelligenceDialog(QDialog):
         if p:
             r = p["results"]
             self.out.setPlainText(I.comparar(r[-2], r[-1]).texto() if len(r) >= 2 else "São necessários ao menos dois resultados.")
+
+    confirmar_envio = staticmethod(lambda w: QMessageBox.question(
+        w, "Enviar para a IA?", "A pergunta e o parecer do NEXUS (valores do resultado) serão ENVIADOS pela internet à API da Anthropic. Continuar?") == QMessageBox.Yes)
+
+    def perguntar(self) -> None:
+        from modules import intelligence as I, intelligence_llm as L
+        p = self._proj()
+        if not p:
+            return
+        q, ok = QInputDialog.getText(self, "Pergunta", "Pergunte sobre o último resultado (ou sobre o projeto):")
+        if not ok or not q.strip():
+            return
+        parecer = I.interpretar(p["results"][-1]) if p["results"] else I.revisar_projeto(p)
+        if not self.confirmar_envio(self):
+            self.out.setPlainText("Envio cancelado. Nada foi enviado."); return
+        try:
+            r = L.perguntar(q.strip(), parecer, cliente=getattr(self, "cliente_ia", None))
+        except Exception as e:
+            self.out.setPlainText(f"Falha ao consultar a IA: {type(e).__name__}: {e}"); return
+        if not r["disponivel"]:
+            self.out.setPlainText(f"IA generativa indisponível: {r['motivo']}.\n\nO assistente por regras segue funcionando (botões acima)."); return
+        cab = "✔ Resposta verificada (todos os números vêm dos resultados do NEXUS)" if r["aprovada"] else "⚠ " + r["aviso"] + "\nNúmeros sem lastro: " + ", ".join(r["numeros_sem_fundamento"])
+        self.out.setPlainText(cab + "\n\n" + r["resposta"] + "\n\n[IA generativa opcional; apoia a decisão, não a substitui]")
 
     def termo(self) -> None:
         from modules import intelligence as I

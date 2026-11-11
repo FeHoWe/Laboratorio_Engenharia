@@ -16,7 +16,7 @@ def test_preparar_caso_writes_case_and_scales_domain(tmp_path):
     m = trimesh.creation.box(extents=(0.4, 0.2, 0.1))
     info = cfd_job.preparar_caso(tmp_path / "c", m.vertices, m.faces, 20.0, 50, (20, 10, 8), 0.05, None, 1.225, 1.5e-5)
     assert (tmp_path / "c/constant/triSurface/corpo.stl").exists() and (tmp_path / "c/system/blockMeshDict").exists()
-    assert abs(info["L_m"] - 0.4) < 1e-9 and abs(info["a_ref_m2"] - 0.02) < 1e-9 and "caixa" in info["a_ref_origem"]
+    assert abs(info["L_m"] - 0.4) < 1e-9 and abs(info["a_ref_m2"] - 0.02) < 2e-4 and "PROJETADA" in info["a_ref_origem"] and abs(info["a_caixa_m2"] - 0.02) < 1e-9
     assert 0 < info["bloqueio_pct"] < 5
     assert cfd_job.preparar_caso(tmp_path / "d", m.vertices, m.faces, 20.0, 50, (20, 10, 8), 0, 0.5, 1.225, 1.5e-5)["a_ref_origem"] == "informada"
     with pytest.raises(ValueError):
@@ -92,3 +92,15 @@ def test_cp_points_return_to_original_frame(tmp_path):
     back = cfd_job.para_coords_originais(stl.vertices, info["origem_m"], info["gap_m"], 0.001)
     a = np.array(sorted(map(tuple, np.round(back, 3)))); b = np.array(sorted(map(tuple, np.round(m.vertices, 3))))
     assert a.shape == b.shape and np.allclose(a, b, atol=1e-3)
+
+
+def test_projected_area_is_real_and_free_air_centers_body(tmp_path):
+    import trimesh
+    sph = trimesh.creation.icosphere(subdivisions=3, radius=0.5)
+    assert abs(cfd_job.area_frontal_projetada(sph.vertices, sph.faces) - np.pi / 4) / (np.pi / 4) < 0.01
+    info = cfd_job.preparar_caso(tmp_path / "c", sph.vertices, sph.faces, 20.0, 20, (20, 10, 10), 0.0, None, 1.225, 1.5e-5, ar_livre=True)
+    z0, z1 = info["caixa_m"][4], info["caixa_m"][5]
+    stl = trimesh.load(tmp_path / "c/constant/triSurface/corpo.stl")
+    assert abs((stl.bounds[0][2] + stl.bounds[1][2]) / 2 - (z0 + z1) / 2) < 1e-9          # centrado em z → domínio simétrico
+    assert "ground {type symmetryPlane;}" in (tmp_path / "c/0/U").read_text().replace("ground {type symmetryPlane;}", "ground {type symmetryPlane;}")
+    assert "ground { type wall" not in (tmp_path / "c/system/blockMeshDict").read_text() and "symmetryPlane; faces ((0 3 2 1))" in (tmp_path / "c/system/blockMeshDict").read_text()

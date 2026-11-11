@@ -91,3 +91,21 @@ def test_intelligence_dialog_runs_on_project(tmp_path):
     d.revisar(); assert "Revisão — demo" in d.out.toPlainText()
     d.interpretar(); assert "Parecer — FEA2" in d.out.toPlainText()
     d.comparar(); assert "100 → 120 (+20.0 %)" in d.out.toPlainText()
+
+
+def test_dialog_ask_ai_paths(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from interface import hub_dialog
+    from interface.main_window import MainWindow
+    from modules.workspace import ProjectStore
+    st = ProjectStore(tmp_path); pr = st.create("d")
+    st.attach_result(pr, TracedResult("FEA", "SIMULACAO_NUMERICA", "m", {"vm_max_MPa": 100.0, "fator_seguranca_escoamento_ref": 3.0}))
+    d = hub_dialog.IntelligenceDialog(MainWindow(), st)
+    monkeypatch.setattr(hub_dialog.QInputDialog, "getText", lambda *a, **k: ("posso usar?", True))
+    monkeypatch.setattr(hub_dialog.IntelligenceDialog, "confirmar_envio", staticmethod(lambda w: False))
+    d.perguntar(); assert "Nada foi enviado" in d.out.toPlainText()
+    monkeypatch.setattr(hub_dialog.IntelligenceDialog, "confirmar_envio", staticmethod(lambda w: True))
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    d.perguntar(); assert "indisponível" in d.out.toPlainText()
+    d.cliente_ia = SimpleNamespace(messages=SimpleNamespace(create=lambda **k: SimpleNamespace(content=[SimpleNamespace(text="FS 3.0 (valores.fator_seguranca_escoamento_ref), margem ok; mas 99 MPa de fadiga.")])))
+    d.perguntar(); t = d.out.toPlainText(); assert "⚠" in t and "99" in t

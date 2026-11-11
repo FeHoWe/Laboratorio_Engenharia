@@ -8,7 +8,7 @@ Nível 3 (SIMULACAO_NUMERICA): gera o caso OpenFOAM (blockMesh + STL via snappyH
 Resultados do nível 3 NÃO são VALIDADOS sem referência informada.
 """
 from __future__ import annotations
-import math, shutil, subprocess
+import math, re, shutil, subprocess
 from pathlib import Path
 from . import aero, solver_registry as sr
 from .result_trace import TracedResult
@@ -32,8 +32,12 @@ def nivel2(cd_forma: float, area_frontal: float, area_molhada: float, compriment
         ["Cf de placa plana pode errar muito em corpos 3D", "Cd de forma depende do usuário"])
 
 def gerar_caso_openfoam(pasta, stl_nome: str, v_inf: float, comprimento_ref: float, area_ref: float,
-                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000, celulas=(80, 32, 24)) -> Path:
-    """Escreve system/ constant/ 0/ prontos. O STL deve ser copiado para constant/triSurface/ (em m)."""
+                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000, celulas=(80, 32, 24), ar_livre: bool = False) -> Path:
+    """Escreve system/ constant/ 0/ prontos. O STL deve ser copiado para constant/triSurface/ (em m).
+
+    `ar_livre=True`: o plano "ground" vira simetria (escoamento livre, sem solo) — usado para corpos isolados (ex.: esfera), onde um solo
+    próximo induz sustentação. Com o corpo centrado em z, o domínio fica simétrico e Cl médio deve tender a 0.
+    """
     if v_inf <= 0 or area_ref <= 0 or comprimento_ref <= 0: raise ValueError("entradas inválidas")
     p = Path(pasta)
     for d in ("system", "constant/triSurface", "0"): (p / d).mkdir(parents=True, exist_ok=True)
@@ -43,7 +47,7 @@ def gerar_caso_openfoam(pasta, stl_nome: str, v_inf: float, comprimento_ref: flo
 vertices ( ({x0} {y0} {z0}) ({x1} {y0} {z0}) ({x1} {y1} {z0}) ({x0} {y1} {z0}) ({x0} {y0} {z1}) ({x1} {y0} {z1}) ({x1} {y1} {z1}) ({x0} {y1} {z1}) );
 blocks ( hex (0 1 2 3 4 5 6 7) ({celulas[0]} {celulas[1]} {celulas[2]}) simpleGrading (1 1 1) );
 boundary ( inlet {{type patch; faces ((0 4 7 3));}} outlet {{type patch; faces ((1 2 6 5));}}
- ground {{type wall; faces ((0 3 2 1));}} top {{type symmetryPlane; faces ((4 5 6 7));}}
+ ground {{type {"symmetryPlane" if ar_livre else "wall"}; faces ((0 3 2 1));}} top {{type symmetryPlane; faces ((4 5 6 7));}}
  sideL {{type symmetryPlane; faces ((0 1 5 4));}} sideR {{type symmetryPlane; faces ((3 7 6 2));}} );
 """)
     (p/"system/controlDict").write_text(H % ("dictionary", "controlDict") + f"""application simpleFoam; startFrom startTime; startTime 0; stopAt endTime;
@@ -77,6 +81,8 @@ mergeTolerance 1e-6;
         (p/f"constant/{nome}").write_text(H % ("dictionary", nome) + f"simulationType RAS; RAS {{ {chave} kOmegaSST; turbulence on; printCoeffs on; }}\n")
     I = 0.01; k = 1.5 * (v_inf * I) ** 2; om = k ** 0.5 / (0.09 ** 0.25 * comprimento_ref * 0.1)
     def field(cls, name, dims, internal, bc):
+        if ar_livre:
+            bc = re.sub(r"ground \{[^}]*\}", "ground {type symmetryPlane;}", bc)
         (p/f"0/{name}").write_text(H % (cls, name) + f"dimensions {dims}; internalField {internal};\nboundaryField {{ {bc} }}\n")
     field("volVectorField", "U", "[0 1 -1 0 0 0 0]", f"uniform ({v_inf} 0 0)",
           f"inlet {{type fixedValue; value uniform ({v_inf} 0 0);}} outlet {{type zeroGradient;}} ground {{type noSlip;}} body {{type noSlip;}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")

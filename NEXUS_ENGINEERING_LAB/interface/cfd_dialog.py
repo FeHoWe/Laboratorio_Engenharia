@@ -41,7 +41,9 @@ class CfdDialog(QDialog):
         for s, val in zip((self.cx, self.cy, self.cz), (60, 24, 18)): s.setRange(8, 400); s.setValue(val)
         cr = QHBoxLayout(); [cr.addWidget(s) for s in (self.cx, self.cy, self.cz)]; f.addRow("Células de fundo (x,y,z)", cr)
         self.gap = _spin(0.0, 0.0, 100, 4); f.addRow("Folga do solo (m)", self.gap)
-        self.aref = _spin(0.0, 0.0, 1e4, 5); f.addRow("Área de referência m² (0 = caixa frontal)", self.aref)
+        from PySide6.QtWidgets import QCheckBox
+        self.livre = QCheckBox("Ar livre (sem solo; corpo centrado — recomendado para corpos isolados)"); f.addRow(self.livre)
+        self.aref = _spin(0.0, 0.0, 1e4, 5); f.addRow("Área de referência m² (0 = área frontal projetada da malha)", self.aref)
         self.cdref = _spin(0.0, 0.0, 100, 4); f.addRow("Cd de referência (0 = nenhum)", self.cdref)
         self.reft = QLineEdit(); f.addRow("Fonte da referência (obrigatória p/ VALIDADO)", self.reft)
         v.addLayout(f)
@@ -65,7 +67,7 @@ class CfdDialog(QDialog):
         return dict(part_key=self.part.currentData() or "", part_params={}, stl_path=self.stl.text().strip() if not self.part.currentData() else "",
                     stl_unit=self.unit.currentText(), v_inf=self.v.value(), iteracoes=self.it.value(),
                     celulas=[self.cx.value(), self.cy.value(), self.cz.value()], gap_m=self.gap.value(), a_ref=self.aref.value() or None,
-                    rho=self.rho.value(), nu=self.nu.value(), cd_ref=self.cdref.value() or None, ref_texto=self.reft.text().strip())
+                    rho=self.rho.value(), nu=self.nu.value(), ar_livre=self.livre.isChecked(), cd_ref=self.cdref.value() or None, ref_texto=self.reft.text().strip())
 
     def run(self) -> None:
         a = self._args()

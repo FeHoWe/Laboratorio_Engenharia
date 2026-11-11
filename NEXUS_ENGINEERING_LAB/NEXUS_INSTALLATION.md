@@ -28,3 +28,11 @@ Testes de motores externos pulam sozinhos se o motor não existir (`tests/test_c
 
 ## Versão de celular
 `python mobile\build_mobile_app.py <pasta_saida> <chaves dos projetos…>` (leva ~17 min com todos os projetos por causa da checagem de interferência exata) e `python mobile\validate_lab.py` (paridade JS × Python).
+
+## Windows 11 + WSL2 + OpenFOAM (passo a passo — NÃO testado por mim em Windows real)
+1. PowerShell como administrador: `wsl --install -d Ubuntu` e reinicie. Abra o Ubuntu e crie usuário/senha.
+2. No Ubuntu, instale o OpenFOAM ESI **v2306 ou mais novo** (o v1912 do apt do Debian/Ubuntu tem defeito nas funções-objeto, por isso o NEXUS só consegue Cd/Cl por integração própria nele). Siga a página oficial openfoam.com/download (repositório `dl.openfoam.com`; pacote `openfoam2306-default` ou equivalente) — confira os comandos atuais lá.
+3. Teste dentro do Ubuntu: `source /usr/lib/openfoam/openfoam2306/etc/bashrc && simpleFoam -help`.
+4. No Windows, com o NEXUS instalado, rode `tools\\verificar_windows.bat`. Esperado: *OpenFOAM acessível: … via WSL2* e *GPU / OpenGL* indicando o renderizador (se aparecer "software", atualize o driver da GPU).
+5. Envie o `verificacao_windows.txt` gerado — qualquer FALHOU vira correção.
+Observação técnica: o NEXUS chama `wsl.exe bash -lc "source <bashrc>; <comando>"` e o diretório do caso (C:\\...) é visto no WSL como /mnt/c/...; para casos grandes copie o caso para o disco do WSL (muito mais rápido).

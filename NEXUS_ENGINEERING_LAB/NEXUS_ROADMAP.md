@@ -5,9 +5,9 @@
 |---|---|---|---|
 | NEXUS CAD | 🟡 | Biblioteca B-rep, histórico paramétrico, Arsenal (export/import/backup), montagem/BOM | Edição de sketch; booleanas interativas em geometria importada |
 | NEXUS STRUCTURAL | 🟡 | FEA Tet10+Gmsh, CalculiX real, modal, mapa de von Mises no 3D, fadiga (aba) | Contato, plasticidade, multi-material |
-| NEXUS AERODYNAMICS | 🟡 | Níveis 1–2 analíticos, CFD OpenFOAM isolado, Cp sobre as peças, atrito estimado | Validação (esfera inconclusiva), camada limite, forceCoeffs funcional |
+| NEXUS AERODYNAMICS | 🟡 | Níveis 1–2 analíticos, CFD OpenFOAM isolado, Cp sobre as peças, atrito estimado | Validação formal (esfera: GCI 2,8 %, Cl≈0, mas sem convergência de resíduos e com atrito estimado), camada limite, forceCoeffs funcional (OpenFOAM ≥ v2306) |
 | NEXUS VEHICLE | 🟡 | Longitudinal, lateral, volta, skidpad, simulador F1 | Pneu combinado, suspensão com geometria |
-| NEXUS INTELLIGENCE | 🟡 | Interpretação, revisão de projeto, comparação, glossário (regras) | Linguagem natural livre (generativa) — planejado, não existe |
+| NEXUS INTELLIGENCE | 🟡 | Interpretação, revisão de projeto, comparação, glossário (regras) | Camada generativa existe como OPCIONAL (chave própria + checagem de números); falta avaliá-la em uso real |
 
 Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 

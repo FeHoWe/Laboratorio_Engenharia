@@ -49,7 +49,7 @@ PRODUTOS: tuple = (
             (Capacidade("Aerodinâmica analítica (níveis 1 e 2)", "lab", PRONTO, "classe ANALÍTICO — não é CFD"),
              Capacidade("CFD OpenFOAM isolado, progresso/cancelar, Cp sobre as peças", "solvers", PARCIAL, "Cd/Cl por integração própria; sem validação ampla"),
              Capacidade("Camada limite (addLayers), linhas de corrente", None, PLANEJADO)),
-            ("Cd da esfera sem validação conclusiva", "Atrito viscoso é estimativa de 1ª ordem")),
+            ("Cd da esfera: GCI 2,8 % e Cl≈0, mas sem VALIDADO (resíduos não convergidos, atrito estimado)", "Atrito viscoso é estimativa de 1ª ordem")),
     Produto("vehicle", "NEXUS VEHICLE", "Dinâmica veicular e desempenho.",
             (Capacidade("Dinâmica longitudinal e volta quase-estacionária", "f1tools", PRONTO),
              Capacidade("Dinâmica lateral (bicicleta, pneu de escova, Milliken)", "lab", PRONTO),
@@ -60,8 +60,9 @@ PRODUTOS: tuple = (
             (Capacidade("Interpretar um resultado (classe, validade, alertas, próximos passos)", "intelligence", PRONTO, "baseado em REGRAS auditáveis"),
              Capacidade("Revisar um projeto (resultados obsoletos, materiais não informados, não validados)", "intelligence", PRONTO),
              Capacidade("Comparar resultados e explicar termos de engenharia", "intelligence", PRONTO),
-             Capacidade("Assistente generativo (linguagem natural livre)", None, PLANEJADO)),
-            ("Não é IA generativa: não inventa números; só lê o que o NEXUS calculou",)),
+             Capacidade("Perguntas em linguagem natural (IA generativa OPCIONAL)", "intelligence", PARCIAL,
+                        "exige ANTHROPIC_API_KEY e sua confirmação de envio; resposta é verificada: números fora dos resultados são marcados")),
+            ("O núcleo é por regras (não inventa números); a camada generativa é opcional e suas respostas só valem se 'aprovadas' na checagem de números",)),
 )
 
 
