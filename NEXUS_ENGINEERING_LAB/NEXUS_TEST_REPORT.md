@@ -1,5 +1,10 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V4.1 — 2026-11-12
+Suíte completa: **612 passed, 4 skipped** (571 passed + 4 skipped na execução principal em 18 min 47 s com `MALLOC_CHECK_=3`, código de saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 22 s).
+Novos: `test_cad_avancado` (furo escareado, padrão linear e circular, arco parcial, espelho, casca, filete/chanfro no topo e na base, receita serializável — volumes contra fórmula fechada) e 2 testes de volta do veículo em processo isolado (retorno imediato + cancelamento; erro como dado).
+Não validado: interface dos novos diálogos de entrada por clique (só a API), geometrias complexas/STEP reais com padrões, Windows.
+
 ## V4.0 — 2026-11-12
 Suíte completa: **602 passed, 4 skipped** (561 passed + 4 skipped na execução principal em 19 min 49 s com `MALLOC_CHECK_=3`, código de saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 18 s).
 Novos: `test_nl_job` (erro como dado, diálogo sem bloquear e com cancelamento, caso plástico real × analítico <5 %, pulado sem ccx), `test_project_safety` (autosave sem efeitos colaterais, projeto vazio, recuperação de queda, backup ao salvar, versões listar/comparar/restaurar, erros), `test_project_safety_ui` (janela principal: autosave só com alterações, recuperação e descarte, salvar limpa o autosave, versões e restauração). `test_i18n` (13) passa com as novas strings.

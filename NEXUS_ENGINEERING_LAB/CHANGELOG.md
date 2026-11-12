@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## V4.1 — 2026-11-12 (CAD avançado, 1ª fatia + volta do veículo isolada)
+- **Auditoria dos diálogos pesados** (tempo medido): só a *volta do veículo* travava a janela (≈7 s). F1 (volta/telemetria ≈0,01 s), suspensão 3D (≈0,2 s), pneu, diagrama g-g e Cd→veículo são instantâneos e ficaram como estão; FEA/CFD já eram isolados. A volta do veículo agora roda em **processo separado** (`modules/veiculo_job.py`), com cancelamento e erro devolvido como dado; o resultado e as ressalvas (circuito SINTÉTICO, ANALÍTICO) são os mesmos de antes. `SolversDialog` é só um menu de atalhos (nada a mover).
+- **Novas operações no editor paramétrico com histórico** (`modules/cad_history.py`; todas reaplicáveis, suprimíveis, desfazíveis e serializáveis):
+  - `counterbore` — furo escareado (rebaixo + furo);
+  - `linear_pattern` e `circular_pattern` — repetem uma ferramenta (cilindro/caixa/esfera/STEP) cortando ou unindo; círculo de 360° espaça em 360/n, arco parcial em ângulo/(n−1); limite 1–1000 cópias;
+  - `mirror` — espelha em relação a um plano normal a x/y/z e une ao corpo;
+  - `shell` — casca com uma face aberta (±x/±y/±z) por espessura constante;
+  - seletores de aresta para filete/chanfro `top:x|y|z` e `bottom:x|y|z` (arestas no plano extremo), além de `all` e `axis:*`.
+- Verificação: cada operação tem o volume conferido contra fórmula fechada (furo escareado, padrões, espelho, casca, chanfro do topo com correção de canto d³/3). Operações inválidas (rebaixo menor que o furo, casca grossa demais, plano inválido, eixo nulo) levantam erro e **não entram no histórico**.
+- Limites honestos: ainda **sem nomeação topológica persistente** (seletores são geométricos), sem restrições paramétricas entre operações, sem revolução de esboço, sem filete de raio variável, sem casca com várias faces abertas por escolha manual. Os textos dos novos diálogos de entrada ainda não estão nos catálogos de idiomas (aparecem em português).
+- Testes novos: `test_cad_avancado` (8) e 2 em `test_lapsim_veiculo`.
+- Versão do app 4.1.
+
 ## V4.0 — 2026-11-12 (fundação: estabilidade e segurança do projeto)
 Escopo: só a **fatia “fundação” do prompt-mestre V4.0** (o próprio prompt recomenda não fazer tudo de uma vez). Sem reconstruir nada; arquivos `.nexus`, Arsenal, materiais e resultados continuam compatíveis (`FORMAT_VERSION` segue 1).
 - **Casos não lineares (CalculiX) em processo isolado**: `modules/nl_job.py` + `interface/nl_dialog.py` rodam plástico, série de cargas e contato de uma/duas peças via `core.jobs.JobManager`, com barra de progresso, botão **Cancelar** e erro devolvido como dado (a interface não congela e uma falha do solver não derruba o NEXUS). O texto de resultado mantém o aviso: malha grosseira de verificação, **não** é validação de peça real.

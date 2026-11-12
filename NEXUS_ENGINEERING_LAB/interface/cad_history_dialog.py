@@ -73,12 +73,27 @@ class CadHistoryDialog(QDialog):
             if tool == "cylinder":
                 params["axis"], ok = QInputDialog.getItem(self, "Cilindro", "Eixo:", ["x", "y", "z"], 2, False)
                 if not ok: return
+        if t in ("linear_pattern", "circular_pattern"):
+            m, ok = QInputDialog.getItem(self, t, "Operação:", ["cut", "union"], 0, False)
+            if not ok: return
+            tool, ok = QInputDialog.getItem(self, t, "Ferramenta repetida:", ["cylinder", "box", "sphere"], 0, False)
+            if not ok: return
+            params.update(mode=m, tool=tool)
+            if tool == "cylinder":
+                params["axis"], ok = QInputDialog.getItem(self, t, "Eixo do cilindro:", ["x", "y", "z"], 2, False)
+                if not ok: return
+        if t == "mirror":
+            params["plane"], ok = QInputDialog.getItem(self, t, "Plano normal ao eixo:", ["x", "y", "z"], 0, False)
+            if not ok: return
+        if t == "shell":
+            params["open_face"], ok = QInputDialog.getItem(self, t, "Face aberta:", ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
+            if not ok: return
         for k in [k for k in OPS[t] if k not in params]:
             v, ok = QInputDialog.getDouble(self, t, k, 0.0, -1e9, 1e9, 4)
             if not ok: return
             params[k] = v
         if t in ("fillet", "chamfer"):
-            params["edges"], ok = QInputDialog.getItem(self, t, "Arestas:", ["all", "axis:x", "axis:y", "axis:z"], 0, False)
+            params["edges"], ok = QInputDialog.getItem(self, t, "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
         try: self.hist.add(t, **params)
         except Exception as e: QMessageBox.warning(self, "Operação", str(e))
         self.refresh()

@@ -172,13 +172,45 @@ class VehicleGeoDialog(QDialog):
                                 f"v máx em 40 s = {vmax*3.6:.1f} km/h\n\n" + "\n".join("⚠ " + a for a in prov["alertas"]) + "\n\nO Cd carrega os limites do CFD (ESTIMADO, não validado).")
 
     def calc_volta(self):
-        from modules import lapsim_veiculo as LV
+        """Volta sintética em PROCESSO ISOLADO (V4.1): a janela não congela e há cancelamento. Use `aguardar_volta()` em testes/API."""
+        from PySide6.QtCore import QTimer
+        from core.jobs import JobManager
+        if getattr(self, "_job", None) is not None and not self._job.terminal:
+            return
         try:
             g = {k: w.value() for k, w in self.gg.items()}; g.pop("vel"); pot = g.pop("pot"); cda = g.pop("cda")
-            v = VL.VeiculoLateral(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)
-            r = LV.volta(v, pot, cda, ds=6.0)
+            VL.VeiculoLateral(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)        # valida já, antes de criar o processo
         except ValueError as e:
             self.out_g.setPlainText(f"ERRO: {e}"); return
-        x = r.valores
+        self.jobs = getattr(self, "jobs", None) or JobManager(1)
+        veic = dict(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)
+        self._job = self.jobs.submit_python("Volta do veículo (isolado)", "modules.veiculo_job", "volta", dict(veiculo=veic, p_ice=pot, cda=cda, ds=6.0), timeout=1800)
+        self.out_g.setPlainText("Executando em processo separado…")
+        if not hasattr(self, "_timer"):
+            self._timer = QTimer(self); self._timer.setInterval(200); self._timer.timeout.connect(self._poll_volta)
+        self._timer.start()
+
+    def cancelar_volta(self):
+        if getattr(self, "_job", None) is not None and not self._job.terminal:
+            self.jobs.cancel(self._job.id)
+
+    def aguardar_volta(self, timeout=600.0):
+        if getattr(self, "_job", None) is not None:
+            self._job.wait(timeout); self._poll_volta()
+        return self.out_g.toPlainText()
+
+    def _poll_volta(self):
+        j = self._job
+        if j is None or not j.terminal:
+            return
+        self._timer.stop()
+        if j.state == "CANCELLED":
+            self.out_g.setPlainText("Cancelado pelo usuário. Nenhum resultado foi gravado."); return
+        if j.state != "DONE":
+            self.out_g.setPlainText(f"{j.state}: {j.error}\n\n--- log do processo ---\n" + "\n".join(j.log.splitlines()[-25:])); return
+        r = j.result()
+        if "_erro" in r:
+            self.out_g.setPlainText(f"ERRO: {r['_erro']}"); return
+        x = r["valores"]
         self.out_g.setPlainText(f"Volta (circuito SINTÉTICO): {x['tempo_s']:.2f} s · v média {x['v_media_kmh']:.1f} km/h · v máx {x['v_max_kmh']:.0f} · v mín {x['v_min_kmh']:.0f}\n\n" +
-                                "\n".join("⚠ " + l for l in r.limitacoes) + "\n" + "\n".join("• " + l for l in r.premissas))
+                                "\n".join("⚠ " + l for l in r["limitacoes"]) + "\n" + "\n".join("• " + l for l in r["premissas"]))

@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V4.1
+Volta do veículo em processo isolado (auditoria mostrou que era o único diálogo realmente pesado); CAD avançado fatia 1: furo escareado, padrões linear/circular, espelho, casca, seletores topo/base.
+**Próximo (V4.1b/V4.2):** nomeação topológica persistente, revolução de esboço, restrições paramétricas entre operações, filete de raio variável; depois ambientes Estrutural/CFD integrados à geometria, Veículo/F1 com comparação A/B, Intelligence.
+
 ## Feito na V4.0 (fundação)
 Casos não lineares em processo isolado com cancelamento; autosave + recuperação após falha; backup ao salvar; versões com comparação e restauração (detalhes no CHANGELOG).
 **Restante do prompt-mestre V4.0, em ordem sugerida pelo próprio prompt:** V4.1 CAD avançado (booleanas, furos, filetes, chanfros, padrões, restrições) → V4.2 ambientes Estrutural/CFD com malha e resultados integrados à geometria → V4.3 Veículo e F1 (comparação A/B, relatórios) → V4.4 Intelligence (checagem de consistência, pareceres). Antes disso: mover os diálogos de veículo/F1/solvers para jobs (auditar bloqueio), validar tudo no Windows 11 (`tools\verificar_windows.bat`) e testar o empacotamento.

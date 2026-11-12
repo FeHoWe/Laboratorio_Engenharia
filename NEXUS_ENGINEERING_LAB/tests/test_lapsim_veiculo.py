@@ -39,4 +39,22 @@ def test_dialogo_volta():
     app = QApplication.instance() or QApplication([])
     from interface.vehicle_geo_dialog import VehicleGeoDialog
     d = VehicleGeoDialog(); d.calc_gg(); assert "ERRO" not in d.out_g.toPlainText()
-    d.calc_volta(); assert "SINTÉTICO" in d.out_g.toPlainText() and "ERRO" not in d.out_g.toPlainText()
+    d.calc_volta(); d.aguardar_volta(); assert "SINTÉTICO" in d.out_g.toPlainText() and "ERRO" not in d.out_g.toPlainText()
+
+
+def test_volta_em_processo_isolado_cancelavel():
+    import time
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from interface.vehicle_geo_dialog import VehicleGeoDialog
+    d = VehicleGeoDialog()
+    t = time.time(); d.calc_volta()
+    assert time.time() - t < 3                       # retorna na hora; o cálculo roda em outro processo
+    d.cancelar_volta()
+    assert "Cancelado" in d.aguardar_volta(60)
+
+
+def test_job_volta_erro_vira_dado():
+    from modules.veiculo_job import volta
+    r = volta(dict(massa=-1), 1e5, 0.5)
+    assert "_erro" in r

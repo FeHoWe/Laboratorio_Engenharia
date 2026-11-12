@@ -27,7 +27,13 @@ OPS = {"translate": ["dx", "dy", "dz"], "rotate": ["px", "py", "pz", "ax", "ay",
        "hole": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth"], "box_cut": ["x0", "y0", "z0", "x1", "y1", "z1"],
        "box_add": ["x0", "y0", "z0", "x1", "y1", "z1"], "fillet": ["radius"], "chamfer": ["distance"],
        "sketch_extrude": ["sketch", "distance", "mode"],
-       "boolean": ["mode", "tool", "x", "y", "z", "a", "b", "c"]}
+       "boolean": ["mode", "tool", "x", "y", "z", "a", "b", "c"],
+       # V4.1
+       "counterbore": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth", "cb_diameter", "cb_depth"],
+       "linear_pattern": ["mode", "tool", "x", "y", "z", "a", "b", "c", "count", "sx", "sy", "sz"],
+       "circular_pattern": ["mode", "tool", "x", "y", "z", "a", "b", "c", "count", "cx", "cy", "cz", "ax", "ay", "az", "angle_deg"],
+       "mirror": ["plane", "offset"],
+       "shell": ["thickness", "open_face"]}
 BOOL_MODES = ("union", "cut", "common")
 BOOL_TOOLS = ("box", "cylinder", "sphere", "step")
 
@@ -55,12 +61,79 @@ def _edges(shape, sel):
         seen.append(e)
         if sel == "all":
             out.append(e); continue
-        ax = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}[sel.split(":")[1]]
+        modo, eixo = sel.split(":")
+        ax = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}[eixo]
+        if modo in ("top", "bottom"):                       # V4.1: arestas contidas no plano extremo (máx./mín.) do eixo
+            out.append(e); continue
         c = BRepAdaptor_Curve(e)
         if c.GetType() == GeomAbs_Line:
             d = c.Line().Direction()
             if abs(abs(d.X()*ax[0] + d.Y()*ax[1] + d.Z()*ax[2]) - 1) < 1e-9:
                 out.append(e)
+    if sel != "all" and sel.split(":")[0] in ("top", "bottom"):
+        out = _arestas_no_plano_extremo(shape, out, sel.split(":")[1], sel.startswith("top"))
+    return out
+
+
+def _bbox(shape):
+    from OCP.Bnd import Bnd_Box
+    from OCP.BRepBndLib import BRepBndLib
+    b = Bnd_Box(); BRepBndLib.Add_s(shape, b); b.SetGap(0.0)
+    a, c = b.CornerMin(), b.CornerMax()
+    return (a.X(), a.Y(), a.Z(), c.X(), c.Y(), c.Z())      # xmin, ymin, zmin, xmax, ymax, zmax
+
+
+def _arestas_no_plano_extremo(shape, edges, eixo, topo, tol=1e-6):
+    i = "xyz".index(eixo)
+    ext = _bbox(shape)[3 + i if topo else i]
+    out = []
+    for e in edges:
+        b = _bbox(e)
+        if abs(b[i] - ext) < tol and abs(b[3 + i] - ext) < tol:
+            out.append(e)
+    return out
+
+
+def _faces_extremas(shape, lado, tol=1e-6):
+    """Faces planas cuja normal externa é ±eixo (lado '+z', '-x'…) e que estão no plano extremo."""
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Plane
+    from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+    sinal = 1.0 if lado[0] == "+" else -1.0; i = "xyz".index(lado[1])
+    cand = []
+    ex = TopExp_Explorer(shape, TopAbs_FACE)
+    while ex.More():
+        f = TopoDS.Face(ex.Current()); ex.Next()
+        sf = BRepAdaptor_Surface(f)
+        if sf.GetType() != GeomAbs_Plane:
+            continue
+        pl = sf.Plane(); d = pl.Axis().Direction(); n = [d.X(), d.Y(), d.Z()]
+        if f.Orientation() == TopAbs_REVERSED:
+            n = [-x for x in n]
+        if n[i] * sinal > 1 - 1e-9:
+            cand.append((pl.Location().Coord(i + 1) * sinal, f))
+    if not cand:
+        return []
+    m = max(c for c, _ in cand)
+    return [f for c, f in cand if abs(c - m) < tol]
+
+
+def _copias_padrao(shape_ferramenta, t, p):
+    n = int(p["count"])
+    if n < 1 or n > 1000:
+        raise CadHistoryError("padrão: count deve estar entre 1 e 1000")
+    out = []
+    for k in range(n):
+        tr = gp_Trsf()
+        if t == "linear_pattern":
+            tr.SetTranslation(gp_Vec(p["sx"] * k, p["sy"] * k, p["sz"] * k))
+        else:
+            if (p["ax"], p["ay"], p["az"]) == (0, 0, 0):
+                raise CadHistoryError("padrão circular: eixo nulo")
+            total = p["angle_deg"]
+            passo = total / n if abs(abs(total) - 360.0) < 1e-9 else (total / (n - 1) if n > 1 else 0.0)
+            tr.SetRotation(gp_Ax1(gp_Pnt(p["cx"], p["cy"], p["cz"]), gp_Dir(p["ax"], p["ay"], p["az"])), math.radians(passo * k))
+        out.append(BRepBuilderAPI_Transform(shape_ferramenta, tr, True).Shape())
     return out
 
 
@@ -107,6 +180,47 @@ def _apply(shape, op):
             raise CadHistoryError(f"boolean: mode ∈ {BOOL_MODES}, tool ∈ {BOOL_TOOLS}")
         tool = _bool_tool(p)
         return _bool({"union": BRepAlgoAPI_Fuse, "cut": BRepAlgoAPI_Cut, "common": BRepAlgoAPI_Common}[p["mode"]](shape, tool))
+    if t == "counterbore":
+        if min(p["diameter"], p["depth"], p["cb_diameter"], p["cb_depth"]) <= 0:
+            raise CadHistoryError("furo escareado: todas as dimensões devem ser > 0")
+        if p["cb_diameter"] <= p["diameter"]:
+            raise CadHistoryError("furo escareado: o diâmetro do rebaixo deve ser maior que o do furo")
+        ax = gp_Ax2(gp_Pnt(p["x"], p["y"], p["z"]), gp_Dir(p["dx"], p["dy"], p["dz"]))
+        out = _bool(BRepAlgoAPI_Cut(shape, BRepPrimAPI_MakeCylinder(ax, p["diameter"] / 2, p["depth"]).Shape()))
+        return _bool(BRepAlgoAPI_Cut(out, BRepPrimAPI_MakeCylinder(ax, p["cb_diameter"] / 2, p["cb_depth"]).Shape()))
+    if t in ("linear_pattern", "circular_pattern"):
+        if p["mode"] not in ("union", "cut") or p["tool"] not in BOOL_TOOLS:
+            raise CadHistoryError("padrão: mode ∈ ('union','cut'), tool ∈ " + str(BOOL_TOOLS))
+        alg = BRepAlgoAPI_Fuse if p["mode"] == "union" else BRepAlgoAPI_Cut
+        for c in _copias_padrao(_bool_tool(p), t, p):
+            shape = _bool(alg(shape, c))
+        return shape
+    if t == "mirror":
+        if p["plane"] not in ("x", "y", "z"):
+            raise CadHistoryError("espelhar: plane deve ser 'x', 'y' ou 'z' (plano normal ao eixo)")
+        i = "xyz".index(p["plane"]); o = [0.0, 0.0, 0.0]; o[i] = p["offset"]
+        nrm = [0, 0, 0]; nrm[i] = 1
+        tr = gp_Trsf(); tr.SetMirror(gp_Ax2(gp_Pnt(*o), gp_Dir(*nrm)))
+        return _bool(BRepAlgoAPI_Fuse(shape, BRepBuilderAPI_Transform(shape, tr, True).Shape()))
+    if t == "shell":
+        from OCP.BRepOffsetAPI import BRepOffsetAPI_MakeThickSolid
+        from OCP.collections import List_TopoDS_Shape as TopTools_ListOfShape
+        if p["thickness"] <= 0:
+            raise CadHistoryError("casca: espessura deve ser > 0")
+        lado = str(p["open_face"])
+        if len(lado) != 2 or lado[0] not in "+-" or lado[1] not in "xyz":
+            raise CadHistoryError("casca: open_face deve ser '+x','-x','+y','-y','+z' ou '-z'")
+        faces = _faces_extremas(shape, lado)
+        if not faces:
+            raise CadHistoryError(f"casca: não há face plana em {lado}")
+        lst = TopTools_ListOfShape()
+        for f in faces: lst.Append(f)
+        mk = BRepOffsetAPI_MakeThickSolid()
+        mk.MakeThickSolidByJoin(shape, lst, -p["thickness"], 1e-4)
+        mk.Build()
+        if not mk.IsDone():
+            raise CadHistoryError("casca falhou (espessura grande demais para a geometria)")
+        return mk.Shape()
     raise CadHistoryError(f"operação desconhecida: {t}")
 
 
@@ -141,7 +255,7 @@ class CadHistory:
 
     # --- edição
     def add(self, type_, **params):
-        if type_ == "boolean":
+        if type_ in ("boolean", "linear_pattern", "circular_pattern"):
             params.setdefault("b", 0.0); params.setdefault("c", 0.0)         # só caixa/cilindro usam b/c
         missing = [k for k in OPS[type_] if k not in params and not (type_ in ("fillet", "chamfer") and k in ())]
         if type_ not in OPS: raise CadHistoryError("operação desconhecida")

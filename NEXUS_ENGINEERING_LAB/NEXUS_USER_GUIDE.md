@@ -19,6 +19,9 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V4.1 — CAD avançado
+No *Editor paramétrico com histórico* (Solvers → Editor paramétrico) há novas operações: **furo escareado**, **padrão linear** e **padrão circular** (repete furos/saliências), **espelhar** e **casca** (esvazia o sólido deixando uma face aberta). Filete e chanfro aceitam arestas do **topo** ou da **base** de um eixo. Tudo entra no histórico: dá para editar parâmetros, suprimir e desfazer. Se uma operação não cabe na geometria (ex.: casca mais grossa que a peça), o NEXUS recusa e mantém o histórico como estava. A *volta do veículo* agora roda em segundo plano, com cancelamento.
+
 ## Novidades da V4.0 — proteção do seu trabalho
 - **Recuperação automática**: se o NEXUS fechar de forma inesperada com alterações não salvas, ao abrir de novo ele pergunta se você quer recuperar o projeto. O instantâneo é gravado a cada 60 s só quando há alterações e nunca substitui o seu arquivo.
 - **Backup ao salvar**: o arquivo anterior fica em `backups/` (últimos 10).
