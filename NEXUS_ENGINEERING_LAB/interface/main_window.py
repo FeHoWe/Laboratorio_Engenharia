@@ -37,7 +37,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "3.4"
+APP_VERSION = "3.5"
 
 
 # --------------------------------------------------------------- console inferior
@@ -221,6 +221,8 @@ class MainWindow(QMainWindow):
           "Mapa dos cinco produtos do NEXUS e das funções reais de cada um, com estado honesto (pronto/parcial/planejado)")
         a("intelligence", "NEXUS INTELLIGENCE — interpretar resultados e revisar projeto…", lambda: self.show_intelligence(), "Ctrl+Shift+I", None,
           "Assistente técnico por regras: parecer sobre resultados, revisão de projeto, comparação e glossário (não inventa números)")
+        a("vehgeo", "NEXUS VEHICLE — Pneu combinado e suspensão…", lambda: self.show_vehgeo(), None, None,
+          "Força combinada Fx–Fy do pneu (escova) e cinemática de suspensão duplo-A (camber, bitola, centro de rolagem)")
         a("clearfield", "Limpar mapa de tensões/pressão do visualizador", lambda: self.clear_field_map(), None, None,
           "Remove o mapa de cores (FEA/CFD) exibido no visualizador 3D e devolve as peças")
         a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
@@ -294,7 +296,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "vehgeo", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -857,6 +859,10 @@ class MainWindow(QMainWindow):
     def show_hub(self) -> None:
         from interface.hub_dialog import HubDialog
         HubDialog(self).exec()
+
+    def show_vehgeo(self) -> None:
+        from interface.vehicle_geo_dialog import VehicleGeoDialog
+        VehicleGeoDialog(self).exec()
 
     def show_intelligence(self) -> None:
         from interface.hub_dialog import IntelligenceDialog

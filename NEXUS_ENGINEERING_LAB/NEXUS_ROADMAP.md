@@ -3,10 +3,10 @@
 ## Visão de produto (V3.3)
 | Produto | Estado | Já existe | Falta |
 |---|---|---|---|
-| NEXUS CAD | 🟡 | Biblioteca B-rep, histórico paramétrico, Arsenal (export/import/backup), montagem/BOM | Edição de sketch; booleanas interativas em geometria importada |
-| NEXUS STRUCTURAL | 🟡 | FEA Tet10+Gmsh, CalculiX real, modal, mapa de von Mises no 3D, fadiga (aba) | Contato, plasticidade, multi-material |
+| NEXUS CAD | 🟡 | Biblioteca B-rep, histórico paramétrico, **sketch 2D (retângulo/círculo/polígono, furos) + extrusão e booleanas (união/corte/interseção com caixa, cilindro, esfera ou STEP) no histórico (V3.5)**, Arsenal, montagem/BOM | Sketch com restrições geométricas e arcos livres; booleanas escolhendo a peça importada com o mouse |
+| NEXUS STRUCTURAL | 🟡 | FEA Tet10+Gmsh, CalculiX real, modal, mapa de von Mises no 3D, fadiga (aba), **plasticidade bilinear, multimaterial por região e contato nó-superfície (CalculiX real, módulo `calculix_nl`, V3.5)** | Diálogo na interface para esses casos; plasticidade cinemática/cíclica |
 | NEXUS AERODYNAMICS | 🟡 | Níveis 1–2 analíticos, CFD OpenFOAM isolado, Cp sobre as peças, atrito estimado | Validação formal (esfera: GCI 2,8 %, Cl≈0, mas sem convergência de resíduos e com atrito estimado), camada limite, forceCoeffs funcional (OpenFOAM ≥ v2306) |
-| NEXUS VEHICLE | 🟡 | Longitudinal, lateral, volta, skidpad, simulador F1 | Pneu combinado, suspensão com geometria |
+| NEXUS VEHICLE | 🟡 | Longitudinal, lateral, volta, skidpad, simulador F1, **pneu combinado Fx–Fy e suspensão duplo-A 2D (V3.5, diálogo + celular)** | Suspensão 3D (caster/KPI), elastocinemática; acoplar pneu combinado ao modelo lateral |
 | NEXUS INTELLIGENCE | 🟡 | Interpretação, revisão de projeto, comparação, glossário (regras) | Camada generativa existe como OPCIONAL (chave própria + checagem de números); falta avaliá-la em uso real |
 
 Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
@@ -28,4 +28,4 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 2. Importação de Arsenal exportado; Cp sobreposto às peças na mesma escala.
 3. Botão "Anexar resultado à versão" (`attach_result(..., geometry_fp)`).
 4. Estudo de malha automático no CFD + validação contra caso de referência (cilindro/esfera/placa).
-5. Pneu combinado (elipse de atrito) no modelo lateral e acoplamento com `nexus_f1`.
+5. Acoplar o pneu combinado ao modelo lateral e a `nexus_f1`; diálogo de contato/plasticidade; camada limite (prismas) no CFD.

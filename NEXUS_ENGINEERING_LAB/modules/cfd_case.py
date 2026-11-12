@@ -290,24 +290,37 @@ def forcas_viscosas(pasta, patch: str = "body", rho: float = 1.225, nu: float = 
             S += ar; wsum += w; cc += w * (c0 + a + b) / 3
         fc.append(cc / wsum if wsum > 0 else c0); fa.append(S)
     fc = np.array(fc); fa = np.array(fa)
-    cen = np.zeros((ncell, 3)); cnt = np.zeros(ncell)
+    # centro de célula como o OpenFOAM: estimativa pela média dos centros de face, depois pirâmides (volume ponderado)
+    xe = np.zeros((ncell, 3)); cnt = np.zeros(ncell)
     for i, o in enumerate(owner):
-        cen[o] += fc[i]; cnt[o] += 1
+        xe[o] += fc[i]; cnt[o] += 1
     for i, n in enumerate(neigh):
-        cen[n] += fc[i]; cnt[n] += 1
-    cen /= np.maximum(cnt, 1)[:, None]
-    F = np.zeros(3); area = 0.0; ymin, ymax = 1e9, 0.0
+        xe[n] += fc[i]; cnt[n] += 1
+    xe /= np.maximum(cnt, 1)[:, None]
+    vsum = np.zeros(ncell); csum = np.zeros((ncell, 3))
+    for i, o in enumerate(owner):
+        pv = max(float(fa[i] @ (fc[i] - xe[o])), 0.0)
+        vsum[o] += pv; csum[o] += pv * (0.75 * fc[i] + 0.25 * xe[o])
+    for i, n in enumerate(neigh):
+        pv = max(float(-fa[i] @ (fc[i] - xe[n])), 0.0)
+        vsum[n] += pv; csum[n] += pv * (0.75 * fc[i] + 0.25 * xe[n])
+    cen = np.where(vsum[:, None] > 0, csum / np.maximum(vsum, 1e-300)[:, None], xe)
+    F = np.zeros(3); area = 0.0; ymin, ymax = 1e9, 0.0; yplus = []
     for i in range(nf):
         f = sf + i; Sf = fa[f]; A = np.linalg.norm(Sf)
         n = Sf / A; c = owner[f]
         y = abs((cen[c] - fc[f]) @ n)
         Ut = U[c] - (U[c] @ n) * n
         F += rho * (nu + nutw[i]) * Ut / max(y, 1e-12) * A
+        tau_k = (nu + nutw[i]) * np.linalg.norm(Ut) / max(y, 1e-12)                  # τ/ρ
+        if tau_k > 0:
+            yplus.append(np.sqrt(tau_k) * y / nu)
         area += A; ymin, ymax = min(ymin, y), max(ymax, y)
     q = 0.5 * rho * v_inf ** 2
     dd, ld = np.array(drag_dir, float), np.array(lift_dir, float)
     return {"tempo": tempo, "forca_N": F.tolist(), "area_patch_m2": float(area), "cd_atrito": float(F @ dd / (q * a_ref)), "cl_atrito": float(F @ ld / (q * a_ref)),
             "y_primeira_celula_m": [float(ymin), float(ymax)],
+            "y_mais": ([float(np.percentile(yplus, q)) for q in (5, 50, 95)] if yplus else None),
             "obs": "ESTIMATIVA de 1ª ordem (lei da parede, centro de célula aproximado); não é a função-objeto wallShearStress"}
 
 
@@ -379,7 +392,7 @@ def executar_openfoam(pasta, timeout=3600, cd_ref: float | None = None, cd_tol_p
                 fv = forcas_viscosas(pasta, "body", rho=_ler_rho(pasta), nu=_ler_nu(pasta), v_inf=_ler_vinf(pasta), a_ref=_ler_aref(pasta))
                 vals.update({"cd_atrito_estimado": fv["cd_atrito"], "forca_atrito_N": fv["forca_N"], "cd_total_estimado": fp["cd_pressao"] + fv["cd_atrito"],
                              "cl_total_estimado": fp["cl_pressao"] + fv["cl_atrito"], "coef_origem": "pressão (integração própria) + atrito ESTIMADO por lei da parede",
-                             "y_primeira_celula_m": fv["y_primeira_celula_m"]})
+                             "y_primeira_celula_m": fv["y_primeira_celula_m"], "y_mais_p5_p50_p95": fv.get("y_mais")})
             except Exception as e:
                 vals["atrito_erro"] = str(e)[:160]
         except Exception as e:                                          # sem passo de tempo gravado etc.: não inventa

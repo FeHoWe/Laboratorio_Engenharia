@@ -19,6 +19,11 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.5
+- **Sketch e booleanas (CAD)**: em *Solvers… → Histórico paramétrico*, adicione `sketch_extrude` (abre o editor de sketch: retângulo, círculo, polígono; um perfil dentro de outro vira furo; planos XY/XZ/YZ com deslocamento) ou `boolean` (união, corte, interseção com caixa, cilindro, esfera ou arquivo STEP). Perfis que se cruzam ou têm área zero são recusados com mensagem.
+- **Pneu combinado e suspensão (VEHICLE)**: menu Analyze → *NEXUS VEHICLE — Pneu combinado e suspensão…* (e aba *Veículo* no celular). Valores iniciais são ILUSTRATIVOS; digite os do seu carro. O pneu respeita o círculo de atrito μ·Fz. A suspensão é duplo-A em vista frontal 2D (camber, Δbitola, centro de rolagem), sem elastocinemática.
+- **Plasticidade, multimaterial e contato (STRUCTURAL)**: por enquanto pela API Python (`modules/calculix_nl.py`; veja `tests/test_calculix_nl.py` como exemplo): `curva_bilinear`, `write_inp_nl(... materiais, regioes, contato ...)`, `run_nl`. Os materiais são SEMPRE informados por você. Contato por penalidade: aumente K até o resultado parar de mudar e trave o movimento de corpo rígido de blocos que só se tocam.
+
 ## Resultados no visualizador 3D (V3.2)
 - FEA: rode o estudo (síncrono ou isolado) e clique em *Mostrar mapa de tensões (von Mises)…*; o diálogo fecha e o mapa aparece no 3D com barra de cores. *Limpar mapa…* (menu) restaura as peças. Tet10: valor nodal suavizado; Tet4: média por elemento.
 - CFD: *Solvers… → CFD — OpenFOAM*; escolha peça ou STL, ajuste malha/iterações e execute. Acompanhe o progresso, cancele se quiser; depois *Mostrar Cp no corpo*. Resultado NÃO é validado sem Cd de referência com fonte.

@@ -258,6 +258,22 @@ function tabCurva(p){const c=document.createElement('section');c.className='card
   else h+=line('esterçamento (eixo)',nf(rg.delta*180/Math.PI,4),'°')+'\n'+line('deriva do CG β',nf(rg.beta*180/Math.PI,4),'°')+'\n'+line('gradiente de subesterço K',nf(rg.kSub*180/Math.PI*9.80665,4),'°/g')+'\n<span class="n">Comportamento: '+rg.comportamento+'</span>\n';
   h+=line('v máx no raio (skidpad)',nf(sp.vKmh,5),'km/h')+'\n'+line('tempo de uma volta no raio',nf(sp.tVolta,4),'s')+'\n<span class="n">Classe: ANALÍTICO · escova + Milliken · parâmetros ILUSTRATIVOS até você digitar os seus</span>';r.innerHTML=h;}catch(e){r.innerHTML='<span class="warn">⚠ '+e.message+'</span>';}}
  c.querySelectorAll('input').forEach(i=>i.oninput=go);go();}
+function tabPneuSusp(p){const c=document.createElement('section');c.className='card';
+ const T=[['fz','Fz (N)',4000],['cA','C_α (N/rad)',60000],['cK','C_κ (N)',80000],['mu','μ',1.5],['kap','κ (escorregamento longitudinal)',0.08],['al','α (graus)',4]];
+ const S=['A','B','C','D','W','P'].map(n=>[n,L.SUSP_EX[n]]);
+ c.innerHTML=`<h2>Pneu combinado (Fx–Fy) e suspensão duplo-A</h2><p class="n">Pneu de escova com escorregamento combinado: respeita o círculo de atrito μ·Fz. Suspensão em vista frontal 2D (y para fora, z para cima, metros): camber, Δbitola, centro de rolagem. <b>Classe: ANALÍTICO</b>; sem elastocinemática, caster/KPI. <b>Valores iniciais ILUSTRATIVOS</b>, não de um carro real. Validado contra o Python do NEXUS.</p>`+
+ T.map(f=>`<div class="fld"><label>${f[1]}</label><input data-t="${f[0]}" inputmode="decimal" type="text" value="${store.get('ps.'+f[0],f[2])}"></div>`).join('')+'<div class="res" style="display:block" id="pt"></div><h3>Pontos da suspensão (y ; z)</h3>'+
+ S.map(f=>`<div class="fld"><label>${f[0]}</label><input data-s="${f[0]}" type="text" value="${store.get('ps.'+f[0],f[1][0]+' ; '+f[1][1])}"></div>`).join('')+
+ '<div class="fld"><label>heave mín / máx (m)</label><input id="hh" type="text" value="'+store.get('ps.hh','-0.03 ; 0.03')+'"></div><div class="res" style="display:block" id="ps"></div>';p.append(c);
+ const rt=c.querySelector('#pt'),rs=c.querySelector('#ps'),num=s=>Number(String(s).replace(',','.'));
+ function go(){try{const q={};c.querySelectorAll('input[data-t]').forEach(i=>{q[i.dataset.t]=num(i.value);store.set('ps.'+i.dataset.t,i.value);if(Number.isNaN(q[i.dataset.t]))throw new Error('Valor inválido em '+i.dataset.t);});
+  if(!(q.mu>0)||!(q.cA>0)||!(q.cK>0))throw new Error('μ, C_α e C_κ devem ser positivos');const f=L.forcaCombinada(q.kap,q.al*Math.PI/180,q.fz,q.cA,q.cK,q.mu),lim=q.mu*q.fz,r=Math.hypot(f[0],f[1]);
+  rt.innerHTML=line('Fx',nf(f[0],5),'N')+'\n'+line('Fy',nf(f[1],5),'N')+'\n'+line('uso do círculo de atrito',nf(100*r/Math.max(lim,1e-9),4),'%')+'\n<span class="n">Classe: ANALÍTICO · escova combinada</span>';}catch(e){rt.innerHTML='<span class="warn">⚠ '+e.message+'</span>';}
+  try{const s={};c.querySelectorAll('input[data-s]').forEach(i=>{store.set('ps.'+i.dataset.s,i.value);const a=i.value.split(';').map(num);if(a.length!==2||a.some(Number.isNaN))throw new Error('Ponto '+i.dataset.s+': use "y ; z"');s[i.dataset.s]=a;});
+  const hv=c.querySelector('#hh').value;store.set('ps.hh',hv);const h=hv.split(';').map(num);if(h.length!==2||h.some(Number.isNaN))throw new Error('heave: use "mín ; máx"');
+  let t='<table class="tbl"><tr><th>heave mm</th><th>camber °</th><th>Δbitola mm</th><th>RC mm</th></tr>';for(let k=0;k<5;k++){const hh=h[0]+(h[1]-h[0])*k/4,o=L.suspResolver(s,hh);t+=`<tr><td>${nf(hh*1000,4)}</td><td>${nf(o.camber,4)}</td><td>${nf(o.dBitola*1000,4)}</td><td>${o.RC==null?'—':nf(o.RC*1000,4)}</td></tr>`;}
+  rs.innerHTML=t+'</table><span class="n">Classe: ANALÍTICO · cinemática 2D (vista frontal)</span>';}catch(e){rs.innerHTML='<span class="warn">⚠ '+e.message+'</span>';}}
+ c.querySelectorAll('input').forEach(i=>i.oninput=go);go();}
 function tabUnid(p){const T=UT;if(!T){p.innerHTML='<div class="card">Tabela de unidades indisponível.</div>';return;}
  const c=document.createElement('section');c.className='card';const dims=Object.keys(T);
  c.innerHTML=`<h2>Conversão de unidades</h2><p class="n">SI como base. Fatores exatos por definição (pol = 0,0254 m, lb = 0,45359237 kg, atm = 101325 Pa…). Temperatura com deslocamento (°C, °F). Validado contra o módulo Python do NEXUS.</p>
@@ -334,7 +350,7 @@ function tabProd(p){const P=window.__produtos||[],G=window.__glossario||{};const
   try{const r=LAB.interpFS(vm,sy);const t={CRITICO:'Escoamento previsto no ponto de máxima tensão.',ATENCAO:'Margem baixa (depende de cargas reais, fadiga e concentração).',INFO:'Margem sobre o escoamento (estático, sem fadiga).'}[r.nivel];
    d.querySelector('#ir').innerHTML=`Fator de segurança <b>${nf(r.fs)}</b> → <b>${r.nivel}</b>\n${t}\nFonte: von Mises=${vm} MPa, escoamento=${sy} MPa (informados por você).`;}catch(e){d.querySelector('#ir').textContent='⚠ '+e.message;}};
  const g=d.querySelector('#gt');g.onchange=()=>{d.querySelector('#gr').textContent=g.value+': '+G[g.value];};g.onchange();}
-const BUILD={prod:tabProd,f1sim:tabF1Sim,f1an:tabF1An,fea:tabFea,veic:p=>{tabVeic(p);tabCurva(p);},f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
+const BUILD={prod:tabProd,f1sim:tabF1Sim,f1an:tabF1An,fea:tabFea,veic:p=>{tabVeic(p);tabCurva(p);tabPneuSusp(p);},f1:tabF1,unid:tabUnid,aero:tabAero,estr:tabEstr,trel:tabTrel,port:tabPort,fad:tabFad,massa:tabMassa,interf:tabInterf,sobre:tabSobre};
 function rebuild(id){const p=$('#panel');p.innerHTML='';BUILD[id](p);}
 function setTab(id){cur=id;document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===id));
  const p=$('#panel'),v=$('#view');if(id==='3d'){p.style.display='none';v.style.display='flex';setTimeout(()=>N().resizeNow(),30);return;}

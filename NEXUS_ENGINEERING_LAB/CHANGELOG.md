@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## V3.5 — 2026-11-12 (CAD, estrutural, CFD, veículo)
+- **CAD**: `modules/sketch2d.py` (retângulo, círculo, polígono; aninhamento vira furo; planos XY/XZ/YZ com deslocamento; recusa auto-interseção e área zero) + `SketchDialog`; operações `sketch_extrude` e `boolean` (união/corte/interseção com caixa, cilindro, esfera ou STEP) no histórico paramétrico. Volumes verificados exatamente. Limites: sem restrições geométricas nem arcos livres.
+- **STRUCTURAL**: `modules/calculix_nl.py` — plasticidade bilinear, multimaterial por região e contato nó-superfície/penalidade, executados no `ccx` real e comparados com soluções analíticas de barra (força plástica ±2 %, série aço/alumínio ±3 %, contato fechado ±3 % com K=1e7). Exige travar o corpo rígido de blocos que só se tocam; resultado que não chega ao tempo final é descartado (NAO_EXECUTADO). Sem diálogo na interface ainda.
+- **CFD**: estudo da placa plana (`NEXUS_CFD_PLATE_STUDY.md`): o atrito estimado dá 29 % (malha média) e 40 % (fina, não convergida) do alvo de Schlichting → **estimador NÃO validado**, mantido como ESTIMADO. Camada prismática e critério de resíduo seguem pendentes.
+- **VEHICLE**: pneu combinado Fx–Fy (`tire_combined`, círculo de atrito respeitado, reduz exatamente ao modelo lateral em κ=0) e suspensão duplo-A 2D (`suspension`: camber, Δbitola, centro de rolagem; |ganho de camber|≈1/FVSA verificado). Diálogo no menu Analyze e aba no celular, com paridade JS×Python (6e-11).
+- Produtos/hub atualizados; APP_VERSION e celular 3.5.
+
 ## V3.4 — 2026-11-11 (melhorias nas pendências)
 - **Esfera**: domínio de **ar livre simétrico** (`ar_livre`) → Cl de −0,18 para ≈0; **área frontal projetada real** como referência padrão (antes: caixa); 3 refinos de razão 1,5 → sequência **monotônica** (0,503 → 0,481 → 0,470), **GCI 2,8 %**, Cd extrapolado ≈0,459 (`modules/cfd_gci.py`, que se recusa a calcular em sequência oscilatória). Continua NÃO VALIDADO (sem convergência de resíduos em 1500 it., atrito estimado, `forceCoeffs` indisponível). Ver `NEXUS_CFD_SPHERE_STUDY.md` rev. 2.
 - **NEXUS INTELLIGENCE generativo OPCIONAL** (`modules/intelligence_llm.py`): exige `ANTHROPIC_API_KEY` e confirmação de envio; recebe só os fatos do parecer; **a resposta é verificada** — número que não esteja nos resultados/pergunta é marcado como sem fundamento. Sem chave, o assistente por regras continua.

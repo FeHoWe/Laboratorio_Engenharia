@@ -55,6 +55,25 @@ def lat_check():
     return worst
 
 
+def tire_susp_check():
+    """Paridade JS × Python do pneu combinado e da suspensão duplo-A."""
+    from modules import tire_combined as tc, suspension as su
+    worst = 0.0
+    pts = [(0.0, 0.05, 4000, 60000, 80000, 1.5), (0.08, 0.07, 4000, 60000, 80000, 1.5), (-0.3, 0.1, 3000, 50000, 90000, 1.2), (0.5, -0.2, 5000, 70000, 70000, 1.8), (0.02, 0.0, 0, 1, 1, 1)]
+    ex = su.exemplo_ilustrativo(); sj = {n: list(getattr(ex, n)) for n in "ABCDWP"}
+    hs = [-0.03, -0.01, 0.0, 0.015, 0.03]
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const P=JSON.parse(process.argv[2]),S=JSON.parse(process.argv[3]),H=JSON.parse(process.argv[4]);console.log(JSON.stringify({t:P.map(p=>L.forcaCombinada(...p)),s:H.map(h=>L.suspResolver(S,h))}));',
+                                     str(ROOT / 'mobile' / 'lab.js'), json.dumps(pts), json.dumps(sj), json.dumps(hs)]))
+    for p, j in zip(pts, js["t"]):
+        r = tc.forca_combinada(*p)
+        worst = max(worst, *(abs(a - b) / max(abs(a), 1.0) for a, b in zip(r, j)))
+    for h, j in zip(hs, js["s"]):
+        r = su.resolver(ex, h)
+        worst = max(worst, abs(r["camber_graus"] - j["camber"]) / max(abs(r["camber_graus"]), 1e-3), abs(r["delta_bitola_m"] - j["dBitola"]) / 1e-3,
+                    abs(r["RC_altura_m"] - j["RC"]) / 1e-3, abs(r["FVSA_m"] - j["FVSA"]) / 1e-3)
+    return worst
+
+
 def lap_check():
     from modules import lapsim, f1_mass
     c = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
@@ -189,6 +208,8 @@ def main():
     print(f"veículo RK4: erro relativo máx JS×Python {ve:.2e}")
     ae = lat_check()
     print(f"dinâmica lateral (bicicleta, escova, transferência de carga): erro relativo máx JS×Python {ae:.2e}")
+    te = tire_susp_check()
+    print(f"pneu combinado + suspensão duplo-A: erro relativo máx JS×Python {te:.2e}")
     le = lap_check()
     print(f"F1 volta + massa/CG/inércia: erro relativo máx JS×Python {le:.2e}")
     fe, same = fea_check()
@@ -197,7 +218,7 @@ def main():
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
     ib, n_i = intel_check()
     print(f"NEXUS INTELLIGENCE (fator de segurança): {n_i - ib}/{n_i} casos idênticos JS×Python")
-    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or te > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()
