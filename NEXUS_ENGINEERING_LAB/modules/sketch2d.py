@@ -3,8 +3,11 @@
 Entidades (todas fechadas): {"t":"rect","x0","y0","x1","y1"}, {"t":"circle","cx","cy","r"}, {"t":"poly","pts":[[x,y],...]} (≥3 pontos, não se
 autointersecta). Plano "XY"|"XZ"|"YZ" com `offset` ao longo da normal. Perfis contidos em OUTRO perfil viram FUROS (profundidade de aninhamento
 ímpar subtrai); pares somam (ilha dentro de furo). Editável: add/modify/delete; `validate()` explica o que está errado; `area()` líquida exata.
-LIMITES: sem restrições geométricas (paralelismo/tangência) nem cotas dirigidas — as cotas são os próprios números das entidades; sem arcos
-livres (use círculo ou polígono). Perfis que se cruzam sem conter um ao outro são rejeitados.
+V3.6: entidades com ARCOS EXATOS — {"t":"rrect","x0","y0","x1","y1","r"} (retângulo de cantos arredondados) e {"t":"slot","cx0","cy0","cx1","cy1","w"}
+(rasgo oblongo: dois semicírculos de largura w ligados por retas) — e RESTRIÇÕES aplicadas em sequência (`restricoes`): horizontal/vertical de um segmento
+de polígono, comprimento de segmento, raio igual, concêntrico, ponto fixo. NÃO é um solver geral: cada restrição é aplicada na ordem e todas são
+reverificadas no fim; conflito é reportado (SketchError), não resolvido. Arcos livres por 3 pontos continuam fora do escopo.
+LIMITES: cotas dirigidas são os próprios números das entidades. Perfis que se cruzam sem conter um ao outro são rejeitados.
 """
 from __future__ import annotations
 
@@ -31,6 +34,18 @@ def _poly_pts(e: dict) -> list:
         return [tuple(p) for p in e["pts"]]
     if t == "circle":
         return [(e["cx"] + e["r"] * math.cos(2 * math.pi * i / 96), e["cy"] + e["r"] * math.sin(2 * math.pi * i / 96)) for i in range(96)]
+    if t == "rrect":
+        x0, x1 = sorted((e["x0"], e["x1"])); y0, y1 = sorted((e["y0"], e["y1"])); r = e["r"]
+        out = []
+        for cx, cy, a0 in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
+            out += [(cx + r * math.cos(math.radians(a0 + 90 * k / 16)), cy + r * math.sin(math.radians(a0 + 90 * k / 16))) for k in range(17)]
+        return out
+    if t == "slot":
+        (ax, ay), (bx, by), r = (e["cx0"], e["cy0"]), (e["cx1"], e["cy1"]), e["w"] / 2
+        th = math.atan2(by - ay, bx - ax); out = []
+        for c, a0 in (((bx, by), th - math.pi / 2), ((ax, ay), th + math.pi / 2)):
+            out += [(c[0] + r * math.cos(a0 + math.pi * k / 32), c[1] + r * math.sin(a0 + math.pi * k / 32)) for k in range(33)]
+        return out
     raise SketchError(f"entidade desconhecida: {t}")
 
 
@@ -63,6 +78,14 @@ def _self_intersects(p) -> bool:
     return False
 
 
+def _area_exata(e: dict) -> float:
+    t = e["t"]
+    if t == "circle": return math.pi * e["r"] ** 2
+    if t == "rrect": return abs(e["x1"] - e["x0"]) * abs(e["y1"] - e["y0"]) - (4 - math.pi) * e["r"] ** 2
+    if t == "slot": return math.hypot(e["cx1"] - e["cx0"], e["cy1"] - e["cy0"]) * e["w"] + math.pi * (e["w"] / 2) ** 2
+    return abs(_shoelace(_poly_pts(e)))
+
+
 class Sketch:
     def __init__(self, plane: str = "XY", offset: float = 0.0, entities: list | None = None):
         if plane not in PLANOS:
@@ -93,10 +116,17 @@ class Sketch:
     def _chk(self, e: dict) -> None:
         if e.get("t") == "circle" and not e.get("r", 0) > 0:
             raise SketchError("círculo: raio deve ser > 0")
+        if e.get("t") == "rrect":
+            w, h = abs(e["x1"] - e["x0"]), abs(e["y1"] - e["y0"])
+            if not (e.get("r", 0) > 0 and 2 * e["r"] <= min(w, h) + 1e-12):
+                raise SketchError("retângulo arredondado: 0 < r ≤ metade do menor lado")
+        if e.get("t") == "slot":
+            if not e.get("w", 0) > 0 or math.hypot(e["cx1"] - e["cx0"], e["cy1"] - e["cy0"]) <= 0:
+                raise SketchError("rasgo: largura > 0 e centros distintos")
         p = _poly_pts(e)
         if len(p) < 3:
             raise SketchError("polígono precisa de ≥ 3 pontos")
-        if e["t"] != "circle" and _self_intersects(p):
+        if e["t"] not in ("circle", "rrect", "slot") and _self_intersects(p):
             raise SketchError("polígono se autointersecta (gravata-borboleta)")
         if abs(_shoelace(p)) < 1e-12:
             raise SketchError("perfil com área nula")
@@ -129,7 +159,7 @@ class Sketch:
         """Área líquida (furos subtraem). Círculo usa πr² exato."""
         self.validate(); _, depth = self._depth(); tot = 0.0
         for e, d in zip(self.entities, depth):
-            a = math.pi * e["r"] ** 2 if e["t"] == "circle" else abs(_shoelace(_poly_pts(e)))
+            a = _area_exata(e)
             tot += a if d % 2 == 0 else -a
         return tot
 
@@ -137,6 +167,8 @@ class Sketch:
     def _face(self, e: dict):
         n, mp = PLANOS[self.plane]
         P = lambda u, v: gp_Pnt(*mp(u, v, self.offset))  # noqa: E731
+        if e["t"] in ("rrect", "slot"):
+            return BRepBuilderAPI_MakeFace(self._wire_arcos(e, P), True).Face()
         if e["t"] == "circle":
             ax = gp_Ax2(P(e["cx"], e["cy"]), gp_Dir(*n))
             w = BRepBuilderAPI_MakeWire(BRepBuilderAPI_MakeEdge(gp_Circ(ax, e["r"])).Edge()).Wire()
@@ -146,6 +178,70 @@ class Sketch:
                 mk.Add(P(u, v))
             mk.Close(); w = mk.Wire()
         return BRepBuilderAPI_MakeFace(w, True).Face()
+
+    def _wire_arcos(self, e, P):
+        from OCP.GC import GC_MakeArcOfCircle
+        mk = BRepBuilderAPI_MakeWire()
+        seg = lambda a, b: mk.Add(BRepBuilderAPI_MakeEdge(P(*a), P(*b)).Edge())  # noqa: E731
+        arc = lambda a, m, b: mk.Add(BRepBuilderAPI_MakeEdge(GC_MakeArcOfCircle(P(*a), P(*m), P(*b)).Value()).Edge())  # noqa: E731
+        if e["t"] == "rrect":
+            x0, x1 = sorted((e["x0"], e["x1"])); y0, y1 = sorted((e["y0"], e["y1"])); r = e["r"]; k = r * (1 - math.sqrt(0.5))
+            seg((x0 + r, y0), (x1 - r, y0)); arc((x1 - r, y0), (x1 - k, y0 + k), (x1, y0 + r))
+            seg((x1, y0 + r), (x1, y1 - r)); arc((x1, y1 - r), (x1 - k, y1 - k), (x1 - r, y1))
+            seg((x1 - r, y1), (x0 + r, y1)); arc((x0 + r, y1), (x0 + k, y1 - k), (x0, y1 - r))
+            seg((x0, y1 - r), (x0, y0 + r)); arc((x0, y0 + r), (x0 + k, y0 + k), (x0 + r, y0))
+        else:
+            ax, ay, bx, by, r = e["cx0"], e["cy0"], e["cx1"], e["cy1"], e["w"] / 2
+            L = math.hypot(bx - ax, by - ay); ux, uy = (bx - ax) / L, (by - ay) / L; nx, ny = -uy, ux
+            a1, a2, b1, b2 = (ax - r * nx, ay - r * ny), (ax + r * nx, ay + r * ny), (bx - r * nx, by - r * ny), (bx + r * nx, by + r * ny)
+            seg(a1, b1); arc(b1, (bx + r * ux, by + r * uy), b2); seg(b2, a2); arc(a2, (ax - r * ux, ay - r * uy), a1)
+        return mk.Wire()
+
+    # --- restrições (aplicadas em sequência; reverificadas)
+    def restringir(self, restricoes: list) -> list:
+        """Aplica restrições na ordem e devolve a lista das violadas ao final (vazia = todas satisfeitas). Tipos:
+        {"k":"horizontal"|"vertical","e":i,"s":j}  segmento j (ponto j→j+1) do polígono i;  {"k":"comprimento","e":i,"s":j,"L":x}  (move o ponto j+1);
+        {"k":"raio_igual","a":i,"b":j}  (b recebe o raio de a; círculo/rrect);  {"k":"concentrico","a":i,"b":j}  (círculo b → centro de a);
+        {"k":"fixo","e":i,"p":j,"x":x,"y":y}  ponto j do polígono i vai para (x,y)."""
+        for c in restricoes:
+            k = c["k"]
+            if k in ("horizontal", "vertical", "comprimento", "fixo"):
+                e = self.entities[c["e"]]
+                if e["t"] != "poly": raise SketchError("restrição de segmento exige polígono")
+                P = e["pts"]; n = len(P)
+                if k == "fixo": P[c["p"] % n] = [c["x"], c["y"]]; continue
+                i, j = c["s"] % n, (c["s"] + 1) % n
+                if k == "horizontal": P[j] = [P[j][0], P[i][1]]
+                elif k == "vertical": P[j] = [P[i][0], P[j][1]]
+                else:
+                    d = math.hypot(P[j][0] - P[i][0], P[j][1] - P[i][1])
+                    if d == 0 or c["L"] <= 0: raise SketchError("comprimento: segmento nulo ou L ≤ 0")
+                    P[j] = [P[i][0] + (P[j][0] - P[i][0]) * c["L"] / d, P[i][1] + (P[j][1] - P[i][1]) * c["L"] / d]
+            elif k == "raio_igual":
+                a, b = self.entities[c["a"]], self.entities[c["b"]]
+                if a["t"] not in ("circle", "rrect") or b["t"] not in ("circle", "rrect"): raise SketchError("raio_igual exige círculo ou rrect")
+                b["r"] = a["r"]
+            elif k == "concentrico":
+                a, b = self.entities[c["a"]], self.entities[c["b"]]
+                if a["t"] != "circle" or b["t"] != "circle": raise SketchError("concentrico exige dois círculos")
+                b["cx"], b["cy"] = a["cx"], a["cy"]
+            else:
+                raise SketchError(f"restrição desconhecida: {k}")
+        bad = []
+        for c in restricoes:
+            k = c["k"]
+            try:
+                if k in ("horizontal", "vertical", "comprimento", "fixo"):
+                    P = self.entities[c["e"]]["pts"]; n = len(P)
+                    if k == "fixo": ok = abs(P[c["p"] % n][0] - c["x"]) < 1e-9 and abs(P[c["p"] % n][1] - c["y"]) < 1e-9
+                    else:
+                        A, B = P[c["s"] % n], P[(c["s"] + 1) % n]
+                        ok = abs(A[1] - B[1]) < 1e-9 if k == "horizontal" else abs(A[0] - B[0]) < 1e-9 if k == "vertical" else abs(math.hypot(B[0] - A[0], B[1] - A[1]) - c["L"]) < 1e-9
+                elif k == "raio_igual": ok = abs(self.entities[c["a"]]["r"] - self.entities[c["b"]]["r"]) < 1e-9
+                else: ok = abs(self.entities[c["a"]]["cx"] - self.entities[c["b"]]["cx"]) < 1e-9 and abs(self.entities[c["a"]]["cy"] - self.entities[c["b"]]["cy"]) < 1e-9
+            except (KeyError, IndexError): ok = False
+            if not ok: bad.append(c)
+        return bad                                                         # restrições posteriores podem desfazer anteriores: aparece aqui
 
     def extrude(self, distance: float):
         """Sólido por extrusão ao longo da normal do plano (distance>0 no sentido +normal; <0 no oposto)."""

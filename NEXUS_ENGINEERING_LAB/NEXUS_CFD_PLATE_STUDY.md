@@ -14,3 +14,14 @@ Executado com OpenFOAM ESI v1912 real (`tools/estudo_placa.py`). Parede por fun�
 - Possíveis causas, NÃO confirmadas: placa de espessura finita (arestas, pressão), domínio/entrada curtos para desenvolver a camada limite, função de parede sobre malha sem prismas, e a estimativa de 1ª ordem (τ = ρ(ν+νt)·Ut/y). Os function objects `forces/wallShearStress` do OpenFOAM v1912 falham neste ambiente (bug sha1), então não há comparação com o cálculo do próprio solver.
 - Consequência para o produto: o Cd total do NEXUS continua rotulado **ESTIMADO**; a classe VALIDADO não é concedida. Para casos dominados por atrito, use o resultado só qualitativamente.
 - Próximos passos: camadas prismáticas (addLayers), critério de convergência por resíduo, `wallShearStress` em OpenFOAM instalado sem o bug, e repetir este estudo.
+
+
+## Revisão 2 (V3.6) — camadas prismáticas
+| Malha | Camadas | Convergiu | Cd_atrito estimado | % do alvo (0,00848) | 1ª célula [mm] (mín–máx) |
+|---|---|---|---|---|---|
+| média 80×32×32 | 0 | sim | 0,00246 | 29 % | 4,2–8,2 |
+| média 80×32×32 | 5 | sim | 0,00467 | 55 % | 0,63–9,1 |
+| média 80×32×32 | 9 | sim | 0,00418 | 49 % | 0,73–9,1 |
+| fina 120×48×48 | 0 | não | 0,00340 | 40 % | — |
+
+Leitura: sem camadas, a 1ª célula ficava a 4–8 mm da parede, perto da espessura da camada limite em x=0,5 m (δ≈12 mm) — a lei da parede perde sentido. Com camadas, o atrito quase dobra e a corrida converge, mas **mais camadas (9) não melhoraram** e a faixa de 1ª célula (0,6–9 mm) mostra camadas incompletas em parte da placa. Atribuo o restante, sem confirmar, à borda de ataque romba (10 mm) e à cobertura parcial de camadas. **Não está validado**; o rótulo ESTIMADO permanece. Próximo passo: placa com borda de ataque afilada e checagem da cobertura de camadas no log do snappyHexMesh.

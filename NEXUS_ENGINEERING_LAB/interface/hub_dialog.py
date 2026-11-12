@@ -67,6 +67,10 @@ class IntelligenceDialog(QDialog):
                      ("Explicar termo…", self.termo), ("Perguntar à IA (opcional)…", self.perguntar)):
             b = QPushButton(t); b.clicked.connect(f); r.addWidget(b)
         v.addLayout(r)
+        r2 = QHBoxLayout()
+        for t, f in (("Relatório PDF de resultados…", lambda: self.relatorio(False)), ("Laudo simplificado PDF…", lambda: self.relatorio(True)), ("Selos de referência", self.selos)):
+            b = QPushButton(t); b.clicked.connect(f); r2.addWidget(b)
+        v.addLayout(r2)
         self.out = QTextEdit(); self.out.setReadOnly(True); v.addWidget(self.out)
 
     def _proj(self):
@@ -74,6 +78,31 @@ class IntelligenceDialog(QDialog):
         if not n:
             self.out.setPlainText("Crie um projeto em 'Solvers, vitrine e projetos…' e anexe resultados."); return None
         return self.store.open(n)
+
+    def relatorio(self, laudo: bool, caminho: str | None = None, peca: str | None = None) -> None:
+        from modules import report_resultados as RR
+        p = self._proj()
+        if not p: return
+        if not p["results"]:
+            self.out.setPlainText("O projeto não tem resultados anexados."); return
+        if laudo and peca is None:
+            peca, ok = QInputDialog.getText(self, "Laudo", "Nome/código da peça:")
+            if not ok: return
+        if caminho is None:
+            from PySide6.QtWidgets import QFileDialog
+            caminho, _ = QFileDialog.getSaveFileName(self, "Salvar PDF", "laudo.pdf" if laudo else "relatorio_resultados.pdf", "PDF (*.pdf)")
+            if not caminho: return
+        try:
+            RR.gerar(p["results"], caminho, versao=getattr(self.parent(), "APP_VERSION", ""), laudo=laudo, peca=peca or "")
+        except Exception as e:  # noqa: BLE001
+            self.out.setPlainText(f"Falha ao gerar o PDF: {type(e).__name__}: {e}"); return
+        self.out.setPlainText(f"PDF gerado: {caminho}\n(contém a classe original de cada resultado; não valida nada)")
+
+    def selos(self) -> None:
+        from modules import referencias as R
+        r = R.rodar()
+        self.out.setPlainText("\n".join(f"[{c['estado']}] {c['modulo']}: {c['caso']}" for c in r["casos"]) + "\n\nSelos: " +
+                              "; ".join(f"{m}: {e}" for m, e in r["selos"].items()) + "\n" + r["aviso"])
 
     def revisar(self) -> None:
         from modules import intelligence as I

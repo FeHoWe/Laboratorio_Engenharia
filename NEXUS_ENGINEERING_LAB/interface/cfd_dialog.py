@@ -42,6 +42,8 @@ class CfdDialog(QDialog):
         cr = QHBoxLayout(); [cr.addWidget(s) for s in (self.cx, self.cy, self.cz)]; f.addRow("Células de fundo (x,y,z)", cr)
         self.gap = _spin(0.0, 0.0, 100, 4); f.addRow("Folga do solo (m)", self.gap)
         from PySide6.QtWidgets import QCheckBox
+        self.cam = QSpinBox(); self.cam.setRange(0, 12); self.cam.setValue(0); self.cam.setToolTip("Camadas prismáticas na parede (0 = sem). Aproxima a 1ª célula da parede; confira a cobertura no log do snappyHexMesh.")
+        f.addRow("Camadas prismáticas", self.cam)
         self.livre = QCheckBox("Ar livre (sem solo; corpo centrado — recomendado para corpos isolados)"); f.addRow(self.livre)
         self.aref = _spin(0.0, 0.0, 1e4, 5); f.addRow("Área de referência m² (0 = área frontal projetada da malha)", self.aref)
         self.cdref = _spin(0.0, 0.0, 100, 4); f.addRow("Cd de referência (0 = nenhum)", self.cdref)
@@ -67,7 +69,7 @@ class CfdDialog(QDialog):
         return dict(part_key=self.part.currentData() or "", part_params={}, stl_path=self.stl.text().strip() if not self.part.currentData() else "",
                     stl_unit=self.unit.currentText(), v_inf=self.v.value(), iteracoes=self.it.value(),
                     celulas=[self.cx.value(), self.cy.value(), self.cz.value()], gap_m=self.gap.value(), a_ref=self.aref.value() or None,
-                    rho=self.rho.value(), nu=self.nu.value(), ar_livre=self.livre.isChecked(), cd_ref=self.cdref.value() or None, ref_texto=self.reft.text().strip())
+                    rho=self.rho.value(), nu=self.nu.value(), ar_livre=self.livre.isChecked(), camadas=self.cam.value(), cd_ref=self.cdref.value() or None, ref_texto=self.reft.text().strip())
 
     def run(self) -> None:
         a = self._args()

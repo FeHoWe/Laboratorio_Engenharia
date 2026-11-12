@@ -55,7 +55,7 @@ def area_frontal_projetada(vertices, faces, n: int = 600) -> float:
 
 
 def preparar_caso(pasta, vertices, faces, v_inf: float, iteracoes: int, celulas, gap_m: float, a_ref: float | None, rho: float, nu: float,
-                  dominio=(2.0, 6.0, 2.0, 3.0), ar_livre: bool = False) -> dict:
+                  dominio=(2.0, 6.0, 2.0, 3.0), ar_livre: bool = False, camadas: int = 0) -> dict:
     """Escreve o caso OpenFOAM + STL. `dominio` = (a montante, a jusante, meia-largura, altura) em múltiplos de L."""
     import numpy as np
     import trimesh
@@ -78,7 +78,7 @@ def preparar_caso(pasta, vertices, faces, v_inf: float, iteracoes: int, celulas,
     caixa = (-up * L, down * L, -half * L, half * L, 0.0, H if ar_livre else max(top * L, gap_m + ext[2] + L))
     bloqueio = a_caixa / ((caixa[3] - caixa[2]) * (caixa[5] - caixa[4]))
     p = cfd_case.gerar_caso_openfoam(pasta, "corpo.stl", v_inf, float(ext[0]), a_ref_usada, rho=rho, nu=nu, caixa=caixa,
-                                     iteracoes=iteracoes, celulas=tuple(celulas), ar_livre=ar_livre)
+                                     iteracoes=iteracoes, celulas=tuple(celulas), ar_livre=ar_livre, camadas=camadas)
     trimesh.Trimesh(vertices=v, faces=np.asarray(faces), process=False).export(p / "constant/triSurface/corpo.stl")
     return {"pasta": str(p), "L_m": L, "origem_m": [float(lo[0]), float((lo[1] + hi[1]) / 2), float(lo[2])], "gap_m": float(gap_m), "a_ref_m2": a_ref_usada, "a_ref_origem": "informada" if a_ref else "área frontal PROJETADA da malha (rasterizada) — não a da caixa", "a_caixa_m2": a_caixa, "a_proj_m2": a_proj,
             "ar_livre": ar_livre,
@@ -95,7 +95,7 @@ def para_coords_originais(pontos_m, origem_m, gap_m: float, unidade_m: float):
 
 def run_case(part_key: str = "", part_params: dict | None = None, stl_path: str = "", stl_unit: str = "m", v_inf: float = 20.0,
              iteracoes: int = 300, celulas: list | tuple = (60, 24, 18), gap_m: float = 0.0, a_ref: float | None = None,
-             rho: float = 1.225, nu: float = 1.5e-5, ar_livre: bool = False, cd_ref: float | None = None, ref_texto: str = "", out_dir: str = "",
+             rho: float = 1.225, nu: float = 1.5e-5, ar_livre: bool = False, camadas: int = 0, cd_ref: float | None = None, ref_texto: str = "", out_dir: str = "",
              timeout: int = 3600) -> dict:
     import numpy as np
     from modules import cfd_case, solver_registry as sr
@@ -115,7 +115,7 @@ def run_case(part_key: str = "", part_params: dict | None = None, stl_path: str 
     else:
         raise ValueError("informe uma peça da biblioteca ou um STL")
     od = Path(out_dir) if out_dir else Path(tempfile.mkdtemp(prefix="nexus_cfd_"))
-    info = preparar_caso(od / "caso", vert, fac, v_inf, iteracoes, celulas, gap_m, a_ref, rho, nu, ar_livre=ar_livre)
+    info = preparar_caso(od / "caso", vert, fac, v_inf, iteracoes, celulas, gap_m, a_ref, rho, nu, ar_livre=ar_livre, camadas=camadas)
     pasta = Path(info["pasta"])
     _p(8)
     stop = threading.Event()

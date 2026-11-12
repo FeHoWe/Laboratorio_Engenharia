@@ -273,7 +273,12 @@ function tabPneuSusp(p){const c=document.createElement('section');c.className='c
   const hv=c.querySelector('#hh').value;store.set('ps.hh',hv);const h=hv.split(';').map(num);if(h.length!==2||h.some(Number.isNaN))throw new Error('heave: use "mín ; máx"');
   let t='<table class="tbl"><tr><th>heave mm</th><th>camber °</th><th>Δbitola mm</th><th>RC mm</th></tr>';for(let k=0;k<5;k++){const hh=h[0]+(h[1]-h[0])*k/4,o=L.suspResolver(s,hh);t+=`<tr><td>${nf(hh*1000,4)}</td><td>${nf(o.camber,4)}</td><td>${nf(o.dBitola*1000,4)}</td><td>${o.RC==null?'—':nf(o.RC*1000,4)}</td></tr>`;}
   rs.innerHTML=t+'</table><span class="n">Classe: ANALÍTICO · cinemática 2D (vista frontal)</span>';}catch(e){rs.innerHTML='<span class="warn">⚠ '+e.message+'</span>';}}
- c.querySelectorAll('input').forEach(i=>i.oninput=go);go();}
+ c.querySelectorAll('input').forEach(i=>i.oninput=go);go();
+ const g=document.createElement('section');g.className='card';g.innerHTML='<h2>Diagrama g-g (aderência sob tração/frenagem)</h2><p class="n">Usa os parâmetros da seção <b>Curva em regime</b> (aba Veículo) e a velocidade dela. ax&gt;0: tração no eixo traseiro; ax&lt;0: frenagem 50/50. Sem arrasto nem arfagem. <b>Classe: ANALÍTICO</b>; valores iniciais ILUSTRATIVOS.</p><div class="res" style="display:block" id="gg"></div>';p.append(g);
+ const rg=g.querySelector('#gg');function gg(){try{const K=['m','iz','a','b','h','tf','tr','cF','cR','muF','muR','krF','krR','hRcF','hRcR','cla'],D={m:1200,iz:1800,a:1.15,b:1.35,h:0.5,tf:1.5,tr:1.5,cF:45000,cR:45000,muF:1.2,muR:1.2,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08,cla:0},V={};
+  K.forEach(k=>{V[k]=Number(String(store.get('lat.'+k,D[k])).replace(',','.'));});const vel=Number(String(store.get('lat.v',80)).replace(',','.'))/3.6;const L2=L.latDefaults?L.latDefaults(V):V;
+  const pts=L.diagramaGG(Object.assign({cla:0,fracAero:0.5,rho:1.225},V),vel,13,0.5);rg.innerHTML='<table class="tbl"><tr><th>ax g</th><th>ay máx g</th></tr>'+pts.map(q=>`<tr><td>${nf(q[0],3)}</td><td>${q[1]==null?'inviável':nf(q[1],3)}</td></tr>`).join('')+'</table>';}catch(e){rg.innerHTML='<span class="warn">⚠ '+e.message+'</span>';}}
+ gg();document.querySelectorAll('input[data-k]').forEach(i=>i.addEventListener('input',()=>setTimeout(gg,0)));}
 function tabUnid(p){const T=UT;if(!T){p.innerHTML='<div class="card">Tabela de unidades indisponível.</div>';return;}
  const c=document.createElement('section');c.className='card';const dims=Object.keys(T);
  c.innerHTML=`<h2>Conversão de unidades</h2><p class="n">SI como base. Fatores exatos por definição (pol = 0,0254 m, lb = 0,45359237 kg, atm = 101325 Pa…). Temperatura com deslocamento (°C, °F). Validado contra o módulo Python do NEXUS.</p>

@@ -19,6 +19,14 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.6
+- **Menu Analyze → NEXUS STRUCTURAL — Plasticidade, multimaterial e contato…**: três casos prontos com CalculiX real e a solução analítica ao lado. Digite SEUS materiais.
+- **NEXUS VEHICLE** ganhou abas *Aderência g-g* e *Ajuste de pneu (CSV)* (colunas `alpha_graus,fz_N,fy_N` MEDIDAS; se não houver pontos perto da saturação o μ NÃO é identificável e a tela avisa).
+- **INTELLIGENCE**: *Relatório PDF de resultados*, *Laudo simplificado PDF* (estimativa de engenharia, não homologação) e *Selos de referência* (coerência com a teoria; NÃO é validação).
+- **CFD**: campo *Camadas prismáticas*. O log agora classifica o resíduo (CONVERGIDO/DECAINDO/ESTAGNADO/DIVERGINDO). O atrito continua ESTIMADO.
+- **Por API Python**: `fatigue_fea.avaliar`, `vehicle_combined.pino_mestre_3d`/`rigidez_rolagem`, `integracao.veiculo_com_cfd`, sketch com `rrect`/`slot`/`restringir`.
+- **Empacotamento Windows**: `tools\empacotar_windows.bat` (NÃO testado). Envie o resultado se tentar.
+
 ## Novidades da V3.5
 - **Sketch e booleanas (CAD)**: em *Solvers… → Histórico paramétrico*, adicione `sketch_extrude` (abre o editor de sketch: retângulo, círculo, polígono; um perfil dentro de outro vira furo; planos XY/XZ/YZ com deslocamento) ou `boolean` (união, corte, interseção com caixa, cilindro, esfera ou arquivo STEP). Perfis que se cruzam ou têm área zero são recusados com mensagem.
 - **Pneu combinado e suspensão (VEHICLE)**: menu Analyze → *NEXUS VEHICLE — Pneu combinado e suspensão…* (e aba *Veículo* no celular). Valores iniciais são ILUSTRATIVOS; digite os do seu carro. O pneu respeita o círculo de atrito μ·Fz. A suspensão é duplo-A em vista frontal 2D (camber, Δbitola, centro de rolagem), sem elastocinemática.

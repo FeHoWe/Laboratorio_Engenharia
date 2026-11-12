@@ -15,10 +15,11 @@ cf = 0.455 / math.log10(Re) ** 2.58
 alvo = 2 * cf
 box = trimesh.creation.box(extents=(L, W, 0.01)); p = f"{OUT}/placa.stl"; box.export(p)
 res = []
-for tag, cel, it in (("media", (80, 32, 32), 1500), ("fina", (120, 48, 48), 1500)):
+CAM = int(sys.argv[2]) if len(sys.argv) > 2 else 0                  # nº de camadas prismáticas (0 = sem)
+for tag, cel, it in (("media", (80, 32, 32), 1500),) if CAM else (("media", (80, 32, 32), 1500), ("fina", (120, 48, 48), 1500)):
     t = time.time()
-    r = cfd_job.run_case(stl_path=p, stl_unit="m", v_inf=V, iteracoes=it, celulas=list(cel), ar_livre=True, a_ref=L * W, nu=NU, out_dir=f"{OUT}/{tag}", timeout=6000)
+    r = cfd_job.run_case(stl_path=p, stl_unit="m", v_inf=V, iteracoes=it, celulas=list(cel), ar_livre=True, camadas=CAM, a_ref=L * W, nu=NU, out_dir=f"{OUT}/{tag}", timeout=6000)
     v = r["result"]["valores"]
-    res.append({"malha": tag, "celulas": cel, "convergiu": v.get("convergiu"), "cd_atrito_estimado": v.get("cd_atrito_estimado"), "alvo_2cf": alvo, "cf_schlichting": cf,
+    res.append({"malha": tag, "camadas": CAM, "celulas": cel, "convergiu": v.get("convergiu"), "cd_atrito_estimado": v.get("cd_atrito_estimado"), "alvo_2cf": alvo, "cf_schlichting": cf,
                 "cd_pressao": v.get("cd_pressao"), "y_primeira_celula_m": v.get("y_primeira_celula_m"), "s": time.time() - t})
     json.dump(res, open(f"{OUT}/res.json", "w"), ensure_ascii=False, indent=1)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, QFormLayout, QDoubleSpinBox, QPushButton,
                                QTextEdit, QTableWidget, QTableWidgetItem, QLabel)
-from modules import tire_combined as TC, suspension as SU
+from modules import tire_combined as TC, suspension as SU, vehicle_combined as VC, vehicle_lateral as VL, tire_fit as TF
 
 
 def _spin(v, lo, hi, dec=3, step=0.1):
@@ -34,6 +34,20 @@ class VehicleGeoDialog(QDialog):
         h.addWidget(QLabel("heave mín [m]")); h.addWidget(self.h0); h.addWidget(QLabel("máx [m]")); h.addWidget(self.h1)
         b2 = QPushButton("Resolver cinemática"); b2.clicked.connect(self.calc_susp); h.addWidget(b2); v.addLayout(h)
         self.out_s = QTextEdit(); self.out_s.setReadOnly(True); v.addWidget(self.out_s); tabs.addTab(w2, "Suspensão duplo-A")
+        # --- g-g
+        w3 = QWidget(); f3 = QFormLayout(w3); ex = VL.exemplo_ilustrativo()
+        self.gg = {k: _spin(getattr(ex, k), 0, 1e6, 3, 0.1) for k in ("m", "a", "b", "h", "tf", "tr", "c_f", "c_r", "mu_f", "mu_r")}
+        self.gg["vel"] = _spin(30.0, 1, 120, 1, 1)
+        for k, t in (("m", "massa [kg]"), ("a", "CG→eixo diant. [m]"), ("b", "CG→eixo tras. [m]"), ("h", "altura do CG [m]"), ("tf", "bitola diant. [m]"), ("tr", "bitola tras. [m]"),
+                     ("c_f", "C_α por pneu diant. [N/rad]"), ("c_r", "C_α por pneu tras. [N/rad]"), ("mu_f", "μ diant."), ("mu_r", "μ tras."), ("vel", "velocidade [m/s]")):
+            f3.addRow(t, self.gg[k])
+        b3 = QPushButton("Calcular diagrama g-g (ay máximo sob tração/frenagem)"); b3.clicked.connect(self.calc_gg); f3.addRow(b3)
+        self.out_g = QTextEdit(); self.out_g.setReadOnly(True); f3.addRow(self.out_g); tabs.addTab(w3, "Aderência g-g")
+        # --- ajuste CSV
+        w4 = QWidget(); f4 = QVBoxLayout(w4)
+        f4.addWidget(QLabel("CSV com colunas alpha_graus, fz_N, fy_N (MEDIDAS). Ajusta C_α e μ do pneu de escova; μ só é identificável se houver pontos perto da saturação."))
+        b4 = QPushButton("Abrir CSV e ajustar…"); b4.clicked.connect(self.ajustar_csv); f4.addWidget(b4)
+        self.out_f = QTextEdit(); self.out_f.setReadOnly(True); f4.addWidget(self.out_f); tabs.addTab(w4, "Ajuste de pneu (CSV)")
 
     def calc_tire(self):
         import math
@@ -57,3 +71,27 @@ class VehicleGeoDialog(QDialog):
             L.append(f"{r['heave_m']*1000:8.1f}  {r['camber_graus']:9.3f}  {r['delta_bitola_m']*1000:10.2f}  {rc:>6}  {fv:>7}")
         L.append("\nCinemática 2D (vista frontal), sem buchas/elastocinemática, sem caster/KPI. Classe ANALÍTICO.")
         self.out_s.setPlainText("\n".join(L))
+
+    def calc_gg(self, vel=None):
+        try:
+            g = {k: w.value() for k, w in self.gg.items()}; vel = g.pop("vel")
+            v = VL.VeiculoLateral(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)
+            pts = VC.diagrama_gg(v, vel, 13)
+        except ValueError as e:
+            self.out_g.setPlainText(f"ERRO: {e}"); return
+        L = ["ax[g]   ay_max[g]   (ax>0 tração no eixo traseiro; ax<0 frenagem 50/50)"]
+        L += [f"{ax:6.2f}   {('inviável' if ay is None or ay == 0 else f'{ay:.3f}'):>8}" for ax, ay in pts]
+        L.append("\nSem arrasto, arfagem nem diferencial; círculo de atrito em saturação. Classe ANALÍTICO; parâmetros são do usuário (iniciais ILUSTRATIVOS).")
+        self.out_g.setPlainText("\n".join(L))
+
+    def ajustar_csv(self, caminho=None):
+        if not caminho:
+            from PySide6.QtWidgets import QFileDialog
+            caminho, _ = QFileDialog.getOpenFileName(self, "CSV de pneu", "", "CSV (*.csv)")
+            if not caminho: return
+        try:
+            r = TF.ajustar(TF.ler_csv(caminho))
+        except (ValueError, OSError) as e:
+            self.out_f.setPlainText(f"ERRO: {e}"); return
+        self.out_f.setPlainText(f"C_α = {r['c_alpha_N_rad']:.0f} N/rad\nμ = {r['mu']:.3f}\nRMSE = {r['rmse_N']:.1f} N  (n = {r['n']})\n" + (r["aviso"] or "μ identificável (há pontos perto da saturação)") +
+                                "\n\nAjuste de modelo aos SEUS dados; não valida o pneu fora da faixa medida.")

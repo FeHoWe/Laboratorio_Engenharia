@@ -1,5 +1,9 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V3.6 — 2026-11-12
+Suíte completa: **532 passed, 4 skipped** (491 + 4 skipped na execução principal em 12 min 28 s; `tests/test_v22.py` separado: 41 passed em 3 min 03 s). Novos: `test_vehicle_combined` (8), `test_tire_fit` (3), `test_fatigue_fea` (4), `test_casos_nl` (3, ccx real), `test_integracao` (3), `test_report_resultados` (3), `test_referencias` (1), sketch arcos/restrições (+2), resíduo CFD (+1). Paridade JS×Python incluindo g-g: pneu/suspensão/g-g 6e-11.
+Não validado: atrito CFD (placa: 29 % → ~50 % do alvo com camadas); empacotamento Windows (`nexus.spec`) e Windows/WSL2 nunca executados em máquina real.
+
 ## V3.5 — 2026-11-12
 Suíte completa: **504 passed, 4 skipped** (463 + 4 skipped na execução principal em 13 min 31 s; `tests/test_v22.py` separado: 41 passed em 3 min 16 s). Novos: `test_tire_suspension.py` (9), `test_sketch_boolean.py` (8), `test_calculix_nl.py` (6, ccx real). Paridade JS×Python: pneu/suspensão 6e-11; demais inalteradas.
 Não validado: atrito CFD (placa plana 29–40 % do alvo, ver `NEXUS_CFD_PLATE_STUDY.md`). Windows/WSL2 nunca testado em máquina real.

@@ -71,6 +71,15 @@ def tire_susp_check():
         r = su.resolver(ex, h)
         worst = max(worst, abs(r["camber_graus"] - j["camber"]) / max(abs(r["camber_graus"]), 1e-3), abs(r["delta_bitola_m"] - j["dBitola"]) / 1e-3,
                     abs(r["RC_altura_m"] - j["RC"]) / 1e-3, abs(r["FVSA_m"] - j["FVSA"]) / 1e-3)
+    from modules import vehicle_combined as vc, vehicle_lateral as vl
+    ex = vl.exemplo_ilustrativo()
+    jv = dict(m=ex.m, iz=ex.iz, a=ex.a, b=ex.b, h=ex.h, tf=ex.tf, tr=ex.tr, cF=ex.c_f, cR=ex.c_r, muF=ex.mu_f, muR=ex.mu_r, krF=ex.k_roll_f, krR=ex.k_roll_r,
+              hRcF=ex.h_rc_f, hRcR=ex.h_rc_r, cla=ex.cla, fracAero=ex.frac_dt_aero)
+    jg = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);console.log(JSON.stringify(L.diagramaGG(JSON.parse(process.argv[2]),+process.argv[3],13,0.5)));',
+                                             str(ROOT / 'mobile' / 'lab.js'), json.dumps(jv), '30']))
+    for (axp, ayp), (axj, ayj) in zip(vc.diagrama_gg(ex, 30.0, 13), jg):
+        assert (ayp is None) == (ayj is None), (axp, ayp, ayj)
+        if ayp is not None: worst = max(worst, abs(ayp - ayj) / max(abs(ayp), 1e-3))
     return worst
 
 
