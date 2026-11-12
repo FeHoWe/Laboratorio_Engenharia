@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V3.9
+Relatórios PDF em 5 idiomas (fontes CJK padrão do PDF para zh/ja/ko), ~340 textos a mais no celular (en/es/de/fr/zh) e diálogos completos nos 10 idiomas adicionais.
+Restam: PDF em it/ja/ko/ru/tr/pl/nl/hi/ar/id (hoje em inglês; árabe/hindi exigem fonte embutida e layout RTL no PDF), parecer do INTELLIGENCE e premissas dos módulos (texto livre em português), nomes de peças no celular, revisão por falantes nativos.
+
 ## Feito na V3.8
 Sensibilidade de μ à carga (linear), suspensão duplo-A 3D com elastocinemática linear, contato entre duas peças (caixa/cilindro/STEP) na interface.
 Também: internacionalização (menus + textos fixos dos diálogos em 5 idiomas; celular parcial). Restam: relatórios PDF, resultados calculados e o restante do celular (~540 textos já listados por `tools/extrair_textos_ui.py` e pela coleta no navegador); verificação do glossário em fontes externas; multibraço/pushrod/buchas, centro de rolagem 3D, μ(Fz) a partir de ensaio, contato em montagem arbitrária, validação do atrito CFD, Windows real.

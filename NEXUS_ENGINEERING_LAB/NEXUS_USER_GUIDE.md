@@ -19,6 +19,11 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.9
+- **Relatórios PDF no seu idioma**: o PDF do projeto e o laudo de resultados saem em inglês, espanhol, alemão, francês ou chinês, conforme *Tools → Idioma / Language*. Classes de resultado, números e unidades não mudam. Chinês/japonês/coreano precisam de fonte CJK no leitor de PDF (não vai embutida). O parecer automático e as premissas dos módulos continuam em português.
+- **Celular**: calculadoras e telas principais traduzidas (en, es, de, fr, zh); nomes de peças, circuitos e modelos continuam em português.
+- **Italiano, japonês, coreano, russo, turco, polonês, holandês, hindi, árabe e indonésio** agora traduzem também os diálogos (não só os menus). Traduções feitas por IA e não revisadas por nativos: revise antes de usar em documento crítico.
+
 ## Novidades da V3.8
 - **VEHICLE → aba Suspensão 3D**: digite os hardpoints (x à frente, y para fora, z acima) dos dois braços, barra de direção, roda e contato; veja caster, KPI, trail, scrub, camber gain, bump steer, razão de esterçamento e a tabela por heave. Os campos de Fy/Fx e °/kN aplicam elastocinemática LINEAR com os coeficientes que VOCÊ medir (zeros = desligado). Valores iniciais são ILUSTRATIVOS.
 - **VEHICLE → Aderência g-g**: campos *sens. do μ à carga* (0 = μ constante, comportamento antigo). Com valor > 0, a transferência de carga passa a reduzir o limite lateral; use o valor de ensaio do seu pneu. No celular: campos *Sensib. do μ* na aba Veículo.

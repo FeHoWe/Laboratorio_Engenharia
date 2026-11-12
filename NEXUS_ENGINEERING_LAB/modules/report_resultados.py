@@ -14,8 +14,10 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from core.i18n import tr
 from . import intelligence as I
-from .report import FONT, FONT_B, INK, CYAN, GRID, WARN
+from . import report as _R
+from .report import INK, CYAN, GRID, WARN, aplicar_fonte
 
 
 def _esc(x) -> str:
@@ -30,6 +32,9 @@ def gerar(resultados: list, caminho, titulo: str = "Relatório de resultados NEX
           peca: str = "", responsavel: str = "") -> Path:
     if not resultados:
         raise ValueError("nenhum resultado para o relatório")
+    aplicar_fonte()
+    FONT, FONT_B = _R.FONT, _R.FONT_B
+    titulo = tr(titulo) if titulo == "Relatório de resultados NEXUS" else titulo
     ss = getSampleStyleSheet()
     h1 = ParagraphStyle("h1", parent=ss["Heading1"], fontName=FONT_B, textColor=INK, fontSize=18)
     h2 = ParagraphStyle("h2", parent=ss["Heading2"], fontName=FONT_B, textColor=CYAN, fontSize=12, spaceBefore=8)
@@ -38,33 +43,32 @@ def gerar(resultados: list, caminho, titulo: str = "Relatório de resultados NEX
     doc = SimpleDocTemplate(str(caminho), pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm, title=titulo)
     S = [Paragraph(_esc(titulo), h1), Paragraph(f"NEXUS {_esc(versao)} · {datetime.now():%d/%m/%Y %H:%M}", b)]
     if laudo:
-        S += [Spacer(1, 6), Paragraph(f"<b>Peça / item:</b> {_esc(peca or '(não informado)')}", b),
-              Paragraph("ESTIMATIVA DE ENGENHARIA: este documento resume cálculos do NEXUS com os dados informados pelo usuário. NÃO é homologação, "
-                        "NÃO é ensaio e NÃO substitui a análise de um responsável técnico. Materiais e cargas são do usuário.", w),
-              Paragraph(f"<b>Responsável técnico:</b> {_esc(responsavel) or '______________________________'}", b)]
+        S += [Spacer(1, 6), Paragraph(f"<b>{tr('Peça / item:')}</b> {_esc(peca or tr('(não informado)'))}", b),
+              Paragraph(tr("ESTIMATIVA DE ENGENHARIA: este documento resume cálculos do NEXUS com os dados informados pelo usuário. NÃO é homologação, NÃO é ensaio e NÃO substitui a análise de um responsável técnico. Materiais e cargas são do usuário."), w),
+              Paragraph(f"<b>{tr('Responsável técnico:')}</b> {_esc(responsavel) or '______________________________'}", b)]
     for i, r in enumerate(resultados, 1):
         d = r.to_dict() if hasattr(r, "to_dict") else dict(r)
         S += [Paragraph(f"{i}. {_esc(d.get('nome', '?'))} — <b>{_esc(d.get('classe', '?'))}</b>", h2),
-              Paragraph(f"Método: {_esc(d.get('metodo', ''))}" + (f" · solver: {_esc(d['solver'])} {_esc(d.get('solver_versao', ''))}" if d.get("solver") else ""), b)]
+              Paragraph(f"{tr('Método:')} {_esc(d.get('metodo', ''))}" + (f" · {tr('solver:')} {_esc(d['solver'])} {_esc(d.get('solver_versao', ''))}" if d.get("solver") else ""), b)]
         if d.get("classe") == "NAO_EXECUTADO":
-            S.append(Paragraph("NÃO EXECUTADO — nenhum número foi produzido.", w))
+            S.append(Paragraph(tr("NÃO EXECUTADO — nenhum número foi produzido."), w))
         for titulo_t, dic in (("Entradas", d.get("entradas")), ("Valores", d.get("valores"))):
             if dic and d.get("classe") != "NAO_EXECUTADO" or (titulo_t == "Entradas" and dic):
                 rows = [[_esc(k), _fmt(v)] for k, v in dic.items() if not isinstance(v, (list, dict))]
                 if rows:
-                    t = Table([[titulo_t, ""]] + rows, colWidths=[70 * mm, 100 * mm])
+                    t = Table([[tr(titulo_t), ""]] + rows, colWidths=[70 * mm, 100 * mm])
                     t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), FONT), ("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.25, GRID),
                                            ("FONTNAME", (0, 0), (0, 0), FONT_B), ("BACKGROUND", (0, 0), (-1, 0), CYAN), ("TEXTCOLOR", (0, 0), (-1, 0), INK)]))
                     S += [Spacer(1, 3), t]
-        for lab, key in (("Premissas", "premissas"), ("Limitações", "limitacoes")):
+        for lab, key in ((tr("Premissas"), "premissas"), (tr("Limitações"), "limitacoes")):
             for x in d.get(key) or []:
-                S.append(Paragraph(f"{lab[:-1] if False else lab}: {_esc(x)}", w if key == "limitacoes" else b))
+                S.append(Paragraph(f"{lab}: {_esc(x)}", w if key == "limitacoes" else b))
         try:
             p = I.interpretar(d)
-            S += [Spacer(1, 3), Paragraph("<b>Parecer (NEXUS INTELLIGENCE — por regras, não é IA generativa):</b>", b)]
+            S += [Spacer(1, 3), Paragraph("<b>" + tr("Parecer (NEXUS INTELLIGENCE — por regras, não é IA generativa):") + "</b>", b)]
             S += [Paragraph(_esc(l), b) for l in p.texto().splitlines() if l.strip()]
         except Exception as e:  # noqa: BLE001
-            S.append(Paragraph(f"Parecer indisponível: {_esc(e)}", w))
+            S.append(Paragraph(f"{tr('Parecer indisponível:')} {_esc(e)}", w))
         if i < len(resultados): S.append(Spacer(1, 6))
     doc.build(S)
     return Path(caminho)

@@ -200,3 +200,31 @@ def test_idiomas_adicionais_cobrem_o_nucleo_e_preservam_numeros_e_unidades():
 
 def test_arabe_ativa_layout_da_direita_para_a_esquerda():
     assert "ar" in i18n.RTL and i18n.NOMES["ar"] == "العربية"
+
+
+def test_dez_idiomas_adicionais_cobrem_todas_as_cadeias_de_interface_extraidas():
+    """V3.9: it, ja, ko, ru, tr, pl, nl, hi, ar, id passam a traduzir os textos dos diálogos (não só o núcleo de menus)."""
+    import sys, pathlib
+    raiz = pathlib.Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(raiz / "tools"))
+    import extrair_textos_ui as X
+    textos = set(X.extrair()) - {"caixa", "cilindro", "step"}
+    for cod in _NOVOS:
+        d = _carrega(cod)
+        faltam = sorted(t for t in textos if t not in d)
+        assert not faltam, (cod, faltam[:5], len(faltam))
+
+
+def test_traducoes_longas_dos_dez_idiomas_mantem_marcas_de_honestidade():
+    """Textos que dizem 'NÃO validado' / 'digitado por você' não podem perder a ressalva por tradução: o inglês traz 'NOT'/'typed by you'."""
+    en = _carrega("en")
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+    import extrair_textos_ui as X
+    ui = set(X.extrair())
+    chaves = [k for k, v in en.items() if k in ui and ("NOT validated" in v or "NOT CalculiX" in v or "not generative AI" in v)]
+    assert len(chaves) >= 3
+    for cod in _NOVOS:
+        d = _carrega(cod)
+        for k in chaves:
+            assert d[k].strip() and d[k] != en[k], (cod, k[:40])

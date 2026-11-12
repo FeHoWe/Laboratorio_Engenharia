@@ -38,7 +38,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "3.8"
+APP_VERSION = "3.9"
 
 
 # --------------------------------------------------------------- console inferior
