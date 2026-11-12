@@ -1,0 +1,31 @@
+{
+  "id": "2025",
+  "name": "Temporada 2025 (regulamento técnico 2022-2025: efeito solo + MGU-H)",
+  "notes": "Valores 'regulation_reference' foram registrados a partir do conhecimento do regulamento FIA e DEVEM ser conferidos no PDF oficial (fia.com > Regulamentos > Technical Regulations 2025) antes de serem tratados como oficiais. Valores 'estimate' são parâmetros de engenharia do simulador, NÃO são dados oficiais.",
+  "official_document": "FIA 2025 Formula One Technical Regulations (conferir edição vigente)",
+  "params": {
+    "min_mass_kg":        {"v": 800,   "status": "regulation_reference", "src": "FIA TR 2025 art. 4 (massa mínima carro+piloto, sem combustível) - conferir"},
+    "max_rpm":            {"v": 15000, "status": "regulation_reference", "src": "FIA TR 2025 art. 5 (limite de rotação do motor) - conferir"},
+    "max_gears":          {"v": 8,     "status": "regulation_reference", "src": "FIA TR 2025 art. 9 (8 marchas à frente) - conferir"},
+    "mguk_max_kw":        {"v": 120,   "status": "regulation_reference", "src": "FIA TR 2025 art. 5 (potência MGU-K) - conferir"},
+    "ers_harvest_cap_mj": {"v": 2.0,   "status": "regulation_reference", "src": "FIA TR 2025 art. 5 (recuperação MGU-K por volta) - conferir"},
+    "ers_deploy_cap_mj":  {"v": 4.0,   "status": "regulation_reference", "src": "FIA TR 2025 art. 5 (energia entregue pelo MGU-K por volta) - conferir"},
+    "mguh_extra_mj":      {"v": 2.0,   "status": "estimate", "src": "energia média recuperada pelo MGU-H por volta (modelo simplificado)"},
+    "max_fuel_kg":        {"v": 110,   "status": "regulation_reference", "src": "FIA SR 2025 (combustível máx. de corrida) - conferir"},
+    "fuel_flow_max_kgh":  {"v": 100,   "status": "regulation_reference", "src": "FIA TR 2025 art. 5 (vazão máx. de combustível) - conferir"},
+    "tyre_front_mm":      {"v": 305,   "status": "regulation_reference", "src": "FIA/Pirelli 2025 - conferir"},
+    "tyre_rear_mm":       {"v": 405,   "status": "regulation_reference", "src": "FIA/Pirelli 2025 - conferir"},
+    "wheel_radius_m":     {"v": 0.360, "status": "estimate", "src": "diâmetro externo ~720 mm (raio dinâmico estimado)"},
+    "ice_pmax_kw_limit":  {"v": 600,   "status": "estimate", "src": "teto de plausibilidade derivado da vazão de combustível x eficiência estimada"},
+    "aero_cda_range":     {"v": [0.85, 1.40], "status": "estimate", "src": "faixa plausível de Cd*A; a FIA regula geometria, não coeficientes"},
+    "aero_cla_range":     {"v": [2.6, 4.8],   "status": "estimate", "src": "faixa plausível de Cl*A; a FIA regula geometria, não coeficientes"},
+    "straight_mode":      {"v": {"kind": "drs", "min_straight_m": 600, "cd_factor": 0.88, "cl_factor": 0.85}, "status": "estimate", "src": "DRS: efeito médio estimado"},
+    "pit_loss_s":         {"v": 22.0,  "status": "estimate", "src": "perda média por pit stop; configurável por circuito (não é dado oficial)"}
+  },
+  "compounds": {
+    "allowed": ["hard", "medium", "soft", "intermediate", "wet"],
+    "labels": {"hard": "Duro (C1-C3)", "medium": "Médio (C2-C4)", "soft": "Macio (C3-C5)", "intermediate": "Intermediário", "wet": "Chuva"},
+    "status": "regulation_reference",
+    "src": "Pirelli 2025: slicks C1-C5 (3 por evento) + intermediário + chuva - conferir; parâmetros físicos de cada composto são estimativas"
+  }
+}

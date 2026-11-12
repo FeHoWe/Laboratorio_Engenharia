@@ -1,0 +1,31 @@
+{
+  "id": "2026",
+  "name": "Temporada 2026 (novo regulamento: PU ~50/50, aero ativa, sem MGU-H)",
+  "notes": "Regulamento novo e recente: todos os valores abaixo devem ser conferidos no PDF oficial da FIA. Itens 'regulation_reference' vêm do conhecimento do regulamento e podem ter sofrido emendas; itens 'estimate' são do simulador.",
+  "official_document": "FIA 2026 Formula One Technical Regulations (conferir edição vigente)",
+  "params": {
+    "min_mass_kg":        {"v": 768,   "status": "regulation_reference", "src": "FIA TR 2026 (massa mínima carro+piloto) - conferir emendas"},
+    "max_rpm":            {"v": 15000, "status": "regulation_reference", "src": "FIA TR 2026 (limite de rotação) - conferir"},
+    "max_gears":          {"v": 8,     "status": "regulation_reference", "src": "FIA TR 2026 - conferir"},
+    "mguk_max_kw":        {"v": 350,   "status": "regulation_reference", "src": "FIA TR 2026 (potência MGU-K) - conferir"},
+    "ers_harvest_cap_mj": {"v": 8.5,   "status": "regulation_reference", "src": "FIA TR 2026 (recuperação por volta) - conferir"},
+    "ers_deploy_cap_mj":  {"v": 8.5,   "status": "estimate", "src": "sem teto de entrega confirmado; limitado pela energia recuperada no modelo"},
+    "mguh_extra_mj":      {"v": 0.0,   "status": "regulation_reference", "src": "MGU-H removido em 2026 - conferir"},
+    "max_fuel_kg":        {"v": null,  "status": "unconfirmed", "src": "sem especificação confirmada; regulamento 2026 usa limite de energia de combustível"},
+    "fuel_flow_max_kgh":  {"v": null,  "status": "unconfirmed", "src": "2026 usa limite de fluxo de energia (MJ/h); valor não confirmado aqui"},
+    "tyre_front_mm":      {"v": 280,   "status": "regulation_reference", "src": "FIA/Pirelli 2026 (pneus mais estreitos) - conferir"},
+    "tyre_rear_mm":       {"v": 375,   "status": "regulation_reference", "src": "FIA/Pirelli 2026 - conferir"},
+    "wheel_radius_m":     {"v": 0.355, "status": "estimate", "src": "raio dinâmico estimado"},
+    "ice_pmax_kw_limit":  {"v": 460,   "status": "estimate", "src": "teto de plausibilidade do motor a combustão"},
+    "aero_cda_range":     {"v": [0.75, 1.25], "status": "estimate", "src": "faixa plausível de Cd*A"},
+    "aero_cla_range":     {"v": [2.0, 4.0],   "status": "estimate", "src": "faixa plausível de Cl*A (carro menos dependente de efeito solo)"},
+    "straight_mode":      {"v": {"kind": "active_aero", "min_straight_m": 300, "cd_factor": 0.75, "cl_factor": 0.65}, "status": "estimate", "src": "aero ativa (modo reta): efeito médio estimado"},
+    "pit_loss_s":         {"v": 22.0,  "status": "estimate", "src": "perda média por pit stop; configurável (não é dado oficial)"}
+  },
+  "compounds": {
+    "allowed": ["hard", "medium", "soft", "intermediate", "wet"],
+    "labels": {"hard": "Duro", "medium": "Médio", "soft": "Macio", "intermediate": "Intermediário", "wet": "Chuva"},
+    "status": "regulation_reference",
+    "src": "Pirelli 2026 - conferir; parâmetros físicos de cada composto são estimativas"
+  }
+}
