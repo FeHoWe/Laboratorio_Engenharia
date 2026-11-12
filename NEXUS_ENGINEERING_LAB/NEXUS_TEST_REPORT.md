@@ -1,5 +1,10 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V4.0 — 2026-11-12
+Suíte completa: **602 passed, 4 skipped** (561 passed + 4 skipped na execução principal em 19 min 49 s com `MALLOC_CHECK_=3`, código de saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 18 s).
+Novos: `test_nl_job` (erro como dado, diálogo sem bloquear e com cancelamento, caso plástico real × analítico <5 %, pulado sem ccx), `test_project_safety` (autosave sem efeitos colaterais, projeto vazio, recuperação de queda, backup ao salvar, versões listar/comparar/restaurar, erros), `test_project_safety_ui` (janela principal: autosave só com alterações, recuperação e descarte, salvar limpa o autosave, versões e restauração). `test_i18n` (13) passa com as novas strings.
+Não validado: comportamento em Windows (caminho `~/.nexus_lab`, verificação de processo por PID no Windows só por código, não executado); queda real (kill -9) do app completo; Windows/WSL2/empacotamento nunca executados em máquina real.
+
 ## V3.9 — 2026-11-12
 Suíte completa: **590 passed, 4 skipped** (549 + 4 skipped na execução principal em 15 min 06 s com `MALLOC_CHECK_=3`, código de saída 0, sem malloc/abort; `tests/test_v22.py` separado: 41 passed em 3 min 12 s). Depois da auditoria (título do laudo, fonte CJK embutida) foram reexecutados os arquivos alterados (laudo, chinês, i18n): 25 passed. Novos: PDF do projeto em pt/en/es/de/fr + chinês, laudo em en/es/de/fr/zh (classe e números intactos), cobertura completa dos diálogos nos 10 idiomas adicionais, ressalvas de honestidade preservadas. Celular: Playwright em 5 idiomas × 16 abas sem erro de JS; cálculo em francês confere.
 Não validado: renderização visual do chinês/japonês/coreano com fontes do Windows; PDF em árabe/hindi; qualidade linguística (traduções de IA sem revisão nativa); Windows/WSL2/empacotamento nunca executados em máquina real.

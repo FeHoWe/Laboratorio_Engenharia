@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## V4.0 — 2026-11-12 (fundação: estabilidade e segurança do projeto)
+Escopo: só a **fatia “fundação” do prompt-mestre V4.0** (o próprio prompt recomenda não fazer tudo de uma vez). Sem reconstruir nada; arquivos `.nexus`, Arsenal, materiais e resultados continuam compatíveis (`FORMAT_VERSION` segue 1).
+- **Casos não lineares (CalculiX) em processo isolado**: `modules/nl_job.py` + `interface/nl_dialog.py` rodam plástico, série de cargas e contato de uma/duas peças via `core.jobs.JobManager`, com barra de progresso, botão **Cancelar** e erro devolvido como dado (a interface não congela e uma falha do solver não derruba o NEXUS). O texto de resultado mantém o aviso: malha grosseira de verificação, **não** é validação de peça real.
+- **Salvamento automático de recuperação** (`core/project_safety.py`): a cada 60 s (`autosave_s` na configuração), se há alterações não salvas, grava um instantâneo em `~/.nexus_lab/recovery` (ou `NEXUS_RECOVERY_DIR`). **Não mexe no arquivo do usuário, no estado “modificado” nem no histórico.** É apagado ao salvar e ao fechar normalmente.
+- **Recuperação após encerramento inesperado**: ao abrir, o NEXUS procura sessões cujo processo não existe mais e oferece Recuperar / Descartar / Decidir depois.
+- **Backup automático ao salvar**: o arquivo existente vai para `backups/` (10 últimos) antes de ser substituído (`ProjectManager.save(..., backup=True)`).
+- **Versões do projeto**: *Arquivo → Registrar versão…* (com nota) grava cópia em `versions/` ao lado do projeto; *Versões do projeto…* lista, **compara** (peças adicionadas/removidas/renomeadas, material, geometria por CRC, posição, movimentos na árvore) e **restaura** (o estado atual vai antes para `backups/`).
+- Textos novos traduzidos nos 15 idiomas não portugueses (escritos por IA, sem revisão nativa).
+- Testes novos: `test_nl_job` (3), `test_project_safety` (6), `test_project_safety_ui` (3).
+- **NÃO feito nesta versão** (continua no roteiro): redesenho da interface por ambientes, CAD avançado, comparação A/B de veículo/F1, NEXUS INTELLIGENCE expandido, visualização avançada, validação e instalador no Windows 11. Diálogos de veículo/F1/solvers ainda não foram movidos para processos isolados (não auditados quanto a bloqueio).
+- Versão do app 4.0.
+
 ## V3.9 — 2026-11-12 (idiomas: relatórios PDF, celular e diálogos dos 10 idiomas adicionais)
 - **Relatórios PDF traduzidos** (`modules/report.py`, `modules/report_resultados.py`) em en, es, de, fr e zh (+ pt, o original): títulos, cabeçalhos de tabela, avisos de massa PARCIAL, ressalvas (“ESTIMATIVA DE ENGENHARIA… NÃO é homologação”), rótulos do laudo e das fichas. Idioma = o escolhido no menu (ou `NEXUS_LANG`). **Classes de resultado (ANALITICO, NAO_EXECUTADO…), números e unidades NÃO são traduzidos** (teste confere). Formato numérico segue o idioma (vírgula decimal em pt/es/de/fr/it/…; ponto em en/zh/ja/ko/hi/ar).
 - **Fontes do PDF**: en/es/de/fr usam a DejaVu embutida. **zh/ja/ko**: usa uma fonte TrueType CJK do sistema e a EMBUTE no PDF (Windows: Microsoft YaHei/SimSun, MS Gothic, Malgun; Linux: WenQuanYi) — verificado aqui só com WenQuanYi (texto extraível e fonte embutida); as fontes do Windows NÃO foram testadas. Se nenhuma existir, cai para a fonte CID padrão (STSong-Light etc.), NÃO embutida: o leitor precisa ter fonte CJK. Árabe/hindi: PDF ainda sem fonte própria (sai em inglês).

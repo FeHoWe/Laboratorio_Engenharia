@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V4.0 (fundação)
+Casos não lineares em processo isolado com cancelamento; autosave + recuperação após falha; backup ao salvar; versões com comparação e restauração (detalhes no CHANGELOG).
+**Restante do prompt-mestre V4.0, em ordem sugerida pelo próprio prompt:** V4.1 CAD avançado (booleanas, furos, filetes, chanfros, padrões, restrições) → V4.2 ambientes Estrutural/CFD com malha e resultados integrados à geometria → V4.3 Veículo e F1 (comparação A/B, relatórios) → V4.4 Intelligence (checagem de consistência, pareceres). Antes disso: mover os diálogos de veículo/F1/solvers para jobs (auditar bloqueio), validar tudo no Windows 11 (`tools\verificar_windows.bat`) e testar o empacotamento.
+
 ## Feito na V3.9
 Relatórios PDF em 5 idiomas (fontes CJK padrão do PDF para zh/ja/ko), ~340 textos a mais no celular (en/es/de/fr/zh) e diálogos completos nos 10 idiomas adicionais.
 Restam: PDF em it/ja/ko/ru/tr/pl/nl/hi/ar/id (hoje em inglês; árabe/hindi exigem fonte embutida e layout RTL no PDF), parecer do INTELLIGENCE e premissas dos módulos (texto livre em português), nomes de peças no celular, revisão por falantes nativos.

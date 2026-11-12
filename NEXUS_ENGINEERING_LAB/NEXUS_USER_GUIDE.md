@@ -19,6 +19,12 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V4.0 — proteção do seu trabalho
+- **Recuperação automática**: se o NEXUS fechar de forma inesperada com alterações não salvas, ao abrir de novo ele pergunta se você quer recuperar o projeto. O instantâneo é gravado a cada 60 s só quando há alterações e nunca substitui o seu arquivo.
+- **Backup ao salvar**: o arquivo anterior fica em `backups/` (últimos 10).
+- **Versões**: *Arquivo → Registrar versão…* guarda uma cópia nomeada em `versions/`. *Arquivo → Versões do projeto…* lista, compara com o arquivo atual (peças adicionadas, removidas, renomeadas, material, geometria, posição) e restaura uma versão (o estado atual vai antes para `backups/`).
+- **Casos não lineares (plástico, série, contato)** rodam em segundo plano: a janela não trava e há botão **Cancelar**. São verificações em malha grosseira, **não** validação de peça real.
+
 ## Novidades da V3.9
 - **Relatórios PDF no seu idioma**: o PDF do projeto e o laudo de resultados saem em inglês, espanhol, alemão, francês ou chinês, conforme *Tools → Idioma / Language*. Classes de resultado, números e unidades não mudam. Chinês/japonês/coreano precisam de fonte CJK no leitor de PDF (não vai embutida). O parecer automático e as premissas dos módulos continuam em português.
 - **Celular**: calculadoras e telas principais traduzidas (en, es, de, fr, zh); nomes de peças, circuitos e modelos continuam em português.
