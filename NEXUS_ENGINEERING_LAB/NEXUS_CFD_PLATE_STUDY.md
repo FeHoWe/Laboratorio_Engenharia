@@ -25,3 +25,14 @@ Executado com OpenFOAM ESI v1912 real (`tools/estudo_placa.py`). Parede por fun�
 | fina 120×48×48 | 0 | não | 0,00340 | 40 % | — |
 
 Leitura: sem camadas, a 1ª célula ficava a 4–8 mm da parede, perto da espessura da camada limite em x=0,5 m (δ≈12 mm) — a lei da parede perde sentido. Com camadas, o atrito quase dobra e a corrida converge, mas **mais camadas (9) não melhoraram** e a faixa de 1ª célula (0,6–9 mm) mostra camadas incompletas em parte da placa. Atribuo o restante, sem confirmar, à borda de ataque romba (10 mm) e à cobertura parcial de camadas. **Não está validado**; o rótulo ESTIMADO permanece. Próximo passo: placa com borda de ataque afilada e checagem da cobertura de camadas no log do snappyHexMesh.
+
+
+## Revisão 3 (V3.7) — camadas absolutas e borda afilada
+| Configuração | Camadas | Convergiu | Cd_atrito | % do alvo | Cobertura final (snappy) |
+|---|---|---|---|---|---|
+| romba, relativas | 5 | sim | 0,00467 | 55 % | — |
+| cunha 10:1, relativas | 5 | sim | 0,00505 | 60 % | 4 de 5 camadas, 84,8 % da espessura |
+| cunha, absolutas y⁺=40, malha média | 6 | sim | 0,00567 | 67 % | 4,6 de 6 camadas, 84,9 % |
+| cunha, absolutas y⁺=40, malha fina | 8 | sim | 0,00512 | 60 % | 6,3 de 8 camadas, 90,3 % |
+
+Leitura: o ganho de 29 % → 67 % vem de levar a 1ª célula para dentro da faixa da lei da parede e de tirar a face romba; mais refino/camadas NÃO aproximou do alvo (60 %). O resíduo de ~35 % continua sem causa confirmada (hipóteses: camadas incompletas, estimador de 1ª ordem, arestas laterais da placa com malha grossa, ausência de comparação com `wallShearStress` do próprio OpenFOAM, que falha nesta versão). **O atrito segue ESTIMADO e NÃO validado.**

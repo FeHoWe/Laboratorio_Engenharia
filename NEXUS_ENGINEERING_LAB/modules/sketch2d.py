@@ -197,6 +197,11 @@ class Sketch:
             seg(a1, b1); arc(b1, (bx + r * ux, by + r * uy), b2); seg(b2, a2); arc(a2, (ax - r * ux, ay - r * uy), a1)
         return mk.Wire()
 
+    def resolver(self, restricoes: list) -> dict:
+        """Solver geral (mínimos quadrados) — ver `sketch_solver`. Em conflito o sketch volta ao estado original."""
+        from . import sketch_solver
+        return sketch_solver.resolver(self, restricoes)
+
     # --- restrições (aplicadas em sequência; reverificadas)
     def restringir(self, restricoes: list) -> list:
         """Aplica restrições na ordem e devolve a lista das violadas ao final (vazia = todas satisfeitas). Tipos:

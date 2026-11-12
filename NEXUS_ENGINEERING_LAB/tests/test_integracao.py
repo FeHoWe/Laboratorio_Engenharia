@@ -28,3 +28,15 @@ def test_recusas_e_bloqueio():
 def test_le_total_estimado_de_valores_do_resultado():
     o = _out(); o["result"]["valores"] = {"cd_total_estimado": 0.4}
     assert I.cd_do_cfd(o)["cd"] == 0.4
+
+
+def test_de_resultado_projeto_e_dialogo():
+    r = {"nome": "CFD OpenFOAM", "classe": "SIMULACAO_NUMERICA", "solver": "OpenFOAM", "valores": {"cd_total_estimado": 0.35}, "entradas": {"a_ref_m2": 0.9}, "limitacoes": ["ESTIMADO"]}
+    o = I.de_resultado_projeto(r); assert I.cd_do_cfd(o)["cd"] == 0.35
+    with pytest.raises(ValueError): I.de_resultado_projeto({"nome": "Viga", "valores": {"x": 1}})
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from interface.vehicle_geo_dialog import VehicleGeoDialog
+    d = VehicleGeoDialog(); d.calc_cfd_veic(r); t = d.out_c.toPlainText()
+    assert "Cd usado = 0.3500" in t and "v máx" in t and "não validado" in t
+    d.calc_cfd_veic({"nome": "CFD", "classe": "NAO_EXECUTADO", "valores": {"cd": 0.3}}); assert "ERRO" in d.out_c.toPlainText()

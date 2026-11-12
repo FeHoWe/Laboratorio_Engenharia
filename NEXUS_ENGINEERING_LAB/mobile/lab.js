@@ -372,7 +372,8 @@ function pneuFy(al,fz,c,mu){if(fz<=0)return 0;const th=c/(3*mu*fz),s=Math.abs(al
 function latCargas(v,vel,ay){const G=9.80665,L=v.a+v.b,df=0.5*v.rho*v.cla*vel*vel,fzf0=v.m*G*v.b/L+df*v.fracAero,fzr0=v.m*G*v.a/L+df*(1-v.fracAero);
  const hrc=(v.hRcF*v.b+v.hRcR*v.a)/L,hr=v.h-hrc,mr=v.m*ay*hr,kt=v.krF+v.krR;
  const dzf=(v.m*ay*(v.b/L)*v.hRcF+mr*v.krF/kt)/v.tf,dzr=(v.m*ay*(v.a/L)*v.hRcR+mr*v.krR/kt)/v.tr;
- return{fInt:fzf0/2+dzf,fExt:fzf0/2-dzf,rInt:fzr0/2+dzr,rExt:fzr0/2-dzr,dzf,dzr,fzf:fzf0,fzr:fzr0};}
+ const par=(z,d)=>{const a=z/2+d,b=z/2-d;return d>=0?[Math.min(a,z),Math.max(b,0)]:[Math.max(a,0),Math.min(b,z)];};const pf=par(fzf0,dzf),pr=par(fzr0,dzr);
+ return{fInt:pf[0],fExt:pf[1],rInt:pr[0],rExt:pr[1],dzf,dzr,fzf:fzf0,fzr:fzr0};}
 function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return pneuFy(al,Math.max(a,0),c,mu)+pneuFy(al,Math.max(b,0),c,mu);}
 function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return mu*(Math.max(a,0)+Math.max(b,0));}
 function alphaForca(v,e,req,vel,ay){if(req>fyMaxEixo(v,e,vel,ay)*(1-1e-9))return null;let lo=0,hi=60*Math.PI/180;if(fyEixo(v,e,hi,vel,ay)<req)return null;

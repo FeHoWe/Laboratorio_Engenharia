@@ -1,5 +1,10 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V3.7 — 2026-11-12
+Suíte completa: **546 passed, 4 skipped** (505 + 4 skipped na execução principal em 12 min 39 s; `tests/test_v22.py` separado: 41 passed em 2 min 54 s). Novos: `test_sketch_solver` (5), `test_lapsim_veiculo` (4), contato automático (+2 em `test_calculix_nl`), CFD→Veículo (+1), fadiga no diálogo (+1), conservação de carga com roda levantando (+1). Paridade JS×Python mantida após a correção de `cargas_eixos` (lateral 2,8e-15).
+Observação: ao fim da execução principal o processo imprimiu `malloc(): unaligned tcache chunk detected` e abortou NO ENCERRAMENTO do interpretador (depois do resumo dos testes). Apareceu 1 vez nesta execução e 0 nas execuções V3.5/V3.6 e no `test_v22`; 3 reexecuções dos testes de diálogo novos terminaram com código 0 sem o erro. Não reproduzido, causa não identificada (suspeita: encerramento de Qt/VTK) — pendência registrada.
+Não validado: atrito CFD (placa: 60–67 % do alvo); Windows/WSL2 e empacotamento nunca executados.
+
 ## V3.6 — 2026-11-12
 Suíte completa: **532 passed, 4 skipped** (491 + 4 skipped na execução principal em 12 min 28 s; `tests/test_v22.py` separado: 41 passed em 3 min 03 s). Novos: `test_vehicle_combined` (8), `test_tire_fit` (3), `test_fatigue_fea` (4), `test_casos_nl` (3, ccx real), `test_integracao` (3), `test_report_resultados` (3), `test_referencias` (1), sketch arcos/restrições (+2), resíduo CFD (+1). Paridade JS×Python incluindo g-g: pneu/suspensão/g-g 6e-11.
 Não validado: atrito CFD (placa: 29 % → ~50 % do alvo com camadas); empacotamento Windows (`nexus.spec`) e Windows/WSL2 nunca executados em máquina real.

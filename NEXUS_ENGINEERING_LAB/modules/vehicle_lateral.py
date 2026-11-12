@@ -92,8 +92,13 @@ def cargas_eixos(v: VeiculoLateral, vel: float, ay: float) -> dict:
     kt = v.k_roll_f + v.k_roll_r
     dzf = (v.m * ay * (v.b / L) * v.h_rc_f + m_roll * v.k_roll_f / kt) / v.tf
     dzr = (v.m * ay * (v.a / L) * v.h_rc_r + m_roll * v.k_roll_r / kt) / v.tr
-    return {"f_int": fzf0 / 2 + dzf, "f_ext": fzf0 / 2 - dzf, "r_int": fzr0 / 2 + dzr, "r_ext": fzr0 / 2 - dzr,
-            "dzf": dzf, "dzr": dzr, "fzf": fzf0, "fzr": fzr0}
+    # CORREÇÃO V3.7: quando a transferência passa de metade da carga do eixo a roda interna levanta (Fz=0) e a externa recebe NO MÁXIMO a carga
+    # total do eixo (antes a externa passava de fz0 e o eixo "ganhava" aderência — só ocorria com roda levantando, caso extremo).
+    def par(fz0, dz):
+        a, b = fz0 / 2 + dz, fz0 / 2 - dz           # a = lado que recebe carga, b = lado que perde
+        return (min(a, fz0), max(b, 0.0)) if dz >= 0 else (max(a, 0.0), min(b, fz0))
+    f_i, f_e = par(fzf0, dzf); r_i, r_e = par(fzr0, dzr)
+    return {"f_int": f_i, "f_ext": f_e, "r_int": r_i, "r_ext": r_e, "dzf": dzf, "dzr": dzr, "fzf": fzf0, "fzr": fzr0}
 
 
 def fy_eixo(v: VeiculoLateral, eixo: str, alpha: float, vel: float, ay: float) -> float:

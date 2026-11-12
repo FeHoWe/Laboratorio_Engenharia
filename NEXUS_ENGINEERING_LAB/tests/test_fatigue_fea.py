@@ -29,3 +29,19 @@ def test_recusa():
     with pytest.raises(ValueError): ff.avaliar(_r(1, "NAO_EXECUTADO"), -1, MAT, 200)
     with pytest.raises(ValueError): ff.avaliar(_r(200.0), 1.0, MAT, 200)
     with pytest.raises(ValueError): ff.avaliar(_r(0.0), -1, MAT, 200)
+
+
+def test_dialogo_fadiga_do_projeto(tmp_path):
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from interface.main_window import MainWindow
+    from interface.hub_dialog import IntelligenceDialog
+    from modules.workspace import ProjectStore
+    from modules.result_store import ResultStore
+    st = ProjectStore(tmp_path / "proj"); proj = st.create("p1"); proj = st.open("p1")
+    d = IntelligenceDialog(MainWindow(), store=st)
+    d.fadiga_fea(dict(R=-1.0, su=600.0, sy=400.0, se=200.0)); assert "não tem resultado de FEA" in d.out.toPlainText()          # sem resultado: sem número
+    ResultStore(proj).attach(_r(260.0), "fp1", "peca"); st.save(proj)
+    d.fadiga_fea(dict(R=-1.0, su=600.0, sy=400.0, se=200.0)); t2 = d.out.toPlainText()
+    assert "σmax = 260.0" in t2 and "Goodman" in t2 and "ciclos" in t2 and "singularidade" in t2
+    d.fadiga_fea(dict(R=-1.0, su=300.0, sy=400.0, se=200.0)); assert "ERRO" in d.out.toPlainText()                            # Sy > Su recusado

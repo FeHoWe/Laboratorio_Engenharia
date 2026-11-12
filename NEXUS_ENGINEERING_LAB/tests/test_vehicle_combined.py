@@ -63,3 +63,11 @@ def test_dialogo_gg_e_ajuste_csv(tmp_path):
     p.write_text("alpha_graus,fz_N,fy_N\n" + "\n".join(f"{a},{3500},{vl.pneu_fy(np.radians(a), 3500, 60000, 1.4)}" for a in np.linspace(-14, 14, 30)))
     d.ajustar_csv(str(p)); assert "C_α = 60000" in d.out_f.toPlainText() or "C_α = 6000" in d.out_f.toPlainText()
     d.ajustar_csv(str(tmp_path / "nao_existe.csv")); assert "ERRO" in d.out_f.toPlainText()
+
+
+def test_roda_levantando_conserva_carga_do_eixo():
+    v = vl.VeiculoLateral(m=800, iz=1000, a=1.2, b=1.2, h=1.3, tf=0.8, tr=0.8, c_f=80000, c_r=80000, mu_f=1.3, mu_r=1.3)
+    cg = vl.cargas_eixos(v, 30.0, 25.0)
+    assert cg["f_ext"] == 0.0 and cg["f_int"] == pytest.approx(cg["fzf"]) and cg["r_ext"] + cg["r_int"] == pytest.approx(cg["fzr"])
+    cg0 = vl.cargas_eixos(v, 30.0, 0.5)                                      # sem levantar: soma conservada como antes
+    assert cg0["f_int"] + cg0["f_ext"] == pytest.approx(cg0["fzf"]) and cg0["f_ext"] > 0

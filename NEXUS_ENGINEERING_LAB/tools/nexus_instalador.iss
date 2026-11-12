@@ -1,10 +1,10 @@
-; Inno Setup 6 — instalador a partir de dist\NEXUS (gerado por tools\empacotar_windows.bat). NÃO testado (V3.6).
+; Inno Setup 6 — instalador a partir de dist\NEXUS (gerado por tools\empacotar_windows.bat). NÃO testado (V3.7).
 [Setup]
 AppName=NEXUS ENGINEERING LAB
-AppVersion=3.6
+AppVersion=3.7
 DefaultDirName={autopf}\NEXUS
 DefaultGroupName=NEXUS
-OutputBaseFilename=NEXUS_Setup_3.6
+OutputBaseFilename=NEXUS_Setup_3.7
 [Files]
 Source: "..\dist\NEXUS\*"; DestDir: "{app}"; Flags: recursesubdirs
 [Icons]

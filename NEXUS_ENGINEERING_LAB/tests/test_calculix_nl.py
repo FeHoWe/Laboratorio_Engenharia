@@ -107,3 +107,36 @@ def test_penalidade_converge_com_K(tmp_path):
         except AssertionError as e: erros.append(str(e))
         finally: mod.KC = old
     assert len(erros) <= 1                                                 # K=1e5 pode falhar a tolerância de 3%, K=1e7 não
+
+
+def test_contato_automatico_igual_ao_manual_e_bloco_menor(tmp_path):
+    class M: pass
+    def monta(b_top):
+        b1 = _barra(8, 8, 10, 4, 4, 5); n1 = len(b1.nodes); m = M()
+        m.nodes = np.vstack([b1.nodes, b_top.nodes + [(8 - b_top.nodes[:, 0].max()) / 2, (8 - b_top.nodes[:, 1].max()) / 2, 10.0]])
+        m.tets = np.vstack([b1.tets, b_top.tets + n1]); reg = np.r_[np.zeros(len(b1.tets), int), np.ones(len(b_top.tets), int)]
+        return m, reg
+    for lado in (8.0, 4.0):                                              # bloco de cima do mesmo tamanho e menor (apoiado no centro)
+        m, reg = monta(_barra(lado, lado, 10, 2 if lado == 4 else 4, 2 if lado == 4 else 4, 5))
+        ct = N.contato_automatico(m, reg, 0, 1, folga=1.5, K=1e7, ajuste=0.01)
+        assert ct["n_escravo"] > 0 and ct["n_mestre"] > 0
+        topo = N.nos_plano(m, 2, 20.0); base = N.nos_plano(m, 2, 0.0); Fz = 1000.0
+        fixed = {n: (2,) for n in base}; fixed[base[0]] = (0, 1, 2)
+        bb = [n for n in base if n != base[0]]; fixed[max(bb, key=lambda n: m.nodes[n, 0])] = (1, 2)
+        t0 = topo[0]; fixed[t0] = (0, 1); fixed[max([n for n in topo if n != t0], key=lambda n: m.nodes[n, 0])] = (1,)
+        N.write_inp_nl(m, [{"E": E, "nu": 0.0}] * 2, reg, fixed, {n: (0, 0, -Fz / len(topo)) for n in topo}, tmp_path / f"a{int(lado)}.inp", nlgeom=True,
+                       contato=[{k: v for k, v in ct.items() if not k.startswith("n_")}], rf_nos=base)
+        r, U, RF, _ = N.run_nl(tmp_path / f"a{int(lado)}.inp")
+        assert r.classe == "SIMULACAO_NUMERICA"
+        assert abs(sum(f[2] for f in RF.values()) - Fz) / Fz < 0.02                     # equilíbrio: reações = carga
+        # encurtamento do bloco de cima = F·L/(E·A_cima), medido entre sua base (z=10) e seu topo (z=20)
+        zb = [n for n in range(len(m.nodes)) if abs(m.nodes[n, 2] - 10.0) < 1e-9 and reg[np.where((m.tets == n).any(axis=1))[0][0]] == 1]
+        dz = abs(np.mean([U[n + 1][2] for n in topo]) - np.mean([U[n + 1][2] for n in zb]))
+        assert abs(dz / (Fz * 10 / (E * lado * lado)) - 1) < 0.08, (lado, dz)           # média nodal não pondera por área: tolerância 8 %
+
+
+def test_contato_automatico_sem_interface_recusa():
+    class M: pass
+    m = M(); b1 = _barra(4, 4, 4, 2, 2, 2); m.nodes = np.vstack([b1.nodes, b1.nodes + [0, 0, 50.0]]); m.tets = np.vstack([b1.tets, b1.tets + len(b1.nodes)])
+    reg = np.r_[np.zeros(len(b1.tets), int), np.ones(len(b1.tets), int)]
+    with pytest.raises(ValueError): N.contato_automatico(m, reg, 0, 1, folga=1.0, K=1e6)

@@ -1,7 +1,7 @@
 """Pneu combinado (Fx–Fy) e suspensão duplo-A (V3.5). Valores iniciais são ILUSTRATIVOS — o usuário informa os dados do seu carro."""
 from __future__ import annotations
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, QFormLayout, QDoubleSpinBox, QPushButton,
-                               QTextEdit, QTableWidget, QTableWidgetItem, QLabel)
+                               QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QComboBox)
 from modules import tire_combined as TC, suspension as SU, vehicle_combined as VC, vehicle_lateral as VL, tire_fit as TF
 
 
@@ -42,7 +42,25 @@ class VehicleGeoDialog(QDialog):
                      ("c_f", "C_α por pneu diant. [N/rad]"), ("c_r", "C_α por pneu tras. [N/rad]"), ("mu_f", "μ diant."), ("mu_r", "μ tras."), ("vel", "velocidade [m/s]")):
             f3.addRow(t, self.gg[k])
         b3 = QPushButton("Calcular diagrama g-g (ay máximo sob tração/frenagem)"); b3.clicked.connect(self.calc_gg); f3.addRow(b3)
+        self.gg["pot"] = _spin(250000.0, 1, 5e6, 0, 10000); self.gg["cda"] = _spin(0.7, 0, 10, 3, 0.05)
+        f3.addRow("potência [W] (volta)", self.gg["pot"]); f3.addRow("CdA [m²] (volta)", self.gg["cda"])
+        b3b = QPushButton("Volta no circuito de EXEMPLO (sintético) com este veículo"); b3b.clicked.connect(self.calc_volta); f3.addRow(b3b)
         self.out_g = QTextEdit(); self.out_g.setReadOnly(True); f3.addRow(self.out_g); tabs.addTab(w3, "Aderência g-g")
+        # --- CFD → Veículo
+        w5 = QWidget(); f5 = QFormLayout(w5)
+        f5.addRow(QLabel("Usa o Cd do ÚLTIMO resultado de CFD de um projeto no modelo longitudinal. Cd é adimensional: informe a ÁREA FRONTAL REAL do veículo."))
+        self.pj = QComboBox()
+        try:
+            from interface.solvers_dialog import PROJECTS_DIR
+            from modules.workspace import ProjectStore
+            self._store = ProjectStore(PROJECTS_DIR); self.pj.addItems(self._store.list())
+        except Exception:  # noqa: BLE001
+            self._store = None
+        f5.addRow("Projeto", self.pj)
+        self.lg = {k: _spin(v, 0.0, 1e7, 3, 10) for k, v in dict(massa=1000, area=2.0, crr=0.012, fm=6000, pot=100000, mu=1.0).items()}
+        for k, t in (("massa", "massa [kg]"), ("area", "área frontal REAL [m²]"), ("crr", "Crr"), ("fm", "força motriz [N]"), ("pot", "potência [W]"), ("mu", "μ")): f5.addRow(t, self.lg[k])
+        b5 = QPushButton("Aplicar Cd do CFD e simular 40 s"); b5.clicked.connect(self.calc_cfd_veic); f5.addRow(b5)
+        self.out_c = QTextEdit(); self.out_c.setReadOnly(True); f5.addRow(self.out_c); tabs.addTab(w5, "CFD → Veículo")
         # --- ajuste CSV
         w4 = QWidget(); f4 = QVBoxLayout(w4)
         f4.addWidget(QLabel("CSV com colunas alpha_graus, fz_N, fy_N (MEDIDAS). Ajusta C_α e μ do pneu de escova; μ só é identificável se houver pontos perto da saturação."))
@@ -74,7 +92,7 @@ class VehicleGeoDialog(QDialog):
 
     def calc_gg(self, vel=None):
         try:
-            g = {k: w.value() for k, w in self.gg.items()}; vel = g.pop("vel")
+            g = {k: w.value() for k, w in self.gg.items()}; vel = g.pop("vel"); g.pop("pot"); g.pop("cda")
             v = VL.VeiculoLateral(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)
             pts = VC.diagrama_gg(v, vel, 13)
         except ValueError as e:
@@ -95,3 +113,32 @@ class VehicleGeoDialog(QDialog):
             self.out_f.setPlainText(f"ERRO: {e}"); return
         self.out_f.setPlainText(f"C_α = {r['c_alpha_N_rad']:.0f} N/rad\nμ = {r['mu']:.3f}\nRMSE = {r['rmse_N']:.1f} N  (n = {r['n']})\n" + (r["aviso"] or "μ identificável (há pontos perto da saturação)") +
                                 "\n\nAjuste de modelo aos SEUS dados; não valida o pneu fora da faixa medida.")
+
+    def calc_cfd_veic(self, resultado: dict | None = None):
+        from modules import integracao as IG, vehicle_dynamics as VD
+        try:
+            if resultado is None:
+                if not self._store or not self.pj.currentText(): raise ValueError("crie um projeto com resultado de CFD em 'Solvers, vitrine e projetos…'")
+                res = [r for r in self._store.open(self.pj.currentText())["results"] if r.get("classe") in ("SIMULACAO_NUMERICA", "VALIDADO") and ("cd_total_estimado" in (r.get("valores") or {}) or "cd" in (r.get("valores") or {}))]
+                if not res: raise ValueError("o projeto não tem resultado de CFD com Cd")
+                resultado = res[-1]
+            g = {k: w.value() for k, w in self.lg.items()}
+            base = VD.Veiculo(massa=g["massa"], cd=0.3, area=g["area"], crr=g["crr"], forca_motriz=g["fm"], potencia=g["pot"], mu=g["mu"])
+            v, prov = IG.veiculo_com_cfd(base, IG.de_resultado_projeto(resultado), area_real=g["area"])
+            h = VD.simular(v, 40.0); vmax = max(x[2] for x in h)
+        except ValueError as e:
+            self.out_c.setPlainText(f"ERRO: {e}"); return
+        self.out_c.setPlainText(f"Cd usado = {prov['cd']:.4f}  ({prov['base']})\nclasse do CFD: {prov['classe_cfd']}\nárea usada = {prov['area_usada_m2']:.3f} m² ({prov['area_origem']})\n"
+                                f"v máx em 40 s = {vmax*3.6:.1f} km/h\n\n" + "\n".join("⚠ " + a for a in prov["alertas"]) + "\n\nO Cd carrega os limites do CFD (ESTIMADO, não validado).")
+
+    def calc_volta(self):
+        from modules import lapsim_veiculo as LV
+        try:
+            g = {k: w.value() for k, w in self.gg.items()}; g.pop("vel"); pot = g.pop("pot"); cda = g.pop("cda")
+            v = VL.VeiculoLateral(iz=1800.0, k_roll_f=60000.0, k_roll_r=40000.0, **g)
+            r = LV.volta(v, pot, cda, ds=6.0)
+        except ValueError as e:
+            self.out_g.setPlainText(f"ERRO: {e}"); return
+        x = r.valores
+        self.out_g.setPlainText(f"Volta (circuito SINTÉTICO): {x['tempo_s']:.2f} s · v média {x['v_media_kmh']:.1f} km/h · v máx {x['v_max_kmh']:.0f} · v mín {x['v_min_kmh']:.0f}\n\n" +
+                                "\n".join("⚠ " + l for l in r.limitacoes) + "\n" + "\n".join("• " + l for l in r.premissas))

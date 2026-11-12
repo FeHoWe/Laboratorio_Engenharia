@@ -19,6 +19,13 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.7
+- **VEHICLE → abas**: *CFD → Veículo* (usa o Cd do último resultado de CFD do projeto + a ÁREA REAL que você digita) e, em *Aderência g-g*, o botão de **volta com modelo de veículo** no circuito de exemplo SINTÉTICO.
+- **INTELLIGENCE → Fadiga do último resultado FEA…**: pede R, Su, Sy e Se corrigido (seus); usa o pico de von Mises do resultado. Cuidado com singularidades de malha.
+- **Por API**: `sketch.resolver([...])` (solver de restrições), `calculix_nl.contato_automatico(malha, regioes, mestre, escravo, folga, K)`.
+- **CFD**: `y_mais_alvo` (ex.: 40) com camadas dimensiona a 1ª camada para a lei da parede. Veja `NEXUS_CFD_PLATE_STUDY.md`.
+- Correção: carga do eixo com roda levantando (modelo lateral).
+
 ## Novidades da V3.6
 - **Menu Analyze → NEXUS STRUCTURAL — Plasticidade, multimaterial e contato…**: três casos prontos com CalculiX real e a solução analítica ao lado. Digite SEUS materiais.
 - **NEXUS VEHICLE** ganhou abas *Aderência g-g* e *Ajuste de pneu (CSV)* (colunas `alpha_graus,fz_N,fy_N` MEDIDAS; se não houver pontos perto da saturação o μ NÃO é identificável e a tela avisa).

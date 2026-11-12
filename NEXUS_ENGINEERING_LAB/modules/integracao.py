@@ -37,3 +37,16 @@ def veiculo_com_cfd(base: Veiculo, out: dict, area_real: float | None = None) ->
         raise ValueError("informe a área frontal real do veículo (o CFD não trouxe área de referência)")
     prov = dict(c, area_usada_m2=area, area_origem="informada pelo usuário" if area_real else "área de referência do CFD (escala simulada)")
     return replace(base, cd=c["cd"], area=float(area)), prov
+
+
+def de_resultado_projeto(r: dict) -> dict:
+    """Converte um resultado de CFD salvo no projeto (dict do TracedResult + vínculo) na forma aceita por `cd_do_cfd`."""
+    if "CFD" not in str(r.get("nome", "")) and "OpenFOAM" not in str(r.get("solver", "")) and "cd_total_estimado" not in (r.get("valores") or {}) and "cd" not in (r.get("valores") or {}):
+        raise ValueError("o resultado não parece ser de CFD")
+    ent = r.get("entradas") or {}
+    v = r.get("valores") or {}
+    out = {"result": {"classe": r.get("classe"), "limitacoes": r.get("limitacoes") or [], "valores": v}, "info": {"a_ref_m2": ent.get("a_ref_m2"), "bloqueio_pct": ent.get("bloqueio_pct", 0)},
+           "pressao": {}}
+    if "cd_total_estimado" not in v and "cd_pressao" not in v and v.get("cd") is not None:
+        out["pressao"] = {"cd_pressao": v["cd"], "cl_pressao": v.get("cl", 0.0)}
+    return out

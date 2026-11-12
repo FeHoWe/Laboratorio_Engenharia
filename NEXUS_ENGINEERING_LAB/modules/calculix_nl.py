@@ -162,3 +162,43 @@ def run_nl(inp_path, timeout=1800):
     vals = {"u_max_mm": um, "peeq_max": pe, "nos": len(U)}
     return (TracedResult("CalculiX", "SIMULACAO_NUMERICA", "ccx *STATIC não linear", vals, solver="CalculiX",
                          solver_versao=st.versao or "?", limitacoes=["sem estudo de malha → não validado"]), U, RF, pe)
+
+
+def _faces_contorno(mesh, regioes, reg):
+    """Faces (elem, nº 1..4) de contorno da região `reg` (aparecem uma só vez entre os elementos da região)."""
+    cont = {}
+    for e, t in enumerate(mesh.tets):
+        if regioes[e] != reg: continue
+        for k, f in enumerate(FACES):
+            chave = tuple(sorted(int(t[i]) for i in f))
+            cont.setdefault(chave, []).append((e, k + 1))
+    return [v[0] for v in cont.values() if len(v) == 1]
+
+
+def contato_automatico(mesh, regioes, reg_mestre: int, reg_escravo: int, folga: float, K: float, mu: float | None = None, ajuste: float | None = None) -> dict:
+    """Detecta o contato entre duas regiões de uma malha QUALQUER (V3.7): escravo = nós de contorno da região escravo a ≤ `folga` de alguma face de
+    contorno da região mestre; mestre = faces de contorno da mestre a ≤ `folga` de algum nó escravo. Distâncias por centroide/nó (aproximação):
+    use `folga` ≥ ~metade da aresta local. Devolve o dicionário aceito por `write_inp_nl(contato=[...])` mais `n_escravo`, `n_mestre`.
+    Levanta ValueError se nenhuma interface for encontrada (não inventa contato)."""
+    from scipy.spatial import cKDTree
+    regioes = np.asarray(regioes, int)
+    fm, fe = _faces_contorno(mesh, regioes, reg_mestre), _faces_contorno(mesh, regioes, reg_escravo)
+    if not fm or not fe: raise ValueError("região sem faces de contorno")
+    def geo(e, f):
+        P = mesh.nodes[[mesh.tets[e][i] for i in FACES[f - 1]]]; c = P.mean(axis=0)
+        n = np.cross(P[1] - P[0], P[2] - P[0]); n = n / max(np.linalg.norm(n), 1e-300)
+        if n @ (c - mesh.nodes[mesh.tets[e][:4]].mean(axis=0)) < 0: n = -n                 # normal para fora do elemento
+        return c, n
+    gm = [geo(e, f) for e, f in fm]; ge = [geo(e, f) for e, f in fe]
+    cm, nm = np.array([g[0] for g in gm]), np.array([g[1] for g in gm]); ce, ne = np.array([g[0] for g in ge]), np.array([g[1] for g in ge])
+    # faces de contato = vizinhas (≤ folga) com normais ANTIPARALELAS (descarta paredes laterais próximas à quina)
+    dme, ime = cKDTree(ce).query(cm); dem, iem = cKDTree(cm).query(ce)
+    ok_m = [i for i in range(len(fm)) if dme[i] <= folga and nm[i] @ ne[ime[i]] < -0.7]
+    ok_e = [i for i in range(len(fe)) if dem[i] <= folga and ne[i] @ nm[iem[i]] < -0.7]
+    if not ok_m or not ok_e: raise ValueError(f"nenhuma interface a ≤ {folga:g} entre as regiões {reg_mestre} e {reg_escravo}")
+    mest = [fm[i] for i in ok_m]
+    esc = sorted({int(mesh.tets[fe[i][0]][k]) for i in ok_e for k in FACES[fe[i][1] - 1]})
+    out = {"escravo": esc, "mestre": mest, "K": K, "n_escravo": len(esc), "n_mestre": len(mest)}
+    if mu: out["mu"] = mu
+    if ajuste: out["ajuste"] = ajuste
+    return out

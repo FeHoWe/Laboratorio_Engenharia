@@ -32,12 +32,16 @@ def nivel2(cd_forma: float, area_frontal: float, area_molhada: float, compriment
         ["Cf de placa plana pode errar muito em corpos 3D", "Cd de forma depende do usuário"])
 
 def gerar_caso_openfoam(pasta, stl_nome: str, v_inf: float, comprimento_ref: float, area_ref: float,
-                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000, celulas=(80, 32, 24), ar_livre: bool = False, camadas: int = 0, camada_final: float = 0.5) -> Path:
+                        rho: float = 1.225, nu: float = 1.5e-5, caixa=(-2, 6, -2, 2, 0, 3), iteracoes: int = 1000, celulas=(80, 32, 24), ar_livre: bool = False, camadas: int = 0, camada_final: float = 0.5, y_mais_alvo: float = 0.0) -> Path:
     """Escreve system/ constant/ 0/ prontos. O STL deve ser copiado para constant/triSurface/ (em m).
 
     `camadas>0`: liga o addLayers do snappyHexMesh com essa quantidade de camadas prismáticas no corpo (razão 1,2; `camada_final` = espessura da última
     camada relativa à célula vizinha). Aproxima a primeira célula da parede (útil quando y/δ da 1ª célula é grande). Se o snappy não conseguir
     inserir as camadas, o log mostra a cobertura — verifique `log.snappyHexMesh`.
+
+    `y_mais_alvo>0` (com camadas>0): tamanhos ABSOLUTOS — a 1ª camada tem espessura 2·y_c, com y_c = y⁺·ν/u_τ e u_τ estimado por
+    Cf≈0,026 (u_τ≈0,036·V, só para dimensionar). Sem isso as camadas são relativas à célula vizinha e, em malha grossa, a 1ª célula continua grossa
+    (visto no estudo da placa: espessura total 19 mm). Confira a cobertura com `cobertura_camadas(log.snappyHexMesh)`.
 
     `ar_livre=True`: o plano "ground" vira simetria (escoamento livre, sem solo) — usado para corpos isolados (ex.: esfera), onde um solo
     próximo induz sustentação. Com o corpo centrado em z, o domínio fica simétrico e Cl médio deve tender a 0.
@@ -75,7 +79,7 @@ geometry {{ {stl_nome} {{ type triSurfaceMesh; name body; }} }}
 castellatedMeshControls {{ maxLocalCells 2000000; maxGlobalCells 4000000; minRefinementCells 10; nCellsBetweenLevels 3; resolveFeatureAngle 30;
  features (); refinementSurfaces {{ body {{ level (2 3); patchInfo {{ type wall; }} }} }} refinementRegions {{}} locationInMesh ({x0+0.05*(x1-x0)} 0.0 {z1-0.05*(z1-z0)}); allowFreeStandingZoneFaces true; }}
 snapControls {{ nSmoothPatch 3; tolerance 2.0; nSolveIter 30; nRelaxIter 5; nFeatureSnapIter 10; }}
-addLayersControls {{ layers {{ {("body { nSurfaceLayers %d; }" % camadas) if camadas > 0 else ""} }} relativeSizes true; expansionRatio 1.2; finalLayerThickness {camada_final}; minThickness 0.05; nGrow 0; featureAngle 60; nRelaxIter 3; nSmoothSurfaceNormals 1; nSmoothNormals 3; nSmoothThickness 10; maxFaceThicknessRatio 0.5; maxThicknessToMedialRatio 0.3; minMedialAxisAngle 90; nBufferCellsNoExtrude 0; nLayerIter 50; }}
+addLayersControls {{ layers {{ {("body { nSurfaceLayers %d; }" % camadas) if camadas > 0 else ""} }} relativeSizes {"false" if (camadas > 0 and y_mais_alvo > 0) else "true"}; expansionRatio 1.2; {("firstLayerThickness %.6g;" % (2 * y_mais_alvo * nu / (0.036 * v_inf))) if (camadas > 0 and y_mais_alvo > 0) else ("finalLayerThickness %s;" % camada_final)} minThickness {("%.6g" % (0.2 * 2 * y_mais_alvo * nu / (0.036 * v_inf))) if (camadas > 0 and y_mais_alvo > 0) else "0.05"}; nGrow 0; featureAngle 60; nRelaxIter 3; nSmoothSurfaceNormals 1; nSmoothNormals 3; nSmoothThickness 10; maxFaceThicknessRatio 0.5; maxThicknessToMedialRatio 0.3; minMedialAxisAngle 90; nBufferCellsNoExtrude 0; nLayerIter 50; }}
 meshQualityControls {{ maxNonOrtho 65; maxBoundarySkewness 20; maxInternalSkewness 4; maxConcave 80; minVol 1e-13; minTetQuality 1e-15; minArea -1; minTwist 0.02; minDeterminant 0.001; minFaceWeight 0.05; minVolRatio 0.01; minTriangleTwist -1; nSmoothScale 4; errorReduction 0.75; }}
 mergeTolerance 1e-6;
 """)
@@ -98,7 +102,7 @@ mergeTolerance 1e-6;
           f"inlet {{type fixedValue; value uniform {om:.6g};}} outlet {{type zeroGradient;}} ground {{type omegaWallFunction; value uniform {om:.6g};}} body {{type omegaWallFunction; value uniform {om:.6g};}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "nut", "[0 2 -1 0 0 0 0]", "uniform 0",
           "inlet {type calculated; value uniform 0;} outlet {type calculated; value uniform 0;} ground {type nutkWallFunction; value uniform 0;} body {type nutkWallFunction; value uniform 0;} top {type symmetryPlane;} sideL {type symmetryPlane;} sideR {type symmetryPlane;}")
-    (p/"Allrun").write_text("#!/bin/sh\nblockMesh && surfaceFeatureExtract 2>/dev/null; snappyHexMesh -overwrite && simpleFoam > log.simpleFoam 2>&1\n")
+    (p/"Allrun").write_text("#!/bin/sh\nblockMesh && surfaceFeatureExtract 2>/dev/null; snappyHexMesh -overwrite > log.snappyHexMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1\n")
     return p
 
 def _ler_coeficientes(pasta: Path):
@@ -140,6 +144,15 @@ def classificar_residuos(texto: str, tol: float = 1e-4) -> dict:
     est = "DIVERGINDO" if pior <= -0.5 else "DECAINDO" if pior >= 0.3 else "ESTAGNADO"
     if ultimo_p <= tol: est = "CONVERGIDO"
     return {"estado": est, "queda_decadas_ultimo_terco": pior}
+
+
+def cobertura_camadas(texto: str) -> dict | None:
+    """Lê a tabela FINAL do snappyHexMesh: {faces, camadas_medias, espessura_total_m, espessura_pct}. None se não houve addLayers."""
+    import re
+    m = re.findall(r"^body\s+(\d+)\s+([0-9.]+)\s+([0-9.eE+-]+)\s+([0-9.]+)\s*$", texto, flags=re.M)
+    if not m: return None
+    f, n, e, pct = m[-1]
+    return {"faces": int(f), "camadas_medias": float(n), "espessura_total_m": float(e), "espessura_pct": float(pct)}
 
 
 def ler_log_simplefoam(texto: str) -> dict:
