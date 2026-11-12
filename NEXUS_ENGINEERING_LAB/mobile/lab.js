@@ -366,16 +366,18 @@ function f1Check(season,meas,massLimit){return F1_REGS.filter(r=>r[5].includes(s
  let st;if(lim==null)st='LIMITE_NAO_VERIFICADO';else if(v==null)st='SEM_MEDIDA';else st=(r[3]==='<='?v<=lim+1e-9:v>=lim-1e-9)?'CONFORME':'NAO_CONFORME';return{rule:r[0],title:r[1],field:r[2],op:r[3],limit:lim,value:v==null?null:v,status:st,src:r[6]};});}
 // ---- Dinâmica lateral (V3.0): espelho de modules/vehicle_lateral.py (bicicleta + pneu de escova + transferência de carga)
 function latCheck(v){for(const k of ['m','iz','a','b','h','tf','tr','cF','cR','muF','muR','krF','krR']){if(!(v[k]>0&&isFinite(v[k])))throw new Error("parâmetro '"+k+"' deve ser positivo e finito");}
- if(v.cla<0||v.fracAero<0||v.fracAero>1)throw new Error('ClA ≥ 0 e fração aerodinâmica em [0,1]');if(v.hRcF<0||v.hRcR<0)throw new Error('altura do centro de rolagem não pode ser negativa');}
-function latDefaults(v){return Object.assign({cla:0,fracAero:0.5,rho:1.225,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08},v);}
-function pneuFy(al,fz,c,mu){if(fz<=0)return 0;const th=c/(3*mu*fz),s=Math.abs(al)<Math.PI/2-1e-9?Math.abs(Math.tan(al)):1e9,x=th*s;const f=x<1?mu*fz*(3*x-3*x*x+x*x*x):mu*fz;return al<0?-f:f;}
+ if(v.cla<0||v.fracAero<0||v.fracAero>1)throw new Error('ClA ≥ 0 e fração aerodinâmica em [0,1]');if(v.hRcF<0||v.hRcR<0)throw new Error('altura do centro de rolagem não pode ser negativa');if(!(v.sensF>=0&&v.sensF<=0.8&&v.sensR>=0&&v.sensR<=0.8))throw new Error('sensibilidade do μ à carga deve estar em [0, 0.8]');}
+function latDefaults(v){return Object.assign({cla:0,fracAero:0.5,rho:1.225,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08,sensF:0,sensR:0},v);}
+function muEf(mu,sens,fz,zr){if(!sens||zr<=0)return mu;return mu*Math.max(1-sens*(fz/zr-1),0.2);}
+function fzRef(v,e){return v.m*9.80665*(e==='f'?v.b:v.a)/(v.a+v.b)/2;}
+function pneuFy(al,fz,c,mu,sens,zr){if(fz<=0)return 0;mu=muEf(mu,sens||0,fz,zr||0);const th=c/(3*mu*fz),s=Math.abs(al)<Math.PI/2-1e-9?Math.abs(Math.tan(al)):1e9,x=th*s;const f=x<1?mu*fz*(3*x-3*x*x+x*x*x):mu*fz;return al<0?-f:f;}
 function latCargas(v,vel,ay){const G=9.80665,L=v.a+v.b,df=0.5*v.rho*v.cla*vel*vel,fzf0=v.m*G*v.b/L+df*v.fracAero,fzr0=v.m*G*v.a/L+df*(1-v.fracAero);
  const hrc=(v.hRcF*v.b+v.hRcR*v.a)/L,hr=v.h-hrc,mr=v.m*ay*hr,kt=v.krF+v.krR;
  const dzf=(v.m*ay*(v.b/L)*v.hRcF+mr*v.krF/kt)/v.tf,dzr=(v.m*ay*(v.a/L)*v.hRcR+mr*v.krR/kt)/v.tr;
  const par=(z,d)=>{const a=z/2+d,b=z/2-d;return d>=0?[Math.min(a,z),Math.max(b,0)]:[Math.max(a,0),Math.min(b,z)];};const pf=par(fzf0,dzf),pr=par(fzr0,dzr);
  return{fInt:pf[0],fExt:pf[1],rInt:pr[0],rExt:pr[1],dzf,dzr,fzf:fzf0,fzr:fzr0};}
-function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return pneuFy(al,Math.max(a,0),c,mu)+pneuFy(al,Math.max(b,0),c,mu);}
-function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return mu*(Math.max(a,0)+Math.max(b,0));}
+function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt,se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);return pneuFy(al,Math.max(a,0),c,mu,se,zr)+pneuFy(al,Math.max(b,0),c,mu,se,zr);}
+function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt,se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);return [Math.max(a,0),Math.max(b,0)].reduce((t,z)=>t+muEf(mu,se,z,zr)*z,0);}
 function alphaForca(v,e,req,vel,ay){if(req>fyMaxEixo(v,e,vel,ay)*(1-1e-9))return null;let lo=0,hi=60*Math.PI/180;if(fyEixo(v,e,hi,vel,ay)<req)return null;
  for(let i=0;i<80;i++){const m=0.5*(lo+hi);if(fyEixo(v,e,m,vel,ay)<req)lo=m;else hi=m;}return 0.5*(lo+hi);}
 function regimeCurva(v0,vel,raio){const v=latDefaults(v0);latCheck(v);if(!(vel>0&&raio>0))throw new Error('velocidade e raio devem ser positivos');
@@ -413,7 +415,7 @@ function suspResolver(s,heave){suspValida(s);const f=th=>{const q=_sPose(s,th);r
 const SUSP_EX={A:[0.20,0.14],B:[0.60,0.12],C:[0.25,0.30],D:[0.56,0.32],W:[0.63,0.24],P:[0.63,0.0]};
 // ---- Aderência combinada (V3.6): espelho de modules/vehicle_combined.py
 function fyMaxEixoFx(v,e,vel,ay,fx){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=Math.max(e==='f'?g.fInt:g.rInt,0),b=Math.max(e==='f'?g.fExt:g.rExt,0),tot=a+b;if(tot<=0)return 0;let s=0;
- for(const fz of [a,b]){const x=fx*fz/tot,r=(mu*fz)*(mu*fz)-x*x;if(r<-1e-9)return null;s+=Math.sqrt(Math.max(r,0));}return s;}
+ const se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);for(const fz of [a,b]){const x=fx*fz/tot,me=muEf(mu,se,fz,zr),r=(me*fz)*(me*fz)-x*x;if(r<-1e-9)return null;s+=Math.sqrt(Math.max(r,0));}return s;}
 function ayLimiteFx(v,vel,fxF,fxR){v=latDefaults(v);latCheck(v);const G=9.80665,L=v.a+v.b;let lo=0,hi=8*G;
  if(fyMaxEixoFx(v,'f',vel,0,fxF||0)===null||fyMaxEixoFx(v,'r',vel,0,fxR||0)===null)return{ay:0,viavel:false};
  for(let i=0;i<80;i++){const ay=0.5*(lo+hi),mf=fyMaxEixoFx(v,'f',vel,ay,fxF||0),mr=fyMaxEixoFx(v,'r',vel,ay,fxR||0);const ok=mf!==null&&mr!==null&&v.m*ay*v.b/L<=mf&&v.m*ay*v.a/L<=mr;if(ok)lo=ay;else hi=ay;}

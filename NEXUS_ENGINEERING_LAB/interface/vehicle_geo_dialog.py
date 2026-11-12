@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, QFormLayout, QDoubleSpinBox, QPushButton,
                                QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QComboBox)
-from modules import tire_combined as TC, suspension as SU, vehicle_combined as VC, vehicle_lateral as VL, tire_fit as TF
+from modules import tire_combined as TC, suspension as SU, vehicle_combined as VC, vehicle_lateral as VL, tire_fit as TF, suspension3d as S3
 
 
 def _spin(v, lo, hi, dec=3, step=0.1):
@@ -34,12 +34,32 @@ class VehicleGeoDialog(QDialog):
         h.addWidget(QLabel("heave mín [m]")); h.addWidget(self.h0); h.addWidget(QLabel("máx [m]")); h.addWidget(self.h1)
         b2 = QPushButton("Resolver cinemática"); b2.clicked.connect(self.calc_susp); h.addWidget(b2); v.addLayout(h)
         self.out_s = QTextEdit(); self.out_s.setReadOnly(True); v.addWidget(self.out_s); tabs.addTab(w2, "Suspensão duplo-A")
+        # --- suspensão 3D (V3.8)
+        w6 = QWidget(); v6 = QVBoxLayout(w6)
+        v6.addWidget(QLabel("Hardpoints (x à frente, y para fora, z acima) em metros. Exemplo ILUSTRATIVO — informe os pontos do SEU carro."))
+        self.NOMES3 = ["LF", "LR", "B", "UF", "UR", "D", "T", "Tj", "W", "P"]
+        ex3 = S3.exemplo_ilustrativo(); self.tab3 = QTableWidget(len(self.NOMES3), 3); self.tab3.setHorizontalHeaderLabels(["x [m]", "y [m]", "z [m]"])
+        self.tab3.setVerticalHeaderLabels(["LF pivô inf. diant.", "LR pivô inf. tras.", "B rótula inf.", "UF pivô sup. diant.", "UR pivô sup. tras.", "D rótula sup.",
+                                           "T barra dir. (interna)", "Tj barra dir. (manga)", "W centro da roda", "P contato"])
+        for i, n in enumerate(self.NOMES3):
+            for j in range(3): self.tab3.setItem(i, j, QTableWidgetItem(f"{getattr(ex3, n)[j]:.4f}"))
+        v6.addWidget(self.tab3)
+        h6 = QHBoxLayout(); self.s3h = _spin(0.03, 0.001, 0.2, 3, 0.005); self.s3r = _spin(0.015, 0.0, 0.1, 3, 0.005)
+        self.s3fy = _spin(0.0, -1e5, 1e5, 0, 500); self.s3fx = _spin(0.0, -1e5, 1e5, 0, 500)
+        self.s3k = [_spin(0.0, -5, 5, 3, 0.01) for _ in range(3)]
+        for t, w in (("±heave [m]", self.s3h), ("curso cremalheira [m]", self.s3r), ("Fy [N]", self.s3fy), ("Fx [N]", self.s3fx),
+                     ("toe/Fy [°/kN]", self.s3k[0]), ("toe/Fx [°/kN]", self.s3k[1]), ("camber/Fy [°/kN]", self.s3k[2])):
+            h6.addWidget(QLabel(t)); h6.addWidget(w)
+        v6.addLayout(h6)
+        b6 = QPushButton("Resolver cinemática 3D (camber, toe, caster, KPI, trail, scrub, bump steer)"); b6.clicked.connect(self.calc_susp3d); v6.addWidget(b6)
+        self.out_s3 = QTextEdit(); self.out_s3.setReadOnly(True); v6.addWidget(self.out_s3); tabs.addTab(w6, "Suspensão 3D")
         # --- g-g
         w3 = QWidget(); f3 = QFormLayout(w3); ex = VL.exemplo_ilustrativo()
         self.gg = {k: _spin(getattr(ex, k), 0, 1e6, 3, 0.1) for k in ("m", "a", "b", "h", "tf", "tr", "c_f", "c_r", "mu_f", "mu_r")}
         self.gg["vel"] = _spin(30.0, 1, 120, 1, 1)
+        self.gg["sens_mu_f"] = _spin(0.0, 0, 0.8, 3, 0.05); self.gg["sens_mu_r"] = _spin(0.0, 0, 0.8, 3, 0.05)
         for k, t in (("m", "massa [kg]"), ("a", "CG→eixo diant. [m]"), ("b", "CG→eixo tras. [m]"), ("h", "altura do CG [m]"), ("tf", "bitola diant. [m]"), ("tr", "bitola tras. [m]"),
-                     ("c_f", "C_α por pneu diant. [N/rad]"), ("c_r", "C_α por pneu tras. [N/rad]"), ("mu_f", "μ diant."), ("mu_r", "μ tras."), ("vel", "velocidade [m/s]")):
+                     ("c_f", "C_α por pneu diant. [N/rad]"), ("c_r", "C_α por pneu tras. [N/rad]"), ("mu_f", "μ diant."), ("mu_r", "μ tras."), ("sens_mu_f", "sens. do μ à carga diant. (0 = μ constante)"), ("sens_mu_r", "sens. do μ à carga tras. (0 = μ constante)"), ("vel", "velocidade [m/s]")):
             f3.addRow(t, self.gg[k])
         b3 = QPushButton("Calcular diagrama g-g (ay máximo sob tração/frenagem)"); b3.clicked.connect(self.calc_gg); f3.addRow(b3)
         self.gg["pot"] = _spin(250000.0, 1, 5e6, 0, 10000); self.gg["cda"] = _spin(0.7, 0, 10, 3, 0.05)
@@ -89,6 +109,26 @@ class VehicleGeoDialog(QDialog):
             L.append(f"{r['heave_m']*1000:8.1f}  {r['camber_graus']:9.3f}  {r['delta_bitola_m']*1000:10.2f}  {rc:>6}  {fv:>7}")
         L.append("\nCinemática 2D (vista frontal), sem buchas/elastocinemática, sem caster/KPI. Classe ANALÍTICO.")
         self.out_s.setPlainText("\n".join(L))
+
+    def calc_susp3d(self):
+        try:
+            pts = {n: tuple(float(self.tab3.item(i, j).text()) for j in range(3)) for i, n in enumerate(self.NOMES3)}
+            s = S3.DuploA3D(**pts); h = self.s3h.value()
+            res = S3.analisar(s, h); der = S3.derivadas(s)
+            k = S3.CoefElasto(*[w.value() for w in self.s3k])
+            curva = [S3.com_elastocinematica(s, h * f, 0.0, self.s3fy.value(), self.s3fx.value(), k) for f in (-1, -0.5, 0, 0.5, 1)]
+            rk = S3.resolver_3d(s, 0.0, self.s3r.value())
+        except (ValueError, AttributeError) as e:
+            self.out_s3.setPlainText(f"ERRO: {e}"); return
+        v = res.valores
+        L = [f"Projeto: caster {v['caster_graus']:.2f}°  KPI {v['kpi_graus']:.2f}°  trail {v['trail_mecanico_m']*1000:.1f} mm  scrub {v['scrub_m']*1000:.1f} mm",
+             f"Camber gain {der['camber_gain_graus_por_m']/1000:.4f} °/mm   Bump steer {der['bump_steer_graus_por_m']/1000:.4f} °/mm (toe-in)   Razão de esterçamento {der['razao_esterco_graus_por_mm']:.4f} °/mm de cremalheira",
+             "", "heave[mm]  camber[°]  toe-in[°]  Δbitola[mm]  Δentre-eixos[mm]"]
+        for r in curva:
+            L.append(f"{r['heave_m']*1000:8.1f}  {r['camber_graus']:9.3f}  {r['toe_in_graus']:9.3f}  {r['delta_bitola_m']*1000:10.2f}  {r['delta_entre_eixos_m']*1000:12.2f}")
+        L.append(f"\nCurso da cremalheira {self.s3r.value()*1000:.1f} mm → esterço (Δtoe-in) {rk['toe_in_graus']:.2f}°, camber {rk['camber_graus']:.2f}°, caster {rk['caster_graus']:.2f}°")
+        L.append("Elastocinemática: LINEAR e SIMPLIFICADA — só os coeficientes que você digitou × forças (padrão 0); sem buchas. Classe ANALÍTICO (barras rígidas, rótulas ideais).")
+        self.out_s3.setPlainText("\n".join(L))
 
     def calc_gg(self, vel=None):
         try:

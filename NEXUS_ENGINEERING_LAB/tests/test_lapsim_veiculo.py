@@ -16,7 +16,14 @@ def test_sem_transferencia_e_sem_aero_reproduz_ponto_material():
 def test_sem_sensibilidade_do_mu_a_carga_a_transferencia_nao_muda_o_limite():
     base = lv.volta(_carro(), 300e3, 0.7, ds=4.0).valores["tempo_s"]
     alto = lv.volta(vl.VeiculoLateral(m=800, iz=1000, a=1.2, b=1.2, h=1.3, tf=0.8, tr=0.8, c_f=80000, c_r=80000, mu_f=1.3, mu_r=1.3), 300e3, 0.7, ds=4.0).valores["tempo_s"]
-    assert alto == pytest.approx(base, rel=1e-3)          # μ constante: soma de aderência por eixo é conservada, mesmo com roda levantando (sensibilidade de μ NÃO modelada)
+    assert alto == pytest.approx(base, rel=1e-3)          # μ constante: soma de aderência por eixo é conservada, mesmo com roda levantando (com sens_mu = 0)
+
+
+def test_com_sensibilidade_do_mu_a_transferencia_de_carga_deixa_a_volta_mais_lenta():
+    kw = dict(m=800, iz=1000, a=1.2, b=1.2, h=0.9, tf=0.8, tr=0.8, c_f=80000, c_r=80000, mu_f=1.3, mu_r=1.3)
+    t0 = lv.volta(vl.VeiculoLateral(**kw), 300e3, 0.7, ds=4.0).valores["tempo_s"]
+    t1 = lv.volta(vl.VeiculoLateral(sens_mu_f=0.25, sens_mu_r=0.25, **kw), 300e3, 0.7, ds=4.0).valores["tempo_s"]
+    assert t1 > t0 * 1.005
 
 
 def test_aderencia_e_potencia_monotonicas_e_validacao():

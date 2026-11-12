@@ -47,7 +47,9 @@ def test_pino_mestre_3d_analitico():
     P = (0.02, 0.62, 0.0); r = vc.pino_mestre_3d(B, D, P)
     assert r["caster_graus"] == pytest.approx(6, abs=1e-9) and r["kpi_graus"] == pytest.approx(8, abs=1e-9)
     t = -0.10 / h; gx = B[0] + t * (D[0] - B[0]); gy = B[1] + t * (D[1] - B[1])
-    assert r["trail_m"] == pytest.approx(P[0] - gx) and r["scrub_m"] == pytest.approx(P[1] - gy)
+    assert r["trail_m"] == pytest.approx(gx - P[0])
+    # sinal por construção: caster positivo (topo p/ trás) com contato exatamente sob a rótula inferior → interseção à frente → trail > 0
+    assert vc.pino_mestre_3d(B, D, (B[0], 0.62, 0.0))["trail_m"] > 0 and r["scrub_m"] == pytest.approx(P[1] - gy)
     with pytest.raises(ValueError): vc.pino_mestre_3d(B, (0, 0.5, 0.05), P)
 
 

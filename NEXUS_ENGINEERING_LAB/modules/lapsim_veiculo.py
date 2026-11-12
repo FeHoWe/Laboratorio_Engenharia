@@ -3,7 +3,7 @@
 
 Por velocidade e fração de ay usada, a aceleração/frenagem longitudinal máxima vem de uma TABELA pré-calculada (bissecção sobre `ay_limite_com_fx`)
 interpolada — o passo de pista é barato. Tração e frenagem repartidas entre eixos conforme `reparticao` (fração do esforço no eixo TRASEIRO; None = proporcional
-à carga estática). Com μ constante (sem sensibilidade à carga) a transferência LATERAL só reduz o limite quando uma roda levanta (Fz<0 → 0); a sensibilidade de μ à carga NÃO está modelada. Premissas: sem transferência longitudinal (arfagem), sem diferencial, potência e arrasto como `lapsim`. Classe SIMULACAO_NUMERICA (modelo simplificado).
+à carga estática). Com μ constante (sens_mu = 0, padrão) a transferência LATERAL não muda o limite (só uma roda levantando); com `sens_mu_f/r` > 0 (V3.8, modelo linear de μ(Fz), a ser alimentado por ensaio) a transferência de carga reduz o limite lateral. Premissas: sem transferência longitudinal (arfagem), sem diferencial, potência e arrasto como `lapsim`. Classe SIMULACAO_NUMERICA (modelo simplificado).
 LIMITES: parâmetros SEUS; pista exemplo SINTÉTICA; não valida contra dados de equipe.
 """
 from __future__ import annotations

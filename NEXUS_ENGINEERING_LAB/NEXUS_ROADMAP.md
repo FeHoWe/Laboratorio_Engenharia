@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V3.8
+Sensibilidade de μ à carga (linear), suspensão duplo-A 3D com elastocinemática linear, contato entre duas peças (caixa/cilindro/STEP) na interface.
+Também: internacionalização (menus + textos fixos dos diálogos em 5 idiomas; celular parcial). Restam: relatórios PDF, resultados calculados e o restante do celular (~540 textos já listados por `tools/extrair_textos_ui.py` e pela coleta no navegador); verificação do glossário em fontes externas; multibraço/pushrod/buchas, centro de rolagem 3D, μ(Fz) a partir de ensaio, contato em montagem arbitrária, validação do atrito CFD, Windows real.
+
 ## Próximos passos sugeridos (ordem)
 0. (V3.6 feita) CFD com camadas, g-g, ajuste CSV, laudo PDF, selos de referência.
 1. **Testar no Windows 11 real** (inclui o empacotamento `nexus.spec`, também nunca executado) (nada foi executado lá) e corrigir instalação/dependências.

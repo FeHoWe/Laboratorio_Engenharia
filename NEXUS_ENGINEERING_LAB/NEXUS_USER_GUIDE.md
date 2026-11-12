@@ -19,6 +19,13 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.8
+- **VEHICLE → aba Suspensão 3D**: digite os hardpoints (x à frente, y para fora, z acima) dos dois braços, barra de direção, roda e contato; veja caster, KPI, trail, scrub, camber gain, bump steer, razão de esterçamento e a tabela por heave. Os campos de Fy/Fx e °/kN aplicam elastocinemática LINEAR com os coeficientes que VOCÊ medir (zeros = desligado). Valores iniciais são ILUSTRATIVOS.
+- **VEHICLE → Aderência g-g**: campos *sens. do μ à carga* (0 = μ constante, comportamento antigo). Com valor > 0, a transferência de carga passa a reduzir o limite lateral; use o valor de ensaio do seu pneu. No celular: campos *Sensib. do μ* na aba Veículo.
+- **STRUCTURAL → Contato (2 peças)**: escolha caixa, cilindro ou arquivo STEP para a peça inferior e a superior (a superior é apoiada sobre a inferior em z), digite E e ν de cada uma, a força e o tamanho de elemento. O resultado traz o equilíbrio das reações (deve dar ~0 %) e a rigidez; aumente K até o resultado parar de mudar.
+- **Idiomas**: *Tools → Idioma / Language* (reinicie para aplicar). Traduzidos (inglês, espanhol, alemão, francês, chinês): menus, dicas e os textos fixos dos diálogos; no celular, abas, controles do visualizador e a aba Veículo (seletor no cabeçalho). Resultados calculados, relatórios PDF e o restante do celular seguem em português. Há ainda 10 idiomas só com o núcleo (menus e botões comuns; o resto em inglês): italiano, japonês, coreano, russo, turco, polonês, holandês, hindi, árabe e indonésio. Para contribuir com um idioma, copie `locales/en.json` para `locales/<código>.json` e traduza os valores.
+- Correção: o sinal do trail mecânico (`pino_mestre_3d`) estava invertido na V3.6.
+
 ## Novidades da V3.7
 - **VEHICLE → abas**: *CFD → Veículo* (usa o Cd do último resultado de CFD do projeto + a ÁREA REAL que você digita) e, em *Aderência g-g*, o botão de **volta com modelo de veículo** no circuito de exemplo SINTÉTICO.
 - **INTELLIGENCE → Fadiga do último resultado FEA…**: pede R, Su, Sy e Se corrigido (seus); usa o pico de von Mises do resultado. Cuidado com singularidades de malha.

@@ -64,3 +64,26 @@ def find(project, name):
             return n
     raise AssertionError(f"componente '{name}' não encontrado; existentes: "
                          f"{[n.name for n in project.components.all()]}")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Encerramento ordenado dos recursos nativos (V3.8). Um `malloc(): unaligned tcache chunk detected` apareceu UMA vez no encerramento do
+    interpretador (V3.7) e não reproduziu em execuções instrumentadas (MALLOC_CHECK_=3 + faulthandler: código 0). Esta limpeza — fechar janelas Qt,
+    esvaziar a fila de eventos, coletar o lixo e finalizar o Gmsh — é MITIGAÇÃO PLAUSÍVEL, não correção comprovada (a causa nunca foi vista)."""
+    import gc
+    try:
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is not None:
+            for w in list(app.topLevelWidgets()):
+                w.close(); w.deleteLater()
+            app.processEvents()
+    except Exception:
+        pass
+    try:
+        import gmsh
+        if gmsh.isInitialized():
+            gmsh.finalize()
+    except Exception:
+        pass
+    gc.collect()

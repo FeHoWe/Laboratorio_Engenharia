@@ -15,7 +15,8 @@ G = vl.G
 def fy_max_eixo_com_fx(v, eixo: str, vel: float, ay: float, fx_eixo: float) -> float | None:
     """Fy máx do eixo quando ele também transmite `fx_eixo` [N]. None se Fx excede o atrito (inviável)."""
     cg = vl.cargas_eixos(v, vel, ay)
-    mu = v.mu_f if eixo == "f" else v.mu_r
+    mu, sens = (v.mu_f, v.sens_mu_f) if eixo == "f" else (v.mu_r, v.sens_mu_r)
+    zr = vl.fz_ref_eixo(v, eixo)
     f1, f2 = (cg["f_int"], cg["f_ext"]) if eixo == "f" else (cg["r_int"], cg["r_ext"])
     f1, f2 = max(f1, 0.0), max(f2, 0.0); tot = f1 + f2
     if tot <= 0:
@@ -23,7 +24,8 @@ def fy_max_eixo_com_fx(v, eixo: str, vel: float, ay: float, fx_eixo: float) -> f
     s = 0.0
     for fz in (f1, f2):
         fx = fx_eixo * fz / tot
-        r = (mu * fz) ** 2 - fx * fx
+        me = vl.mu_efetivo(mu, sens, fz, zr)
+        r = (me * fz) ** 2 - fx * fx
         if r < -1e-9:
             return None
         s += math.sqrt(max(r, 0.0))
@@ -67,7 +69,7 @@ def rigidez_rolagem(k_mola_roda: float, bitola: float, k_barra: float = 0.0) -> 
 
 def pino_mestre_3d(B: tuple, D: tuple, P: tuple) -> dict:
     """Geometria estática do pino-mestre. Eixos: x à frente, y para fora, z acima. B = rótula inferior, D = superior, P = contato do pneu (z=0 típico).
-    caster [°] (+ = topo do eixo para TRÁS), KPI [°] (+ = topo para DENTRO), trail mecânico [m] (+ = contato atrás da interseção do eixo com o solo),
+    caster [°] (+ = topo do eixo para TRÁS), KPI [°] (+ = topo para DENTRO), trail mecânico [m] (+ = contato ATRÁS da interseção do eixo com o solo, i.e. interseção à frente do contato; CORRIGIDO na V3.8: sinal estava invertido),
     scrub [m] (+ = interseção do eixo com o solo DENTRO do contato)."""
     ax = [D[i] - B[i] for i in range(3)]
     if ax[2] <= 1e-9:
@@ -76,4 +78,4 @@ def pino_mestre_3d(B: tuple, D: tuple, P: tuple) -> dict:
     kpi = math.degrees(math.atan2(-ax[1], ax[2]))
     t = (P[2] - B[2]) / ax[2]
     gx, gy = B[0] + t * ax[0], B[1] + t * ax[1]
-    return {"caster_graus": caster, "kpi_graus": kpi, "trail_m": P[0] - gx, "scrub_m": P[1] - gy}
+    return {"caster_graus": caster, "kpi_graus": kpi, "trail_m": gx - P[0], "scrub_m": P[1] - gy}

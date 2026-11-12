@@ -32,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     app = QApplication(sys.argv[:1])
+    from core.i18n import instalar_hooks_qt
+    instalar_hooks_qt()              # traduz textos estáticos dos widgets conforme o idioma escolhido (ver core/i18n.py)
     app.setApplicationName("NEXUS ENGINEERING LAB")
     try:
         engine = CadEngine()

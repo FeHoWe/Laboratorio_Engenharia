@@ -36,13 +36,14 @@ def lat_check():
     from modules import vehicle_lateral as vl
     casos = [dict(m=1200, iz=1800, a=1.15, b=1.35, h=0.5, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.2, mu_r=1.2, cla=0.0),
              dict(m=800, iz=1100, a=1.6, b=1.9, h=0.3, tf=1.6, tr=1.5, c_f=90000, c_r=70000, mu_f=1.7, mu_r=1.5, cla=3.5, frac_dt_aero=0.45,
-                  k_roll_f=80000, k_roll_r=50000, h_rc_f=0.04, h_rc_r=0.09)]
+                  k_roll_f=80000, k_roll_r=50000, h_rc_f=0.04, h_rc_r=0.09),
+             dict(m=1200, iz=1800, a=1.15, b=1.35, h=0.55, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.3, mu_r=1.3, cla=1.5, sens_mu_f=0.15, sens_mu_r=0.25)]
     pontos = [(20.0, 120.0), (35.0, 80.0), (60.0, 150.0), (90.0, 40.0)]
     worst = 0.0
     for kw in casos:
         v = vl.VeiculoLateral(**kw)
         jv = dict(m=v.m, iz=v.iz, a=v.a, b=v.b, h=v.h, tf=v.tf, tr=v.tr, cF=v.c_f, cR=v.c_r, muF=v.mu_f, muR=v.mu_r, krF=v.k_roll_f, krR=v.k_roll_r,
-                  hRcF=v.h_rc_f, hRcR=v.h_rc_r, cla=v.cla, fracAero=v.frac_dt_aero)
+                  hRcF=v.h_rc_f, hRcR=v.h_rc_r, cla=v.cla, fracAero=v.frac_dt_aero, sensF=v.sens_mu_f, sensR=v.sens_mu_r)
         for vel, R in pontos:
             reg, lim, sp = vl.regime_curva(v, vel, R), vl.ay_limite(v, vel), vl.skidpad(v, R)
             js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const v=JSON.parse(process.argv[2]);const a=+process.argv[3],R=+process.argv[4];console.log(JSON.stringify({r:L.regimeCurva(v,a,R),l:L.ayLimite(v,a),s:L.skidpad(v,R)}));',
