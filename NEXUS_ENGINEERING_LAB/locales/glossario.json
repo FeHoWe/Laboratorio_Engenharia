@@ -1,0 +1,363 @@
+{
+ "_aviso": "Glossário técnico usado nas traduções. 'fonte' indica o que foi conferido em fonte externa; o restante vem do conhecimento do autor (IA) e NÃO foi verificado em fonte externa — revisar antes de uso crítico.",
+ "termos": {
+  "camber": {
+   "es": [
+    "caída"
+   ],
+   "de": [
+    "Sturz"
+   ],
+   "fr": [
+    "carrossage"
+   ],
+   "zh": [
+    "外倾角"
+   ],
+   "fonte": {
+    "fr": "techno-science.net (Géométrie de suspension); OQLF (angle de carrossage)"
+   }
+  },
+  "toe": {
+   "es": [
+    "convergencia"
+   ],
+   "de": [
+    "Spur"
+   ],
+   "fr": [
+    "pincement"
+   ],
+   "zh": [
+    "前束"
+   ],
+   "fonte": {
+    "fr": "techno-science.net (pincement/parallélisme)"
+   }
+  },
+  "caster": {
+   "es": [
+    "avance"
+   ],
+   "de": [
+    "Nachlauf"
+   ],
+   "fr": [
+    "chasse"
+   ],
+   "zh": [
+    "后倾角"
+   ],
+   "fonte": {
+    "fr": "techno-science.net (chasse)"
+   }
+  },
+  "KPI": {
+   "es": [
+    "ángulo de salida"
+   ],
+   "de": [
+    "Spreizung"
+   ],
+   "fr": [
+    "inclinaison du pivot"
+   ],
+   "zh": [
+    "内倾角"
+   ],
+   "fonte": {}
+  },
+  "trail": {
+   "es": [
+    "avance mecánico"
+   ],
+   "de": [
+    "Nachlaufstrecke"
+   ],
+   "fr": [
+    "traînée"
+   ],
+   "zh": [
+    "拖距"
+   ],
+   "fonte": {}
+  },
+  "scrub": {
+   "es": [
+    "radio de pivoteo"
+   ],
+   "de": [
+    "Lenkrollradius"
+   ],
+   "fr": [
+    "déport au sol"
+   ],
+   "zh": [
+    "偏移距"
+   ],
+   "fonte": {
+    "fr": "techno-science.net (déport de roue)"
+   }
+  },
+  "track width": {
+   "es": [
+    "ancho de vía"
+   ],
+   "de": [
+    "Spurweite"
+   ],
+   "fr": [
+    "voie"
+   ],
+   "zh": [
+    "轮距"
+   ],
+   "fonte": {
+    "fr": "techno-science.net (la voie)"
+   }
+  },
+  "roll center": {
+   "es": [
+    "centro de balanceo"
+   ],
+   "de": [
+    "Wankzentrum"
+   ],
+   "fr": [
+    "centre de roulis"
+   ],
+   "zh": [
+    "侧倾中心"
+   ],
+   "fonte": {}
+  },
+  "S-N": {
+   "es": [
+    "S-N"
+   ],
+   "de": [
+    "S-N"
+   ],
+   "fr": [
+    "S-N"
+   ],
+   "zh": [
+    "S-N"
+   ],
+   "fonte": {}
+  },
+  "Wöhler": {
+   "es": [
+    "Wöhler"
+   ],
+   "de": [
+    "Wöhler"
+   ],
+   "fr": [
+    "Wöhler"
+   ],
+   "zh": [
+    "Wöhler"
+   ],
+   "fonte": {
+    "es": "glossar.item24.com (curva Wöhler)",
+    "de": "glossar.item24.com (Wöhler-Kurve)"
+   }
+  },
+  "safety factor": {
+   "es": [
+    "coeficiente de seguridad"
+   ],
+   "de": [
+    "Sicherheitsfaktor"
+   ],
+   "fr": [
+    "coefficient de sécurité"
+   ],
+   "zh": [
+    "安全系数"
+   ],
+   "fonte": {}
+  },
+  "bill of materials": {
+   "es": [
+    "lista de materiales"
+   ],
+   "de": [
+    "Stückliste"
+   ],
+   "fr": [
+    "nomenclature"
+   ],
+   "zh": [
+    "物料清单"
+   ],
+   "fonte": {}
+  },
+  "fatigue": {
+   "es": [
+    "fatiga"
+   ],
+   "de": [
+    "Ermüdung"
+   ],
+   "fr": [
+    "fatigue"
+   ],
+   "zh": [
+    "疲劳"
+   ],
+   "fonte": {}
+  },
+  "tire": {
+   "es": [
+    "neumático"
+   ],
+   "de": [
+    "Reifen"
+   ],
+   "fr": [
+    "pneu"
+   ],
+   "zh": [
+    "轮胎"
+   ],
+   "fonte": {}
+  },
+  "lap": {
+   "es": [
+    "vuelta"
+   ],
+   "de": [
+    "Runde"
+   ],
+   "fr": [
+    "tour"
+   ],
+   "zh": [
+    "圈"
+   ],
+   "fonte": {}
+  },
+  "mesh": {
+   "es": [
+    "malla"
+   ],
+   "de": [
+    "Netz"
+   ],
+   "fr": [
+    "maillage"
+   ],
+   "zh": [
+    "网格"
+   ],
+   "fonte": {}
+  },
+  "yield": {
+   "es": [
+    "límite elástico"
+   ],
+   "de": [
+    "Streckgrenze"
+   ],
+   "fr": [
+    "limite d'élasticité"
+   ],
+   "zh": [
+    "屈服"
+   ],
+   "fonte": {}
+  },
+  "hardpoint": {
+   "es": [
+    "hardpoint"
+   ],
+   "de": [
+    "Hardpoint"
+   ],
+   "fr": [
+    "hardpoint"
+   ],
+   "zh": [
+    "硬点"
+   ],
+   "fonte": {}
+  },
+  "tie rod": {
+   "es": [
+    "barra de dirección"
+   ],
+   "de": [
+    "Spurstange"
+   ],
+   "fr": [
+    "biellette de direction"
+   ],
+   "zh": [
+    "横拉杆"
+   ],
+   "fonte": {}
+  },
+  "truss": {
+   "es": [
+    "celosía"
+   ],
+   "de": [
+    "Fachwerk"
+   ],
+   "fr": [
+    "treillis"
+   ],
+   "zh": [
+    "桁架"
+   ],
+   "fonte": {}
+  },
+  "frame": {
+   "es": [
+    "pórtico"
+   ],
+   "de": [
+    "Rahmen"
+   ],
+   "fr": [
+    "portique"
+   ],
+   "zh": [
+    "框架"
+   ],
+   "fonte": {}
+  },
+  "spring": {
+   "es": [
+    "resorte"
+   ],
+   "de": [
+    "Feder"
+   ],
+   "fr": [
+    "ressort"
+   ],
+   "zh": [
+    "弹簧"
+   ],
+   "fonte": {}
+  },
+  "contact": {
+   "es": [
+    "contacto"
+   ],
+   "de": [
+    "Kontakt"
+   ],
+   "fr": [
+    "contact"
+   ],
+   "zh": [
+    "接触"
+   ],
+   "fonte": {}
+  }
+ }
+}

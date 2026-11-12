@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QFileDia
                                QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QTableWidget,
                                QTableWidgetItem, QVBoxLayout, QDockWidget)
 
+from core.i18n import tr, idioma, idiomas_disponiveis, definir_idioma
 from core.cad_engine import CadEngine, environment_report
 from core.project_manager import PROJECT_FILTER, Project, ProjectError, ProjectManager
 from interface import styles
@@ -37,7 +38,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "3.4"
+APP_VERSION = "3.9"
 
 
 # --------------------------------------------------------------- console inferior
@@ -138,6 +139,7 @@ class MainWindow(QMainWindow):
     # ============================================================= criação da UI
     def _act(self, key: str, text: str, slot=None, shortcut: Optional[str] = None, icon: Optional[str] = None,
              tip: Optional[str] = None, checkable: bool = False, enabled: bool = True) -> QAction:
+        text, tip = tr(text), tr(tip)
         action = QAction(styles.make_icon(icon) if icon else None, text, self) if icon else QAction(text, self)
         if shortcut:
             action.setShortcut(QKeySequence(shortcut))
@@ -221,6 +223,10 @@ class MainWindow(QMainWindow):
           "Mapa dos cinco produtos do NEXUS e das funções reais de cada um, com estado honesto (pronto/parcial/planejado)")
         a("intelligence", "NEXUS INTELLIGENCE — interpretar resultados e revisar projeto…", lambda: self.show_intelligence(), "Ctrl+Shift+I", None,
           "Assistente técnico por regras: parecer sobre resultados, revisão de projeto, comparação e glossário (não inventa números)")
+        a("vehgeo", "NEXUS VEHICLE — Pneu combinado e suspensão…", lambda: self.show_vehgeo(), None, None,
+          "Força combinada Fx–Fy do pneu (escova) e cinemática de suspensão duplo-A (camber, bitola, centro de rolagem)")
+        a("nlfea", "NEXUS STRUCTURAL — Plasticidade, multimaterial e contato…", lambda: self.show_nlfea(), None, None,
+          "Barra elastoplástica, barras em série e blocos em contato no CalculiX real, com a solução analítica ao lado")
         a("clearfield", "Limpar mapa de tensões/pressão do visualizador", lambda: self.clear_field_map(), None, None,
           "Remove o mapa de cores (FEA/CFD) exibido no visualizador 3D e devolve as peças")
         a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
@@ -265,51 +271,59 @@ class MainWindow(QMainWindow):
     def _create_menus(self) -> None:
         A = self.actions_by_key
         bar = self.menuBar()
-        m = bar.addMenu("File")
-        pm = m.addMenu("Projetos predefinidos")
+        m = bar.addMenu(tr("File"))
+        pm = m.addMenu(tr("Projetos predefinidos"))
         for _p in all_projects():
             pm.addAction(A[f"proj_{_p.key}"])
         for k in ("new", "import", "open", "sample_engine", None, "save", "save_as", None, "export", "report_pdf", None, "quit"):
             m.addSeparator() if k is None else m.addAction(A[k])
-        m = bar.addMenu("Edit")
+        m = bar.addMenu(tr("Edit"))
         for k in ("select_all", "clear_selection", None, "rename", None, "history"):
             m.addSeparator() if k is None else m.addAction(A[k])
-        m = bar.addMenu("View")
+        m = bar.addMenu(tr("View"))
         for k in ("fit", "fit_selection", None):
             m.addSeparator() if k is None else m.addAction(A[k])
-        views = m.addMenu("Vistas")
+        views = m.addMenu(tr("Vistas"))
         group = QActionGroup(self)
         for k in ("front", "back", "left", "right", "top", "bottom", "iso"):
             views.addAction(A[f"view_{k}"])
         m.addAction(A["perspective"])
         m.addAction(A["edges"])
         self.view_menu = m
-        m = bar.addMenu("Assembly")
+        m = bar.addMenu(tr("Assembly"))
         for k in ("split", "undo_split", None, "group", "ungroup", None, "restore"):
             m.addSeparator() if k is None else m.addAction(A[k])
-        m = bar.addMenu("Explode")
+        m = bar.addMenu(tr("Explode"))
         for k in ("explode_all", "explode_group", "separate_part", None, "restore"):
             m.addSeparator() if k is None else m.addAction(A[k])
-        m = bar.addMenu("Components")
+        m = bar.addMenu(tr("Components"))
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
-        m = bar.addMenu("Analyze")
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        m = bar.addMenu(tr("Analyze"))
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "vehgeo", "nlfea", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
             m.addAction(A[k])
-        self.scenes_menu = bar.addMenu("Scenes")
+        self.scenes_menu = bar.addMenu(tr("Scenes"))
         self.scenes_menu.aboutToShow.connect(self._fill_scenes_menu)
-        m = bar.addMenu("Simulation")
+        m = bar.addMenu(tr("Simulation"))
         for k in ("sim_motion", "sim_materials", "sim_fem", "sim_thermal"):
             m.addAction(A[k])
-        m = bar.addMenu("Tools")
+        m = bar.addMenu(tr("Tools"))
         for k in ("environment", "assistant"):
             m.addAction(A[k])
-        m = bar.addMenu("Help")
+        lm = m.addMenu(tr("Idioma / Language")); grp = QActionGroup(self); grp.setExclusive(True)
+        for cod, nome in idiomas_disponiveis().items():
+            ac = QAction(nome, self, checkable=True); ac.setChecked(cod == idioma()); grp.addAction(ac); lm.addAction(ac)
+            ac.triggered.connect(lambda _=False, c=cod: self._muda_idioma(c))
+        m = bar.addMenu(tr("Help"))
         for k in ("quick_guide", "about"):
             m.addAction(A[k])
+
+    def _muda_idioma(self, cod: str) -> None:
+        definir_idioma(cod)
+        QMessageBox.information(self, "NEXUS", tr("Idioma alterado. Reinicie o NEXUS para aplicar em todos os menus."))
 
     def _create_docks_and_toolbars(self) -> None:
         self.main_toolbar = build_main_toolbar(self, self.actions_by_key)
@@ -857,6 +871,14 @@ class MainWindow(QMainWindow):
     def show_hub(self) -> None:
         from interface.hub_dialog import HubDialog
         HubDialog(self).exec()
+
+    def show_nlfea(self) -> None:
+        from interface.nl_dialog import NLDialog
+        NLDialog(self).exec()
+
+    def show_vehgeo(self) -> None:
+        from interface.vehicle_geo_dialog import VehicleGeoDialog
+        VehicleGeoDialog(self).exec()
 
     def show_intelligence(self) -> None:
         from interface.hub_dialog import IntelligenceDialog

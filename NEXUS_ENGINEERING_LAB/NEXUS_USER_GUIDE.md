@@ -19,6 +19,38 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V3.9
+- **Relatórios PDF no seu idioma**: o PDF do projeto e o laudo de resultados saem em inglês, espanhol, alemão, francês ou chinês, conforme *Tools → Idioma / Language*. Classes de resultado, números e unidades não mudam. Chinês/japonês/coreano precisam de fonte CJK no leitor de PDF (não vai embutida). O parecer automático e as premissas dos módulos continuam em português.
+- **Celular**: calculadoras e telas principais traduzidas (en, es, de, fr, zh); nomes de peças, circuitos e modelos continuam em português.
+- **Italiano, japonês, coreano, russo, turco, polonês, holandês, hindi, árabe e indonésio** agora traduzem também os diálogos (não só os menus). Traduções feitas por IA e não revisadas por nativos: revise antes de usar em documento crítico.
+
+## Novidades da V3.8
+- **VEHICLE → aba Suspensão 3D**: digite os hardpoints (x à frente, y para fora, z acima) dos dois braços, barra de direção, roda e contato; veja caster, KPI, trail, scrub, camber gain, bump steer, razão de esterçamento e a tabela por heave. Os campos de Fy/Fx e °/kN aplicam elastocinemática LINEAR com os coeficientes que VOCÊ medir (zeros = desligado). Valores iniciais são ILUSTRATIVOS.
+- **VEHICLE → Aderência g-g**: campos *sens. do μ à carga* (0 = μ constante, comportamento antigo). Com valor > 0, a transferência de carga passa a reduzir o limite lateral; use o valor de ensaio do seu pneu. No celular: campos *Sensib. do μ* na aba Veículo.
+- **STRUCTURAL → Contato (2 peças)**: escolha caixa, cilindro ou arquivo STEP para a peça inferior e a superior (a superior é apoiada sobre a inferior em z), digite E e ν de cada uma, a força e o tamanho de elemento. O resultado traz o equilíbrio das reações (deve dar ~0 %) e a rigidez; aumente K até o resultado parar de mudar.
+- **Idiomas**: *Tools → Idioma / Language* (reinicie para aplicar). Traduzidos (inglês, espanhol, alemão, francês, chinês): menus, dicas e os textos fixos dos diálogos; no celular, abas, controles do visualizador e a aba Veículo (seletor no cabeçalho). Resultados calculados, relatórios PDF e o restante do celular seguem em português. Há ainda 10 idiomas só com o núcleo (menus e botões comuns; o resto em inglês): italiano, japonês, coreano, russo, turco, polonês, holandês, hindi, árabe e indonésio. Para contribuir com um idioma, copie `locales/en.json` para `locales/<código>.json` e traduza os valores.
+- Correção: o sinal do trail mecânico (`pino_mestre_3d`) estava invertido na V3.6.
+
+## Novidades da V3.7
+- **VEHICLE → abas**: *CFD → Veículo* (usa o Cd do último resultado de CFD do projeto + a ÁREA REAL que você digita) e, em *Aderência g-g*, o botão de **volta com modelo de veículo** no circuito de exemplo SINTÉTICO.
+- **INTELLIGENCE → Fadiga do último resultado FEA…**: pede R, Su, Sy e Se corrigido (seus); usa o pico de von Mises do resultado. Cuidado com singularidades de malha.
+- **Por API**: `sketch.resolver([...])` (solver de restrições), `calculix_nl.contato_automatico(malha, regioes, mestre, escravo, folga, K)`.
+- **CFD**: `y_mais_alvo` (ex.: 40) com camadas dimensiona a 1ª camada para a lei da parede. Veja `NEXUS_CFD_PLATE_STUDY.md`.
+- Correção: carga do eixo com roda levantando (modelo lateral).
+
+## Novidades da V3.6
+- **Menu Analyze → NEXUS STRUCTURAL — Plasticidade, multimaterial e contato…**: três casos prontos com CalculiX real e a solução analítica ao lado. Digite SEUS materiais.
+- **NEXUS VEHICLE** ganhou abas *Aderência g-g* e *Ajuste de pneu (CSV)* (colunas `alpha_graus,fz_N,fy_N` MEDIDAS; se não houver pontos perto da saturação o μ NÃO é identificável e a tela avisa).
+- **INTELLIGENCE**: *Relatório PDF de resultados*, *Laudo simplificado PDF* (estimativa de engenharia, não homologação) e *Selos de referência* (coerência com a teoria; NÃO é validação).
+- **CFD**: campo *Camadas prismáticas*. O log agora classifica o resíduo (CONVERGIDO/DECAINDO/ESTAGNADO/DIVERGINDO). O atrito continua ESTIMADO.
+- **Por API Python**: `fatigue_fea.avaliar`, `vehicle_combined.pino_mestre_3d`/`rigidez_rolagem`, `integracao.veiculo_com_cfd`, sketch com `rrect`/`slot`/`restringir`.
+- **Empacotamento Windows**: `tools\empacotar_windows.bat` (NÃO testado). Envie o resultado se tentar.
+
+## Novidades da V3.5
+- **Sketch e booleanas (CAD)**: em *Solvers… → Histórico paramétrico*, adicione `sketch_extrude` (abre o editor de sketch: retângulo, círculo, polígono; um perfil dentro de outro vira furo; planos XY/XZ/YZ com deslocamento) ou `boolean` (união, corte, interseção com caixa, cilindro, esfera ou arquivo STEP). Perfis que se cruzam ou têm área zero são recusados com mensagem.
+- **Pneu combinado e suspensão (VEHICLE)**: menu Analyze → *NEXUS VEHICLE — Pneu combinado e suspensão…* (e aba *Veículo* no celular). Valores iniciais são ILUSTRATIVOS; digite os do seu carro. O pneu respeita o círculo de atrito μ·Fz. A suspensão é duplo-A em vista frontal 2D (camber, Δbitola, centro de rolagem), sem elastocinemática.
+- **Plasticidade, multimaterial e contato (STRUCTURAL)**: por enquanto pela API Python (`modules/calculix_nl.py`; veja `tests/test_calculix_nl.py` como exemplo): `curva_bilinear`, `write_inp_nl(... materiais, regioes, contato ...)`, `run_nl`. Os materiais são SEMPRE informados por você. Contato por penalidade: aumente K até o resultado parar de mudar e trave o movimento de corpo rígido de blocos que só se tocam.
+
 ## Resultados no visualizador 3D (V3.2)
 - FEA: rode o estudo (síncrono ou isolado) e clique em *Mostrar mapa de tensões (von Mises)…*; o diálogo fecha e o mapa aparece no 3D com barra de cores. *Limpar mapa…* (menu) restaura as peças. Tet10: valor nodal suavizado; Tet4: média por elemento.
 - CFD: *Solvers… → CFD — OpenFOAM*; escolha peça ou STL, ajuste malha/iterações e execute. Acompanhe o progresso, cancele se quiser; depois *Mostrar Cp no corpo*. Resultado NÃO é validado sem Cd de referência com fonte.

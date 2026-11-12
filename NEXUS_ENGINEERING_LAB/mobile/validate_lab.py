@@ -36,13 +36,14 @@ def lat_check():
     from modules import vehicle_lateral as vl
     casos = [dict(m=1200, iz=1800, a=1.15, b=1.35, h=0.5, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.2, mu_r=1.2, cla=0.0),
              dict(m=800, iz=1100, a=1.6, b=1.9, h=0.3, tf=1.6, tr=1.5, c_f=90000, c_r=70000, mu_f=1.7, mu_r=1.5, cla=3.5, frac_dt_aero=0.45,
-                  k_roll_f=80000, k_roll_r=50000, h_rc_f=0.04, h_rc_r=0.09)]
+                  k_roll_f=80000, k_roll_r=50000, h_rc_f=0.04, h_rc_r=0.09),
+             dict(m=1200, iz=1800, a=1.15, b=1.35, h=0.55, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.3, mu_r=1.3, cla=1.5, sens_mu_f=0.15, sens_mu_r=0.25)]
     pontos = [(20.0, 120.0), (35.0, 80.0), (60.0, 150.0), (90.0, 40.0)]
     worst = 0.0
     for kw in casos:
         v = vl.VeiculoLateral(**kw)
         jv = dict(m=v.m, iz=v.iz, a=v.a, b=v.b, h=v.h, tf=v.tf, tr=v.tr, cF=v.c_f, cR=v.c_r, muF=v.mu_f, muR=v.mu_r, krF=v.k_roll_f, krR=v.k_roll_r,
-                  hRcF=v.h_rc_f, hRcR=v.h_rc_r, cla=v.cla, fracAero=v.frac_dt_aero)
+                  hRcF=v.h_rc_f, hRcR=v.h_rc_r, cla=v.cla, fracAero=v.frac_dt_aero, sensF=v.sens_mu_f, sensR=v.sens_mu_r)
         for vel, R in pontos:
             reg, lim, sp = vl.regime_curva(v, vel, R), vl.ay_limite(v, vel), vl.skidpad(v, R)
             js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const v=JSON.parse(process.argv[2]);const a=+process.argv[3],R=+process.argv[4];console.log(JSON.stringify({r:L.regimeCurva(v,a,R),l:L.ayLimite(v,a),s:L.skidpad(v,R)}));',
@@ -52,6 +53,34 @@ def lat_check():
             if not reg["saturado"]:
                 pairs += [(reg["delta"], js["r"]["delta"]), (reg["beta"], js["r"]["beta"]), (reg["k_subesterco"], js["r"]["kSub"])]
             worst = max(worst, max(abs(a - b) / max(abs(a), 1e-9) for a, b in pairs))
+    return worst
+
+
+def tire_susp_check():
+    """Paridade JS × Python do pneu combinado e da suspensão duplo-A."""
+    from modules import tire_combined as tc, suspension as su
+    worst = 0.0
+    pts = [(0.0, 0.05, 4000, 60000, 80000, 1.5), (0.08, 0.07, 4000, 60000, 80000, 1.5), (-0.3, 0.1, 3000, 50000, 90000, 1.2), (0.5, -0.2, 5000, 70000, 70000, 1.8), (0.02, 0.0, 0, 1, 1, 1)]
+    ex = su.exemplo_ilustrativo(); sj = {n: list(getattr(ex, n)) for n in "ABCDWP"}
+    hs = [-0.03, -0.01, 0.0, 0.015, 0.03]
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const P=JSON.parse(process.argv[2]),S=JSON.parse(process.argv[3]),H=JSON.parse(process.argv[4]);console.log(JSON.stringify({t:P.map(p=>L.forcaCombinada(...p)),s:H.map(h=>L.suspResolver(S,h))}));',
+                                     str(ROOT / 'mobile' / 'lab.js'), json.dumps(pts), json.dumps(sj), json.dumps(hs)]))
+    for p, j in zip(pts, js["t"]):
+        r = tc.forca_combinada(*p)
+        worst = max(worst, *(abs(a - b) / max(abs(a), 1.0) for a, b in zip(r, j)))
+    for h, j in zip(hs, js["s"]):
+        r = su.resolver(ex, h)
+        worst = max(worst, abs(r["camber_graus"] - j["camber"]) / max(abs(r["camber_graus"]), 1e-3), abs(r["delta_bitola_m"] - j["dBitola"]) / 1e-3,
+                    abs(r["RC_altura_m"] - j["RC"]) / 1e-3, abs(r["FVSA_m"] - j["FVSA"]) / 1e-3)
+    from modules import vehicle_combined as vc, vehicle_lateral as vl
+    ex = vl.exemplo_ilustrativo()
+    jv = dict(m=ex.m, iz=ex.iz, a=ex.a, b=ex.b, h=ex.h, tf=ex.tf, tr=ex.tr, cF=ex.c_f, cR=ex.c_r, muF=ex.mu_f, muR=ex.mu_r, krF=ex.k_roll_f, krR=ex.k_roll_r,
+              hRcF=ex.h_rc_f, hRcR=ex.h_rc_r, cla=ex.cla, fracAero=ex.frac_dt_aero)
+    jg = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);console.log(JSON.stringify(L.diagramaGG(JSON.parse(process.argv[2]),+process.argv[3],13,0.5)));',
+                                             str(ROOT / 'mobile' / 'lab.js'), json.dumps(jv), '30']))
+    for (axp, ayp), (axj, ayj) in zip(vc.diagrama_gg(ex, 30.0, 13), jg):
+        assert (ayp is None) == (ayj is None), (axp, ayp, ayj)
+        if ayp is not None: worst = max(worst, abs(ayp - ayj) / max(abs(ayp), 1e-3))
     return worst
 
 
@@ -189,6 +218,8 @@ def main():
     print(f"veículo RK4: erro relativo máx JS×Python {ve:.2e}")
     ae = lat_check()
     print(f"dinâmica lateral (bicicleta, escova, transferência de carga): erro relativo máx JS×Python {ae:.2e}")
+    te = tire_susp_check()
+    print(f"pneu combinado + suspensão duplo-A: erro relativo máx JS×Python {te:.2e}")
     le = lap_check()
     print(f"F1 volta + massa/CG/inércia: erro relativo máx JS×Python {le:.2e}")
     fe, same = fea_check()
@@ -197,7 +228,7 @@ def main():
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
     ib, n_i = intel_check()
     print(f"NEXUS INTELLIGENCE (fator de segurança): {n_i - ib}/{n_i} casos idênticos JS×Python")
-    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or te > 1e-9 or le > 1e-9 or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()

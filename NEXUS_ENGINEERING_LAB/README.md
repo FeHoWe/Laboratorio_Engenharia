@@ -1,8 +1,11 @@
-# NEXUS ENGINEERING LAB — V3.4
+# NEXUS ENGINEERING LAB — V3.9
 
 Laboratório digital de engenharia para Windows: importa modelos CAD, identifica a estrutura
 (montagens, grupos, peças, sólidos), mostra em 3D, faz **desmontagem virtual (explosão)** e
 mostra propriedades calculadas da geometria real.
+
+## Idiomas
+16 idiomas (pt, en, es, de, fr, zh + it, ja, ko, ru, tr, pl, nl, hi, ar, id) em *Tools → Idioma / Language*. Menus e diálogos: todos; relatórios PDF: pt/en/es/de/fr/zh; celular: pt/en/es/de/fr/zh. Traduções feitas por IA, não revisadas por nativos (ver `CHANGELOG.md`, V3.9).
 
 ## Como rodar (Windows)
 1. Instale Python 3.10+ (marque "Add to PATH").

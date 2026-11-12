@@ -9,10 +9,10 @@ geométricos (por eixo ou 'all'); se uma edição a montante mudar a topologia, 
 from __future__ import annotations
 import json, math, time
 from pathlib import Path
-from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform, BRepBuilderAPI_GTransform
 from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet, BRepFilletAPI_MakeChamfer
-from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeSphere
 from OCP.BRepAdaptor import BRepAdaptor_Curve
 from OCP.BRepCheck import BRepCheck_Analyzer
 from OCP.GeomAbs import GeomAbs_Line
@@ -25,7 +25,11 @@ from .fea_voxel import exact_volume
 
 OPS = {"translate": ["dx", "dy", "dz"], "rotate": ["px", "py", "pz", "ax", "ay", "az", "angle_deg"], "scale": ["factor"],
        "hole": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth"], "box_cut": ["x0", "y0", "z0", "x1", "y1", "z1"],
-       "box_add": ["x0", "y0", "z0", "x1", "y1", "z1"], "fillet": ["radius"], "chamfer": ["distance"]}
+       "box_add": ["x0", "y0", "z0", "x1", "y1", "z1"], "fillet": ["radius"], "chamfer": ["distance"],
+       "sketch_extrude": ["sketch", "distance", "mode"],
+       "boolean": ["mode", "tool", "x", "y", "z", "a", "b", "c"]}
+BOOL_MODES = ("union", "cut", "common")
+BOOL_TOOLS = ("box", "cylinder", "sphere", "step")
 
 
 class CadHistoryError(Exception):
@@ -89,7 +93,40 @@ def _apply(shape, op):
         mk.Build()
         if not mk.IsDone(): raise CadHistoryError(f"{t} falhou (raio/distância grande demais para a geometria)")
         return mk.Shape()
+    if t == "sketch_extrude":
+        from .sketch2d import Sketch, SketchError
+        if p["mode"] not in ("add", "cut"):
+            raise CadHistoryError("sketch_extrude: mode deve ser 'add' ou 'cut'")
+        try:
+            s = Sketch.from_dict(p["sketch"]).extrude(p["distance"])
+        except SketchError as e:
+            raise CadHistoryError(f"sketch inválido: {e}")
+        return _bool((BRepAlgoAPI_Fuse if p["mode"] == "add" else BRepAlgoAPI_Cut)(shape, s))
+    if t == "boolean":
+        if p["mode"] not in BOOL_MODES or p["tool"] not in BOOL_TOOLS:
+            raise CadHistoryError(f"boolean: mode ∈ {BOOL_MODES}, tool ∈ {BOOL_TOOLS}")
+        tool = _bool_tool(p)
+        return _bool({"union": BRepAlgoAPI_Fuse, "cut": BRepAlgoAPI_Cut, "common": BRepAlgoAPI_Common}[p["mode"]](shape, tool))
     raise CadHistoryError(f"operação desconhecida: {t}")
+
+
+def _bool_tool(p):
+    """Corpo-ferramenta: box (a,b,c = dx,dy,dz a partir de x,y,z); cylinder (a=diâmetro, b=comprimento, eixo p['axis']∈x/y/z, padrão z);
+    sphere (a=raio, centro x,y,z); step (arquivo p['path'], deslocado por x,y,z)."""
+    t = p["tool"]; o = gp_Pnt(p["x"], p["y"], p["z"])
+    if t == "box":
+        if min(p["a"], p["b"], p["c"]) <= 0: raise CadHistoryError("caixa-ferramenta degenerada")
+        return BRepPrimAPI_MakeBox(o, p["a"], p["b"], p["c"]).Shape()
+    if t == "cylinder":
+        if p["a"] <= 0 or p["b"] <= 0: raise CadHistoryError("cilindro-ferramenta: diâmetro e comprimento > 0")
+        d = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}[p.get("axis", "z")]
+        return BRepPrimAPI_MakeCylinder(gp_Ax2(o, gp_Dir(*d)), p["a"] / 2, p["b"]).Shape()
+    if t == "sphere":
+        if p["a"] <= 0: raise CadHistoryError("esfera-ferramenta: raio > 0")
+        return BRepPrimAPI_MakeSphere(o, p["a"]).Shape()
+    s = load_step(p["path"])
+    tr = gp_Trsf(); tr.SetTranslation(gp_Vec(p["x"], p["y"], p["z"]))
+    return BRepBuilderAPI_Transform(s, tr, True).Shape()
 
 
 def _bool(alg):
@@ -104,6 +141,8 @@ class CadHistory:
 
     # --- edição
     def add(self, type_, **params):
+        if type_ == "boolean":
+            params.setdefault("b", 0.0); params.setdefault("c", 0.0)         # só caixa/cilindro usam b/c
         missing = [k for k in OPS[type_] if k not in params and not (type_ in ("fillet", "chamfer") and k in ())]
         if type_ not in OPS: raise CadHistoryError("operação desconhecida")
         if missing: raise CadHistoryError(f"parâmetros faltando: {missing}")

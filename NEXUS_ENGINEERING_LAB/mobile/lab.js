@@ -366,15 +366,18 @@ function f1Check(season,meas,massLimit){return F1_REGS.filter(r=>r[5].includes(s
  let st;if(lim==null)st='LIMITE_NAO_VERIFICADO';else if(v==null)st='SEM_MEDIDA';else st=(r[3]==='<='?v<=lim+1e-9:v>=lim-1e-9)?'CONFORME':'NAO_CONFORME';return{rule:r[0],title:r[1],field:r[2],op:r[3],limit:lim,value:v==null?null:v,status:st,src:r[6]};});}
 // ---- Dinâmica lateral (V3.0): espelho de modules/vehicle_lateral.py (bicicleta + pneu de escova + transferência de carga)
 function latCheck(v){for(const k of ['m','iz','a','b','h','tf','tr','cF','cR','muF','muR','krF','krR']){if(!(v[k]>0&&isFinite(v[k])))throw new Error("parâmetro '"+k+"' deve ser positivo e finito");}
- if(v.cla<0||v.fracAero<0||v.fracAero>1)throw new Error('ClA ≥ 0 e fração aerodinâmica em [0,1]');if(v.hRcF<0||v.hRcR<0)throw new Error('altura do centro de rolagem não pode ser negativa');}
-function latDefaults(v){return Object.assign({cla:0,fracAero:0.5,rho:1.225,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08},v);}
-function pneuFy(al,fz,c,mu){if(fz<=0)return 0;const th=c/(3*mu*fz),s=Math.abs(al)<Math.PI/2-1e-9?Math.abs(Math.tan(al)):1e9,x=th*s;const f=x<1?mu*fz*(3*x-3*x*x+x*x*x):mu*fz;return al<0?-f:f;}
+ if(v.cla<0||v.fracAero<0||v.fracAero>1)throw new Error('ClA ≥ 0 e fração aerodinâmica em [0,1]');if(v.hRcF<0||v.hRcR<0)throw new Error('altura do centro de rolagem não pode ser negativa');if(!(v.sensF>=0&&v.sensF<=0.8&&v.sensR>=0&&v.sensR<=0.8))throw new Error('sensibilidade do μ à carga deve estar em [0, 0.8]');}
+function latDefaults(v){return Object.assign({cla:0,fracAero:0.5,rho:1.225,krF:60000,krR:40000,hRcF:0.05,hRcR:0.08,sensF:0,sensR:0},v);}
+function muEf(mu,sens,fz,zr){if(!sens||zr<=0)return mu;return mu*Math.max(1-sens*(fz/zr-1),0.2);}
+function fzRef(v,e){return v.m*9.80665*(e==='f'?v.b:v.a)/(v.a+v.b)/2;}
+function pneuFy(al,fz,c,mu,sens,zr){if(fz<=0)return 0;mu=muEf(mu,sens||0,fz,zr||0);const th=c/(3*mu*fz),s=Math.abs(al)<Math.PI/2-1e-9?Math.abs(Math.tan(al)):1e9,x=th*s;const f=x<1?mu*fz*(3*x-3*x*x+x*x*x):mu*fz;return al<0?-f:f;}
 function latCargas(v,vel,ay){const G=9.80665,L=v.a+v.b,df=0.5*v.rho*v.cla*vel*vel,fzf0=v.m*G*v.b/L+df*v.fracAero,fzr0=v.m*G*v.a/L+df*(1-v.fracAero);
  const hrc=(v.hRcF*v.b+v.hRcR*v.a)/L,hr=v.h-hrc,mr=v.m*ay*hr,kt=v.krF+v.krR;
  const dzf=(v.m*ay*(v.b/L)*v.hRcF+mr*v.krF/kt)/v.tf,dzr=(v.m*ay*(v.a/L)*v.hRcR+mr*v.krR/kt)/v.tr;
- return{fInt:fzf0/2+dzf,fExt:fzf0/2-dzf,rInt:fzr0/2+dzr,rExt:fzr0/2-dzr,dzf,dzr,fzf:fzf0,fzr:fzr0};}
-function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return pneuFy(al,Math.max(a,0),c,mu)+pneuFy(al,Math.max(b,0),c,mu);}
-function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt;return mu*(Math.max(a,0)+Math.max(b,0));}
+ const par=(z,d)=>{const a=z/2+d,b=z/2-d;return d>=0?[Math.min(a,z),Math.max(b,0)]:[Math.max(a,0),Math.min(b,z)];};const pf=par(fzf0,dzf),pr=par(fzr0,dzr);
+ return{fInt:pf[0],fExt:pf[1],rInt:pr[0],rExt:pr[1],dzf,dzr,fzf:fzf0,fzr:fzr0};}
+function fyEixo(v,e,al,vel,ay){const g=latCargas(v,vel,ay),c=e==='f'?v.cF:v.cR,mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt,se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);return pneuFy(al,Math.max(a,0),c,mu,se,zr)+pneuFy(al,Math.max(b,0),c,mu,se,zr);}
+function fyMaxEixo(v,e,vel,ay){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=e==='f'?g.fInt:g.rInt,b=e==='f'?g.fExt:g.rExt,se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);return [Math.max(a,0),Math.max(b,0)].reduce((t,z)=>t+muEf(mu,se,z,zr)*z,0);}
 function alphaForca(v,e,req,vel,ay){if(req>fyMaxEixo(v,e,vel,ay)*(1-1e-9))return null;let lo=0,hi=60*Math.PI/180;if(fyEixo(v,e,hi,vel,ay)<req)return null;
  for(let i=0;i<80;i++){const m=0.5*(lo+hi);if(fyEixo(v,e,m,vel,ay)<req)lo=m;else hi=m;}return 0.5*(lo+hi);}
 function regimeCurva(v0,vel,raio){const v=latDefaults(v0);latCheck(v);if(!(vel>0&&raio>0))throw new Error('velocidade e raio devem ser positivos');
@@ -389,7 +392,36 @@ function ayLimite(v0,vel){const v=latDefaults(v0);latCheck(v);const G=9.80665,L=
 function skidpad(v0,raio){const v=latDefaults(v0);if(!(raio>0))throw new Error('raio deve ser positivo');const G=9.80665;let vel=Math.sqrt(0.5*G*raio);
  for(let i=0;i<200;i++){const a=ayLimite(v,vel).ay,vn=Math.sqrt(a*raio);if(Math.abs(vn-vel)<1e-9){vel=vn;break;}vel=0.5*(vel+vn);}
  const r=ayLimite(v,vel);return{v:vel,vKmh:vel*3.6,ayG:r.ayG,limite:r.limite,tVolta:2*Math.PI*raio/vel};}
-const LAB={lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+// ---- Pneu combinado e suspensão duplo-A (V3.5): espelho de modules/tire_combined.py e modules/suspension.py
+function forcaCombinada(kappa,alpha,fz,cA,cK,mu){if(fz<=0)return[0,0];const k=Math.max(kappa,-0.999),sx=k/(1+k),sy=(Math.abs(alpha)<Math.PI/2-1e-9?Math.tan(alpha):(alpha<0?-1:1)*1e9)/(1+k);
+ const nx=cK*sx/(3*mu*fz),ny=cA*sy/(3*mu*fz),s=Math.hypot(nx,ny);if(s===0)return[0,0];const f=mu*fz*(s<1?(3*s-3*s*s+s*s*s):1);return[f*nx/s,f*ny/s];}
+function _sd(p,q){return Math.hypot(p[0]-q[0],p[1]-q[1]);}
+function _sCirc(c1,r1,c2,r2,ref){const d=_sd(c1,c2);if(d<1e-12||d>r1+r2+1e-12||d<Math.abs(r1-r2)-1e-12)return null;const a=(r1*r1-r2*r2+d*d)/(2*d),h=Math.sqrt(Math.max(r1*r1-a*a,0)),mx=c1[0]+a*(c2[0]-c1[0])/d,my=c1[1]+a*(c2[1]-c1[1])/d;
+ const s1=[mx+h*(c2[1]-c1[1])/d,my-h*(c2[0]-c1[0])/d],s2=[mx-h*(c2[1]-c1[1])/d,my+h*(c2[0]-c1[0])/d];return _sd(s1,ref)<=_sd(s2,ref)?s1:s2;}
+function _sPose(s,th){const ab=_sd(s.A,s.B),th0=Math.atan2(s.B[1]-s.A[1],s.B[0]-s.A[0]),B=[s.A[0]+ab*Math.cos(th0+th),s.A[1]+ab*Math.sin(th0+th)];
+ const D=_sCirc(s.C,_sd(s.C,s.D),B,_sd(s.B,s.D),s.D);if(!D)return null;const a0=Math.atan2(s.D[1]-s.B[1],s.D[0]-s.B[0]),a1=Math.atan2(D[1]-B[1],D[0]-B[0]),r=a1-a0,c=Math.cos(r),sn=Math.sin(r);
+ const mov=p=>{const v=[p[0]-s.B[0],p[1]-s.B[1]];return[B[0]+c*v[0]-sn*v[1],B[1]+sn*v[0]+c*v[1]];};return{B,D,W:mov(s.W),P:mov(s.P),rot:r};}
+function _sInter(p1,p2,p3,p4){const d1=[p2[0]-p1[0],p2[1]-p1[1]],d2=[p4[0]-p3[0],p4[1]-p3[1]],den=d1[0]*d2[1]-d1[1]*d2[0];if(Math.abs(den)<1e-12)return null;const t=((p3[0]-p1[0])*d2[1]-(p3[1]-p1[1])*d2[0])/den;return[p1[0]+t*d1[0],p1[1]+t*d1[1]];}
+function suspValida(s){for(const n of ['A','B','C','D','W','P']){const p=s[n];if(!p||p.length!==2||!p.every(Number.isFinite))throw new Error('ponto '+n+' inválido');}
+ if(_sd(s.A,s.B)<=0||_sd(s.C,s.D)<=0||_sd(s.B,s.D)<=0)throw new Error('comprimentos de braço/manga devem ser positivos');}
+function suspResolver(s,heave){suspValida(s);const f=th=>{const q=_sPose(s,th);return q?q.W[1]-s.W[1]-heave:null;};const lo=-1.2,hi=1.2;const vals=[];
+ for(let i=0;i<=600;i++){const x=lo+(hi-lo)*i/600,v=f(x);if(v!==null)vals.push([x,v]);}let br=null;
+ for(let i=0;i<vals.length-1;i++){const[x0,v0]=vals[i],[x1,v1]=vals[i+1];if(v0===0){br=[x0,x0];break;}if(v0*v1<0&&Math.abs(x1-x0)<0.01&&Math.abs(x0)<0.6){if(br===null||Math.abs(x0)<Math.abs(br[0]))br=[x0,x1];}}
+ if(br===null)throw new Error('heave fora da faixa cinemática do mecanismo');let[a,b]=br;
+ for(let i=0;i<80;i++){const m=0.5*(a+b),fm=f(m),fa=f(a);if(fm===null||fa===null)break;if(fa*fm<=0)b=m;else a=m;}
+ const th=0.5*(a+b),q=_sPose(s,th),camber=-q.rot*180/Math.PI,ic=_sInter(s.A,q.B,s.C,q.D);let rc=null;
+ if(ic!==null&&Math.abs(q.P[0]-ic[0])>1e-9){const t=(0-q.P[0])/(ic[0]-q.P[0]);rc=q.P[1]+t*(ic[1]-q.P[1]);}
+ return{heave:heave,camber:camber,dBitola:q.P[0]-s.P[0],IC:ic,RC:rc,FVSA:ic?Math.abs(ic[0]-q.W[0]):null};}
+const SUSP_EX={A:[0.20,0.14],B:[0.60,0.12],C:[0.25,0.30],D:[0.56,0.32],W:[0.63,0.24],P:[0.63,0.0]};
+// ---- Aderência combinada (V3.6): espelho de modules/vehicle_combined.py
+function fyMaxEixoFx(v,e,vel,ay,fx){const g=latCargas(v,vel,ay),mu=e==='f'?v.muF:v.muR,a=Math.max(e==='f'?g.fInt:g.rInt,0),b=Math.max(e==='f'?g.fExt:g.rExt,0),tot=a+b;if(tot<=0)return 0;let s=0;
+ const se=e==='f'?v.sensF:v.sensR,zr=fzRef(v,e);for(const fz of [a,b]){const x=fx*fz/tot,me=muEf(mu,se,fz,zr),r=(me*fz)*(me*fz)-x*x;if(r<-1e-9)return null;s+=Math.sqrt(Math.max(r,0));}return s;}
+function ayLimiteFx(v,vel,fxF,fxR){v=latDefaults(v);latCheck(v);const G=9.80665,L=v.a+v.b;let lo=0,hi=8*G;
+ if(fyMaxEixoFx(v,'f',vel,0,fxF||0)===null||fyMaxEixoFx(v,'r',vel,0,fxR||0)===null)return{ay:0,viavel:false};
+ for(let i=0;i<80;i++){const ay=0.5*(lo+hi),mf=fyMaxEixoFx(v,'f',vel,ay,fxF||0),mr=fyMaxEixoFx(v,'r',vel,ay,fxR||0);const ok=mf!==null&&mr!==null&&v.m*ay*v.b/L<=mf&&v.m*ay*v.a/L<=mr;if(ok)lo=ay;else hi=ay;}
+ return{ay:lo,viavel:true};}
+function diagramaGG(v,vel,n,fTras){const G=9.80665,out=[];for(let i=0;i<n;i++){const axg=-1.5+3.0*i/(n-1),F=v.m*axg*G;let fr,ff;if(F>=0){fr=F;ff=0;}else{fr=F*fTras;ff=F*(1-fTras);}const r=ayLimiteFx(v,vel,ff,fr);out.push([axg,r.viavel?r.ay/G:null]);}return out;}
+const LAB={ayLimiteFx,diagramaGG,forcaCombinada,suspResolver,SUSP_EX,lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
 LAB.nivelFS=fs=>fs<1?'CRITICO':(fs<1.5?'ATENCAO':'INFO');
 LAB.interpFS=(vm,sy)=>{if(!(vm>0)||!(sy>0))throw new Error('vm e sy devem ser positivos');const fs=sy/vm;return {fs,nivel:LAB.nivelFS(fs)};};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;

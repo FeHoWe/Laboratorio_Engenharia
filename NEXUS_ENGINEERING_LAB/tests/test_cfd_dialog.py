@@ -104,3 +104,12 @@ def test_projected_area_is_real_and_free_air_centers_body(tmp_path):
     assert abs((stl.bounds[0][2] + stl.bounds[1][2]) / 2 - (z0 + z1) / 2) < 1e-9          # centrado em z → domínio simétrico
     assert "ground {type symmetryPlane;}" in (tmp_path / "c/0/U").read_text().replace("ground {type symmetryPlane;}", "ground {type symmetryPlane;}")
     assert "ground { type wall" not in (tmp_path / "c/system/blockMeshDict").read_text() and "symmetryPlane; faces ((0 3 2 1))" in (tmp_path / "c/system/blockMeshDict").read_text()
+
+
+def test_intelligence_flags_yplus_out_of_wall_function_range():
+    from modules import intelligence as I
+    from modules.result_trace import TracedResult
+    r = TracedResult("CFD", "SIMULACAO_NUMERICA", "m", {"y_mais_p5_p50_p95": [120.0, 300.5, 560.0], "cd_total_estimado": 0.5}, solver="s", solver_versao="1")
+    assert "fora de 30–300" in I.interpretar(r).texto()
+    r2 = TracedResult("CFD", "SIMULACAO_NUMERICA", "m", {"y_mais_p5_p50_p95": [40.0, 80.0, 150.0]}, solver="s", solver_versao="1")
+    assert "dentro da faixa" in I.interpretar(r2).texto()

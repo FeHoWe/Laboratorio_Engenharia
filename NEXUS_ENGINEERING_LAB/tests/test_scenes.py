@@ -114,3 +114,42 @@ def test_project_state_untouched_by_report(win, tmp_path):
     w.save_scene("S")
     w.export_report(str(tmp_path / "r.pdf"), detail_parts=False)
     assert _state(w) == before                   # relatório não altera posições nem visibilidade
+
+
+@pytest.mark.parametrize("lang,esperado", [("pt", "Lista de materiais"), ("en", "Bill of materials"), ("es", "Lista de materiales"),
+                                          ("de", "Stückliste"), ("fr", "Nomenclature")])
+def test_pdf_relatorio_traduzido(win, tmp_path, lang, esperado):
+    """O PDF sai no idioma escolhido (fonte DejaVu: en/es/de/fr) e o idioma volta ao normal no fim."""
+    import subprocess
+    from core import i18n
+    w = win
+    w.apply_typical_materials()
+    antes = i18n.idioma()
+    i18n.definir_idioma(lang, salvar=False)
+    try:
+        out = w.export_report(str(tmp_path / f"r_{lang}.pdf"), detail_parts=False)
+    finally:
+        i18n.definir_idioma(antes, salvar=False)
+    assert out and out.read_bytes().startswith(b"%PDF")
+    t = subprocess.run(["pdftotext", str(out), "-"], capture_output=True, text=True).stdout
+    if t:
+        assert esperado in t
+        if lang != "pt":
+            assert "Lista de materiais (BOM)" not in t or lang == "es"
+
+
+def test_pdf_chines_usa_fonte_cid(win, tmp_path):
+    """Chinês: fonte CID padrão do PDF (não embutida); o arquivo é gerado e os números não mudam de formato (ponto decimal)."""
+    from core import i18n
+    from modules import report
+    w = win
+    w.apply_typical_materials()
+    antes = i18n.idioma()
+    i18n.definir_idioma("zh", salvar=False)
+    try:
+        out = w.export_report(str(tmp_path / "zh.pdf"), detail_parts=False)
+        assert report.FONT in ("STSong-Light", "NexusCJK-zh") and report._num(1234.5) == "1,234.50"
+    finally:
+        i18n.definir_idioma(antes, salvar=False)
+    b = out.read_bytes()
+    assert out and b.startswith(b"%PDF") and (b"STSong-Light" in b or b"WenQuanYi" in b or b"NexusCJK" in b or b"/FontFile2" in b)

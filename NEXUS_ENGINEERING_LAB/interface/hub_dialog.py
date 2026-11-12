@@ -67,6 +67,10 @@ class IntelligenceDialog(QDialog):
                      ("Explicar termo…", self.termo), ("Perguntar à IA (opcional)…", self.perguntar)):
             b = QPushButton(t); b.clicked.connect(f); r.addWidget(b)
         v.addLayout(r)
+        r2 = QHBoxLayout()
+        for t, f in (("Relatório PDF de resultados…", lambda: self.relatorio(False)), ("Laudo simplificado PDF…", lambda: self.relatorio(True)), ("Selos de referência", self.selos), ("Fadiga do último resultado FEA…", self.fadiga_fea)):
+            b = QPushButton(t); b.clicked.connect(f); r2.addWidget(b)
+        v.addLayout(r2)
         self.out = QTextEdit(); self.out.setReadOnly(True); v.addWidget(self.out)
 
     def _proj(self):
@@ -74,6 +78,59 @@ class IntelligenceDialog(QDialog):
         if not n:
             self.out.setPlainText("Crie um projeto em 'Solvers, vitrine e projetos…' e anexe resultados."); return None
         return self.store.open(n)
+
+    def relatorio(self, laudo: bool, caminho: str | None = None, peca: str | None = None) -> None:
+        from modules import report_resultados as RR
+        p = self._proj()
+        if not p: return
+        if not p["results"]:
+            self.out.setPlainText("O projeto não tem resultados anexados."); return
+        if laudo and peca is None:
+            peca, ok = QInputDialog.getText(self, "Laudo", "Nome/código da peça:")
+            if not ok: return
+        if caminho is None:
+            from PySide6.QtWidgets import QFileDialog
+            caminho, _ = QFileDialog.getSaveFileName(self, "Salvar PDF", "laudo.pdf" if laudo else "relatorio_resultados.pdf", "PDF (*.pdf)")
+            if not caminho: return
+        try:
+            RR.gerar(p["results"], caminho, versao=getattr(self.parent(), "APP_VERSION", ""), laudo=laudo, peca=peca or "")
+        except Exception as e:  # noqa: BLE001
+            self.out.setPlainText(f"Falha ao gerar o PDF: {type(e).__name__}: {e}"); return
+        self.out.setPlainText(f"PDF gerado: {caminho}\n(contém a classe original de cada resultado; não valida nada)")
+
+    def fadiga_fea(self, valores: dict | None = None) -> None:
+        """Fadiga a partir do pico de von Mises do último resultado FEA do projeto. Su, Sy, Se' corrigido e R são DIGITADOS (nada é atribuído)."""
+        from modules import fatigue as fa, fatigue_fea as ff
+        from modules.result_trace import TracedResult
+        p = self._proj()
+        if not p: return
+        fea = [r for r in p["results"] if r.get("classe") in ("SIMULACAO_NUMERICA", "VALIDADO") and ("vm_max_MPa" in (r.get("valores") or {}) or "vm_nodal_max_MPa" in (r.get("valores") or {}))]
+        if not fea:
+            self.out.setPlainText("O projeto não tem resultado de FEA com tensão de von Mises."); return
+        if valores is None:
+            nomes = (("R = σmin/σmax", -1.0), ("Su [MPa]", 600.0), ("Sy [MPa]", 400.0), ("Se corrigido [MPa]", 200.0))
+            vals = []
+            for t, d in nomes:
+                v, ok = QInputDialog.getDouble(self, "Fadiga (valores iniciais ILUSTRATIVOS — digite os do SEU material)", t, d, -1e6, 1e6, 3)
+                if not ok: return
+                vals.append(v)
+            valores = dict(R=vals[0], su=vals[1], sy=vals[2], se=vals[3])
+        r = fea[-1]; tr = TracedResult(r["nome"], r["classe"], r["metodo"], r.get("valores") or {}, r.get("entradas") or {}, solver=r.get("solver", ""), solver_versao=r.get("solver_versao", ""),
+                                       validacao_ref=r.get("validacao_ref", ""))
+        try:
+            res = ff.avaliar(tr, valores["R"], fa.FatigueMaterial("usuario", su=valores["su"], sy=valores["sy"], se_prime=valores["se"]), valores["se"])
+        except ValueError as e:
+            self.out.setPlainText(f"ERRO: {e}"); return
+        cs = res["coef_seguranca"]
+        self.out.setPlainText(f"σmax = {res['sigma_max_MPa']:.1f} MPa (de {res['origem_tensao']}) · σa = {res['sigma_a_MPa']:.1f} · σm = {res['sigma_m_MPa']:.1f}\n" +
+                              "\n".join(f"  {k}: {v:.3f}" for k, v in cs.items()) + f"\nVida: {'infinita (abaixo do limite de fadiga)' if res['vida_infinita'] else format(res['ciclos'], '.3g') + ' ciclos'}\n\n" +
+                              "\n".join("⚠ " + a for a in res["avisos"]))
+
+    def selos(self) -> None:
+        from modules import referencias as R
+        r = R.rodar()
+        self.out.setPlainText("\n".join(f"[{c['estado']}] {c['modulo']}: {c['caso']}" for c in r["casos"]) + "\n\nSelos: " +
+                              "; ".join(f"{m}: {e}" for m, e in r["selos"].items()) + "\n" + r["aviso"])
 
     def revisar(self) -> None:
         from modules import intelligence as I

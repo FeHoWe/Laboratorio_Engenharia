@@ -3,10 +3,10 @@
 ## Visão de produto (V3.3)
 | Produto | Estado | Já existe | Falta |
 |---|---|---|---|
-| NEXUS CAD | 🟡 | Biblioteca B-rep, histórico paramétrico, Arsenal (export/import/backup), montagem/BOM | Edição de sketch; booleanas interativas em geometria importada |
-| NEXUS STRUCTURAL | 🟡 | FEA Tet10+Gmsh, CalculiX real, modal, mapa de von Mises no 3D, fadiga (aba) | Contato, plasticidade, multi-material |
-| NEXUS AERODYNAMICS | 🟡 | Níveis 1–2 analíticos, CFD OpenFOAM isolado, Cp sobre as peças, atrito estimado | Validação formal (esfera: GCI 2,8 %, Cl≈0, mas sem convergência de resíduos e com atrito estimado), camada limite, forceCoeffs funcional (OpenFOAM ≥ v2306) |
-| NEXUS VEHICLE | 🟡 | Longitudinal, lateral, volta, skidpad, simulador F1 | Pneu combinado, suspensão com geometria |
+| NEXUS CAD | 🟡 | Biblioteca B-rep, histórico paramétrico, **sketch 2D (retângulo/círculo/polígono, furos) + extrusão e booleanas (união/corte/interseção com caixa, cilindro, esfera ou STEP) no histórico (V3.5)**, Arsenal, montagem/BOM | Arco livre por 3 pontos, graus de liberdade do sketch; booleanas escolhendo a peça importada com o mouse |
+| NEXUS STRUCTURAL | 🟡 | FEA Tet10+Gmsh, CalculiX real, modal, mapa de von Mises no 3D, fadiga (aba), **plasticidade bilinear, multimaterial por região e contato nó-superfície (CalculiX real, módulo `calculix_nl`, V3.5)** | Contato/plasticidade em peça importada na interface (existe `contato_automatico` por API); plasticidade cinemática/cíclica |
+| NEXUS AERODYNAMICS | 🟡 | Níveis 1–2 analíticos, CFD OpenFOAM isolado, Cp sobre as peças, atrito estimado | Validação formal (placa plana: atrito 60–67 % do alvo mesmo com camadas absolutas e cunha; esfera: GCI 2,8 %, Cl≈0, mas sem convergência de resíduos e com atrito estimado), camada limite, forceCoeffs funcional (OpenFOAM ≥ v2306) |
+| NEXUS VEHICLE | 🟡 | Longitudinal, lateral, volta, skidpad, simulador F1, **pneu combinado Fx–Fy e suspensão duplo-A 2D (V3.5, diálogo + celular)** | Suspensão 3D completa (convergência, elastocinemática; caster/KPI só por API); sensibilidade de μ à carga e arfagem; acoplar a `nexus_f1` e à dinâmica transitória |
 | NEXUS INTELLIGENCE | 🟡 | Interpretação, revisão de projeto, comparação, glossário (regras) | Camada generativa existe como OPCIONAL (chave própria + checagem de números); falta avaliá-la em uso real |
 
 Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
@@ -23,9 +23,18 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V3.9
+Relatórios PDF em 5 idiomas (fontes CJK padrão do PDF para zh/ja/ko), ~340 textos a mais no celular (en/es/de/fr/zh) e diálogos completos nos 10 idiomas adicionais.
+Restam: PDF em it/ja/ko/ru/tr/pl/nl/hi/ar/id (hoje em inglês; árabe/hindi exigem fonte embutida e layout RTL no PDF), parecer do INTELLIGENCE e premissas dos módulos (texto livre em português), nomes de peças no celular, revisão por falantes nativos.
+
+## Feito na V3.8
+Sensibilidade de μ à carga (linear), suspensão duplo-A 3D com elastocinemática linear, contato entre duas peças (caixa/cilindro/STEP) na interface.
+Também: internacionalização (menus + textos fixos dos diálogos em 5 idiomas; celular parcial). Restam: relatórios PDF, resultados calculados e o restante do celular (~540 textos já listados por `tools/extrair_textos_ui.py` e pela coleta no navegador); verificação do glossário em fontes externas; multibraço/pushrod/buchas, centro de rolagem 3D, μ(Fz) a partir de ensaio, contato em montagem arbitrária, validação do atrito CFD, Windows real.
+
 ## Próximos passos sugeridos (ordem)
-1. **Testar no Windows 11 real** (nada foi executado lá) e corrigir instalação/dependências.
+0. (V3.6 feita) CFD com camadas, g-g, ajuste CSV, laudo PDF, selos de referência.
+1. **Testar no Windows 11 real** (inclui o empacotamento `nexus.spec`, também nunca executado) (nada foi executado lá) e corrigir instalação/dependências.
 2. Importação de Arsenal exportado; Cp sobreposto às peças na mesma escala.
 3. Botão "Anexar resultado à versão" (`attach_result(..., geometry_fp)`).
 4. Estudo de malha automático no CFD + validação contra caso de referência (cilindro/esfera/placa).
-5. Pneu combinado (elipse de atrito) no modelo lateral e acoplamento com `nexus_f1`.
+5. Acoplar o pneu combinado ao modelo lateral e a `nexus_f1`; diálogo de contato/plasticidade; camada limite (prismas) no CFD.

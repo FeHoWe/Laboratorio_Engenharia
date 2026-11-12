@@ -2,7 +2,7 @@
 from __future__ import annotations
 from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox,
                                QPushButton, QVBoxLayout)
-from modules.cad_history import CadHistory, CadHistoryError, OPS, load_step
+from modules.cad_history import BOOL_MODES, BOOL_TOOLS, CadHistory, CadHistoryError, OPS, load_step
 from samples.library import PARTS
 
 
@@ -56,8 +56,24 @@ class CadHistoryDialog(QDialog):
         if not self._need(): return
         t, ok = QInputDialog.getItem(self, "Operação", "Tipo:", list(OPS), 0, False)
         if not ok: return
+        if t == "sketch_extrude":
+            from interface.sketch_dialog import SketchDialog
+            SketchDialog(self, self.hist).exec(); self.refresh(); return
         params = {}
-        for k in OPS[t]:
+        if t == "boolean":
+            m, ok = QInputDialog.getItem(self, "Booleana", "Operação:", list(BOOL_MODES), 0, False)
+            if not ok: return
+            tool, ok = QInputDialog.getItem(self, "Booleana", "Ferramenta:", list(BOOL_TOOLS), 0, False)
+            if not ok: return
+            params.update(mode=m, tool=tool)
+            if tool == "step":
+                pth, _ = QFileDialog.getOpenFileName(self, "STEP da ferramenta", "", "STEP (*.step *.stp)")
+                if not pth: return
+                params["path"] = pth
+            if tool == "cylinder":
+                params["axis"], ok = QInputDialog.getItem(self, "Cilindro", "Eixo:", ["x", "y", "z"], 2, False)
+                if not ok: return
+        for k in [k for k in OPS[t] if k not in params]:
             v, ok = QInputDialog.getDouble(self, t, k, 0.0, -1e9, 1e9, 4)
             if not ok: return
             params[k] = v
@@ -69,7 +85,7 @@ class CadHistoryDialog(QDialog):
 
     def edit(self) -> None:
         if not self._need() or self.lst.currentRow() < 0: return
-        i = self.lst.currentRow(); keys = [k for k, v in self.hist.ops[i]["params"].items() if not isinstance(v, str)]
+        i = self.lst.currentRow(); keys = [k for k, v in self.hist.ops[i]["params"].items() if not isinstance(v, (str, dict))]
         k, ok = QInputDialog.getItem(self, "Parâmetro", "Qual:", keys, 0, False)
         if not ok: return
         v, ok = QInputDialog.getDouble(self, k, "Novo valor:", float(self.hist.ops[i]["params"][k]), -1e9, 1e9, 4)

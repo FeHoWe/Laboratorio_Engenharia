@@ -108,3 +108,50 @@ def test_lab_tab_curva_defaults_run_and_saturation_message():
     vals.update(v=300.0, R=20.0)                      # impossível: deve avisar e não inventar esterçamento
     t2 = c.run(vals)
     assert "NÃO sustenta" in t2 and "Esterçamento" not in t2
+
+
+# ---------------------------------------------------------------- V3.8: sensibilidade do μ à carga
+def _v(**kw):
+    from modules import vehicle_lateral as vl
+    return vl.VeiculoLateral(m=1200, iz=1800, a=1.15, b=1.35, h=0.55, tf=1.5, tr=1.5, c_f=45000, c_r=45000, mu_f=1.3, mu_r=1.3, **kw)
+
+
+def test_sens_zero_reproduz_exato_modelo_anterior():
+    from modules import vehicle_lateral as vl
+    v0, v1 = _v(), _v(sens_mu_f=0.0, sens_mu_r=0.0)
+    for vel in (15.0, 30.0, 50.0):
+        assert vl.ay_limite(v0, vel)["ay_ms2"] == vl.ay_limite(v1, vel)["ay_ms2"]
+    # μ_ef sem sensibilidade devolve o nominal; na carga de referência o nominal também vale com sensibilidade
+    assert vl.mu_efetivo(1.3, 0.0, 9999.0, 3000.0) == 1.3
+    assert vl.mu_efetivo(1.3, 0.3, 3000.0, 3000.0) == 1.3
+
+
+def test_sens_mu_faz_a_transferencia_de_carga_reduzir_o_limite():
+    """Antes (μ constante) a transferência de carga NÃO mudava o limite lateral. Com sens > 0, ela passa a reduzi-lo."""
+    from modules import vehicle_lateral as vl
+    const = vl.ay_limite(_v(), 30.0)["ay_g"]
+    sens = vl.ay_limite(_v(sens_mu_f=0.2, sens_mu_r=0.2), 30.0)["ay_g"]
+    assert sens < const - 0.01
+    # mais sensibilidade → menos aderência (monotonia)
+    assert vl.ay_limite(_v(sens_mu_f=0.4, sens_mu_r=0.4), 30.0)["ay_g"] < sens
+
+
+def test_sens_mu_eixo_com_maior_transferencia_perde_mais():
+    """Eixo com rigidez de rolagem maior transfere mais carga e, com a mesma sensibilidade, perde mais aderência → comportamento muda."""
+    from modules import vehicle_lateral as vl
+    base = dict(sens_mu_f=0.3, sens_mu_r=0.3)
+    v_f = _v(k_roll_f=120000.0, k_roll_r=20000.0, **base)
+    v_r = _v(k_roll_f=20000.0, k_roll_r=120000.0, **base)
+    ff = vl.fy_max_eixo(v_f, "f", 30.0, 9.0) / vl.fy_max_eixo(_v(k_roll_f=120000.0, k_roll_r=20000.0), "f", 30.0, 9.0)
+    fr = vl.fy_max_eixo(v_r, "f", 30.0, 9.0) / vl.fy_max_eixo(_v(k_roll_f=20000.0, k_roll_r=120000.0), "f", 30.0, 9.0)
+    assert ff < fr < 1.0 + 1e-12
+
+
+def test_sens_mu_combinado_e_validacao():
+    import pytest
+    from modules import vehicle_combined as vc, vehicle_lateral as vl
+    assert vc.ay_limite_com_fx(_v(sens_mu_f=0.2, sens_mu_r=0.2), 30.0, 0, 0)["ay_ms2"] == pytest.approx(vl.ay_limite(_v(sens_mu_f=0.2, sens_mu_r=0.2), 30.0)["ay_ms2"], rel=1e-6)
+    with pytest.raises(ValueError):
+        _v(sens_mu_f=0.9).validar()
+    with pytest.raises(ValueError):
+        _v(sens_mu_r=-0.1).validar()

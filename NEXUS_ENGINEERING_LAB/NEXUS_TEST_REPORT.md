@@ -1,5 +1,26 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V3.9 — 2026-11-12
+Suíte completa: **590 passed, 4 skipped** (549 + 4 skipped na execução principal em 15 min 06 s com `MALLOC_CHECK_=3`, código de saída 0, sem malloc/abort; `tests/test_v22.py` separado: 41 passed em 3 min 12 s). Depois da auditoria (título do laudo, fonte CJK embutida) foram reexecutados os arquivos alterados (laudo, chinês, i18n): 25 passed. Novos: PDF do projeto em pt/en/es/de/fr + chinês, laudo em en/es/de/fr/zh (classe e números intactos), cobertura completa dos diálogos nos 10 idiomas adicionais, ressalvas de honestidade preservadas. Celular: Playwright em 5 idiomas × 16 abas sem erro de JS; cálculo em francês confere.
+Não validado: renderização visual do chinês/japonês/coreano com fontes do Windows; PDF em árabe/hindi; qualidade linguística (traduções de IA sem revisão nativa); Windows/WSL2/empacotamento nunca executados em máquina real.
+
+## V3.8 — 2026-11-12
+Suíte completa: **575 passed, 4 skipped** (534 + 4 skipped na execução principal em 12 min 50 s com `MALLOC_CHECK_=3` e `-X faulthandler`, código de saída 0, sem malloc/abort; `tests/test_v22.py` separado: 41 passed em 2 min 50 s). Novos: `test_i18n` (11, incluindo os 10 idiomas de núcleo: fallback, cobertura dos 5 idiomas, preservação de números/unidades/extensões, glossário, hooks Qt em subprocesso), `test_suspension3d` (11), `test_casos_nl` (+4 contato de duas peças: caixas, cilindro/STEP, erros, diálogo), `test_vehicle_lateral` (+4 sensibilidade do μ), `test_lapsim_veiculo` (+1), sinal do trail em `test_vehicle_combined`. Paridade JS×Python do modelo lateral inclui um caso com sensibilidade (2,8e-15).
+**Malloc no encerramento (V3.7)**: execução instrumentada da suíte principal (`MALLOC_CHECK_=3`, `-X faulthandler`, cópia do repositório, 12 min 53 s): **505 passed, 4 skipped, código de saída 0**, sem erro. Não reproduziu; causa não identificada. Mitigação adicionada em `tests/conftest.py` (limpeza ordenada de Qt/Gmsh) — NÃO comprovada. Se reaparecer, rode como acima e envie o log.
+
+## V3.7 — 2026-11-12
+Suíte completa: **546 passed, 4 skipped** (505 + 4 skipped na execução principal em 12 min 39 s; `tests/test_v22.py` separado: 41 passed em 2 min 54 s). Novos: `test_sketch_solver` (5), `test_lapsim_veiculo` (4), contato automático (+2 em `test_calculix_nl`), CFD→Veículo (+1), fadiga no diálogo (+1), conservação de carga com roda levantando (+1). Paridade JS×Python mantida após a correção de `cargas_eixos` (lateral 2,8e-15).
+Observação: ao fim da execução principal o processo imprimiu `malloc(): unaligned tcache chunk detected` e abortou NO ENCERRAMENTO do interpretador (depois do resumo dos testes). Apareceu 1 vez nesta execução e 0 nas execuções V3.5/V3.6 e no `test_v22`; 3 reexecuções dos testes de diálogo novos terminaram com código 0 sem o erro. Não reproduzido, causa não identificada (suspeita: encerramento de Qt/VTK) — pendência registrada.
+Não validado: atrito CFD (placa: 60–67 % do alvo); Windows/WSL2 e empacotamento nunca executados.
+
+## V3.6 — 2026-11-12
+Suíte completa: **532 passed, 4 skipped** (491 + 4 skipped na execução principal em 12 min 28 s; `tests/test_v22.py` separado: 41 passed em 3 min 03 s). Novos: `test_vehicle_combined` (8), `test_tire_fit` (3), `test_fatigue_fea` (4), `test_casos_nl` (3, ccx real), `test_integracao` (3), `test_report_resultados` (3), `test_referencias` (1), sketch arcos/restrições (+2), resíduo CFD (+1). Paridade JS×Python incluindo g-g: pneu/suspensão/g-g 6e-11.
+Não validado: atrito CFD (placa: 29 % → ~50 % do alvo com camadas); empacotamento Windows (`nexus.spec`) e Windows/WSL2 nunca executados em máquina real.
+
+## V3.5 — 2026-11-12
+Suíte completa: **504 passed, 4 skipped** (463 + 4 skipped na execução principal em 13 min 31 s; `tests/test_v22.py` separado: 41 passed em 3 min 16 s). Novos: `test_tire_suspension.py` (9), `test_sketch_boolean.py` (8), `test_calculix_nl.py` (6, ccx real). Paridade JS×Python: pneu/suspensão 6e-11; demais inalteradas.
+Não validado: atrito CFD (placa plana 29–40 % do alvo, ver `NEXUS_CFD_PLATE_STUDY.md`). Windows/WSL2 nunca testado em máquina real.
+
 Ambiente: Linux headless (Qt offscreen), Python 3.13, OCP 8.0, Gmsh 4.15, **CalculiX 2.21** e **OpenFOAM ESI v1912** instalados só neste ambiente de teste. **Nada foi executado em Windows 11.**
 
 **Suíte completa V3.4: 480 passaram, 4 foram ignorados, 0 falharam** (439 + 41 de `test_v22.py`; novos: test_cfd_gci, test_intelligence_llm, área projetada/ar livre). Windows real: nunca executado. Histórico — V3.3: 470 passaram, 4 foram ignorados, 0 falharam** (429 + 41 de `test_v22.py`; novos: test_products_intelligence, test_windows_wsl, importação do Arsenal, Cp em mm). **Windows 11/WSL2/GPU: lógica testada com Windows SIMULADO; nunca executado em Windows real.** Histórico — V3.2: 457 passaram, 4 foram ignorados, 0 falharam** (416 + 41 de `test_v22.py` em separado; novos: test_field_overlay, test_cfd_dialog com OpenFOAM real, test_arsenal_backup). Histórico — V3.1: 440 passaram, 3 foram ignorados, 0 falharam** (399 + 41 de `test_v22.py` rodados em separado; ~20 min). Na V3.0 eram 433.

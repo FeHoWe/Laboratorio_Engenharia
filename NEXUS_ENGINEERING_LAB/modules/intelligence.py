@@ -86,6 +86,13 @@ def interpretar(res) -> Parecer:
             break
     if "cd_dif_pct" in v:
         A.append(Achado(INFO if v["cd_dif_pct"] <= 10 else ATENCAO, f"Diferença para o Cd de referência: {v['cd_dif_pct']:.1f} %.", "valores.cd_dif_pct"))
+    ym = v.get("y_mais_p5_p50_p95")
+    if ym:
+        if ym[1] > 300 or ym[1] < 30:
+            A.append(Achado(ATENCAO, f"y+ mediano ≈ {ym[1]:.0f} (faixa 5–95 %: {ym[0]:.0f}–{ym[2]:.0f}): fora de 30–300, a função de parede está fora da validade; Cd de atrito/pressão pouco confiáveis.", "valores.y_mais_p5_p50_p95"))
+            P.append("Refine junto à parede (camadas de prisma / mais níveis de refino) até y+ entre 30 e 300 (funções de parede) ou ≈1 (sem função de parede).")
+        else:
+            A.append(Achado(INFO, f"y+ mediano ≈ {ym[1]:.0f}: dentro da faixa de funções de parede (30–300).", "valores.y_mais_p5_p50_p95"))
     if "cl_total_estimado" in v and "cd_total_estimado" in v and abs(v["cl_total_estimado"]) > 0.3 * abs(v["cd_total_estimado"]):
         A.append(Achado(ATENCAO, f"Sustentação |Cl|={abs(v['cl_total_estimado']):.3g} é grande frente ao Cd; se a geometria é simétrica, isso indica não convergência ou malha assimétrica.", "valores.cl_total_estimado"))
     if ent.get("bloqueio_pct", 0) > 5:
