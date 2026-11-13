@@ -1,5 +1,25 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V5.0 — 2026-11-12
+Suíte completa: **644 passed, 4 skipped** (603 passed + 4 skipped na execução principal em 19 min 26 s com `MALLOC_CHECK_=3`, saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 10 s).
+Novos: `test_cad_v42` (varredura reta e em L, loft tronco de cone e prisma, entradas inválidas, filete variável, diálogo), `test_comparacao` (A=B ⇒ delta zero, mais potência/mais massa, fechamento do delta acumulado com o tempo de volta, varredura monotônica, aba no diálogo F1), `test_verificacao_projeto` (projeto vazio, sem material/PARCIAL/não atribui nada, material inexistente crítico, massa completa), `test_home` (primeira aba, resumo, atalhos, verificação, versões).
+Não validado: aparência real da Home em Windows/DPI diferentes; fluxo completo de instalação; Windows/WSL2.
+
+## V4.1b — 2026-11-12
+Suíte completa: **627 passed, 4 skipped** (586 passed + 4 skipped na execução principal em 18 min 49 s com `MALLOC_CHECK_=3`, saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 10 s).
+Novos: `test_cad_nomes_restricoes` (15): rastreio de nomes por transformações, furo e edição de parâmetro; nome apagado → erro explícito sem entrar no histórico; filete e casca por nome após rotação/translação; tipo errado e seletor ambíguo; desfazer; serialização (inclusive arquivo antigo sem os campos novos); revolução (tubo completo, meio tubo, corte, entradas inválidas); variáveis, referência entre operações, restrições com reversão, expressões maliciosas e circulares recusadas; diálogo de esboço.
+Não validado: seleção pelo clique no 3D (não existe ainda); STEP reais complexos com muitos nomes; Windows.
+
+## V4.1 — 2026-11-12
+Suíte completa: **612 passed, 4 skipped** (571 passed + 4 skipped na execução principal em 18 min 47 s com `MALLOC_CHECK_=3`, código de saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 22 s).
+Novos: `test_cad_avancado` (furo escareado, padrão linear e circular, arco parcial, espelho, casca, filete/chanfro no topo e na base, receita serializável — volumes contra fórmula fechada) e 2 testes de volta do veículo em processo isolado (retorno imediato + cancelamento; erro como dado).
+Não validado: interface dos novos diálogos de entrada por clique (só a API), geometrias complexas/STEP reais com padrões, Windows.
+
+## V4.0 — 2026-11-12
+Suíte completa: **602 passed, 4 skipped** (561 passed + 4 skipped na execução principal em 19 min 49 s com `MALLOC_CHECK_=3`, código de saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 18 s).
+Novos: `test_nl_job` (erro como dado, diálogo sem bloquear e com cancelamento, caso plástico real × analítico <5 %, pulado sem ccx), `test_project_safety` (autosave sem efeitos colaterais, projeto vazio, recuperação de queda, backup ao salvar, versões listar/comparar/restaurar, erros), `test_project_safety_ui` (janela principal: autosave só com alterações, recuperação e descarte, salvar limpa o autosave, versões e restauração). `test_i18n` (13) passa com as novas strings.
+Não validado: comportamento em Windows (caminho `~/.nexus_lab`, verificação de processo por PID no Windows só por código, não executado); queda real (kill -9) do app completo; Windows/WSL2/empacotamento nunca executados em máquina real.
+
 ## V3.9 — 2026-11-12
 Suíte completa: **590 passed, 4 skipped** (549 + 4 skipped na execução principal em 15 min 06 s com `MALLOC_CHECK_=3`, código de saída 0, sem malloc/abort; `tests/test_v22.py` separado: 41 passed em 3 min 12 s). Depois da auditoria (título do laudo, fonte CJK embutida) foram reexecutados os arquivos alterados (laudo, chinês, i18n): 25 passed. Novos: PDF do projeto em pt/en/es/de/fr + chinês, laudo em en/es/de/fr/zh (classe e números intactos), cobertura completa dos diálogos nos 10 idiomas adicionais, ressalvas de honestidade preservadas. Celular: Playwright em 5 idiomas × 16 abas sem erro de JS; cálculo em francês confere.
 Não validado: renderização visual do chinês/japonês/coreano com fontes do Windows; PDF em árabe/hindi; qualidade linguística (traduções de IA sem revisão nativa); Windows/WSL2/empacotamento nunca executados em máquina real.

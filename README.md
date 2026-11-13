@@ -14,7 +14,11 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 
 | Versão | Data | Destaques | Ver | Baixar |
 |---|---|---|---|---|
-| **V3.9** | 12/11/2026 | Relatórios PDF, celular e diálogos traduzidos (16 idiomas na interface) | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/12f537806542bf0e984fe6236b6ddc446f6890f2/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/12f537806542bf0e984fe6236b6ddc446f6890f2.zip) |
+| **V5.0** | 13/11/2026 | NEXUS HOME, comparação A/B, verificação de consistência, varredura/loft/filete variável; inclui V4.2 a V4.4 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/0984ef8729655f78056787fea8115668d68a0806/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/0984ef8729655f78056787fea8115668d68a0806.zip) |
+| V4.1b | 13/11/2026 | Nomes persistentes de faces/arestas, revolução de esboço, variáveis e restrições | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/1e31e3d66cc1a66056c3ea9802af75c91fb42f0f/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/1e31e3d66cc1a66056c3ea9802af75c91fb42f0f.zip) |
+| V4.1 | 12/11/2026 | Furo escareado, padrões, espelho, casca; volta do veículo em processo isolado | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/806773600bf32a0cb291f50897be2ed365eb220b/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/806773600bf32a0cb291f50897be2ed365eb220b.zip) |
+| V4.0 | 12/11/2026 | Autosave e recuperação, backup ao salvar, versões do projeto, CalculiX não linear isolado | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/b46767844c25a92c7a369bf98aa565c4b08773e2/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/b46767844c25a92c7a369bf98aa565c4b08773e2.zip) |
+| V3.9 | 12/11/2026 | Relatórios PDF, celular e diálogos traduzidos (16 idiomas na interface) | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/12f537806542bf0e984fe6236b6ddc446f6890f2/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/12f537806542bf0e984fe6236b6ddc446f6890f2.zip) |
 | V3.8 | 12/11/2026 | μ sensível à carga, suspensão duplo-A 3D, contato entre peças importadas, idiomas | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/5955ac5be4c6f39812059fbbfd7c0ea401f98c4d/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/5955ac5be4c6f39812059fbbfd7c0ea401f98c4d.zip) |
 | V3.7 | 12/11/2026 | Camadas prismáticas absolutas no CFD, solver de restrições do sketch, volta com modelo lateral | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/5193ff5aeeb7b35280c52710388e6c12a1d87589/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/5193ff5aeeb7b35280c52710388e6c12a1d87589.zip) |
 | V3.6 | 12/11/2026 | Camadas prismáticas, fadiga do FEA, diagrama g-g, relatório PDF e laudo | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/fe6a59d12dca411610f14599fad75bceb3355516/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/fe6a59d12dca411610f14599fad75bceb3355516.zip) |
@@ -31,8 +35,8 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 | V2.4 | 05/11/2026 | Treliça (MEF de barras), relatórios rastreáveis; inclui a V2.3 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/347a2610ca08e27dd9efcdfd04110b1ac6223651/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/347a2610ca08e27dd9efcdfd04110b1ac6223651.zip) |
 | V2.2 | 05/11/2026 | Projetos predefinidos, biblioteca de peças, laboratório de testes | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/152263c8a843b0a3cf061333c3e85e4958dcfba6/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/152263c8a843b0a3cf061333c3e85e4958dcfba6.zip) |
 
-As V2.3 e V3.2 não tinham zip próprio. As mudanças delas já estão nas versões
-seguintes (V2.4 e V3.3). O histórico completo está no `README.md` e no `CHANGELOG.md` do projeto.
+As V2.3, V3.2 e V4.2 a V4.4 não tinham zip próprio. As mudanças delas já estão nas versões
+seguintes (V2.4, V3.3 e V5.0). O histórico completo está no `README.md` e no `CHANGELOG.md` do projeto.
 
 ## Como pegar uma versão antiga
 

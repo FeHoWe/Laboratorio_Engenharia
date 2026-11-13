@@ -19,6 +19,23 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V5.0
+- **NEXUS HOME** (primeira aba): vê o estado do projeto e abre cada ambiente. **Verificar consistência do projeto** mostra o que falta (materiais, massa parcial, interferência não verificada, alterações não salvas) — sem inventar números.
+- **Ferramentas F1 → Comparar A/B:** edite a configuração B, compare com a aba Volta e veja em que ponto da pista B ganha ou perde tempo; a *varredura de parâmetro* mostra o tempo de volta para vários valores de um parâmetro (ex.: `p_ice`: 400, 500, 600 kW).
+- **Editor paramétrico:** *Varrer* (perfil ao longo de um caminho x,y,z; …) e a operação *filete variável* (raio muda de uma ponta à outra da aresta). O loft entre perfis é feito pela API.
+
+## Novidades da V4.1b — nomes, revolução e restrições
+No editor paramétrico: **Nomear face/aresta…** dá um nome a uma face ou aresta (a face de cima, uma aresta perto de um ponto…). O nome *acompanha* a peça pelas operações seguintes — mover, escalar, furar, editar um parâmetro antigo — e pode ser usado em filetes, chanfros e na casca (`nome:borda`). Se uma operação destrói aquela face ou aresta, o NEXUS avisa “referência perdida” em vez de escolher outra. **Revolucionar** (no diálogo de esboço) gira o perfil em torno de um eixo. **Variável…** e **Restrição…** permitem escrever parâmetros como `=D*2` ou `=op[0].diameter`, e regras como `volume > 1000`; uma edição que quebre uma regra é desfeita. As regras só *verificam* — o NEXUS não reajusta sozinho.
+
+## Novidades da V4.1 — CAD avançado
+No *Editor paramétrico com histórico* (Solvers → Editor paramétrico) há novas operações: **furo escareado**, **padrão linear** e **padrão circular** (repete furos/saliências), **espelhar** e **casca** (esvazia o sólido deixando uma face aberta). Filete e chanfro aceitam arestas do **topo** ou da **base** de um eixo. Tudo entra no histórico: dá para editar parâmetros, suprimir e desfazer. Se uma operação não cabe na geometria (ex.: casca mais grossa que a peça), o NEXUS recusa e mantém o histórico como estava. A *volta do veículo* agora roda em segundo plano, com cancelamento.
+
+## Novidades da V4.0 — proteção do seu trabalho
+- **Recuperação automática**: se o NEXUS fechar de forma inesperada com alterações não salvas, ao abrir de novo ele pergunta se você quer recuperar o projeto. O instantâneo é gravado a cada 60 s só quando há alterações e nunca substitui o seu arquivo.
+- **Backup ao salvar**: o arquivo anterior fica em `backups/` (últimos 10).
+- **Versões**: *Arquivo → Registrar versão…* guarda uma cópia nomeada em `versions/`. *Arquivo → Versões do projeto…* lista, compara com o arquivo atual (peças adicionadas, removidas, renomeadas, material, geometria, posição) e restaura uma versão (o estado atual vai antes para `backups/`).
+- **Casos não lineares (plástico, série, contato)** rodam em segundo plano: a janela não trava e há botão **Cancelar**. São verificações em malha grosseira, **não** validação de peça real.
+
 ## Novidades da V3.9
 - **Relatórios PDF no seu idioma**: o PDF do projeto e o laudo de resultados saem em inglês, espanhol, alemão, francês ou chinês, conforme *Tools → Idioma / Language*. Classes de resultado, números e unidades não mudam. Chinês/japonês/coreano precisam de fonte CJK no leitor de PDF (não vai embutida). O parecer automático e as premissas dos módulos continuam em português.
 - **Celular**: calculadoras e telas principais traduzidas (en, es, de, fr, zh); nomes de peças, circuitos e modelos continuam em português.

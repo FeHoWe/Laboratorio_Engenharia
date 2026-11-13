@@ -1,7 +1,8 @@
 """Diálogo de FEA não linear (V3.6): barra elastoplástica, barras em série e blocos em contato — CalculiX real, com a solução analítica ao lado."""
 from __future__ import annotations
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QWidget, QFormLayout, QDoubleSpinBox, QPushButton, QTextEdit, QLabel, QComboBox,
-                               QLineEdit, QFileDialog, QHBoxLayout)
+                               QLineEdit, QFileDialog, QHBoxLayout, QProgressBar)
+from PySide6.QtCore import QTimer
 from modules import casos_nl as CN
 
 
@@ -48,6 +49,12 @@ class NLDialog(QDialog):
         for t, w in (("força [N] (para baixo, no topo da superior)", self.pc_F), ("tamanho de elemento [mm]", self.pc_h), ("rigidez de penalidade K", self.pc_K), ("atrito μ (0 = sem atrito)", self.pc_mu)):
             f4.addRow(t, w)
         b4 = QPushButton("Rodar contato entre as duas peças"); b4.clicked.connect(self.run_contato2); f4.addRow(b4); T.addTab(w4, "Contato (2 peças)")
+        # V4.0: os casos rodam em PROCESSO ISOLADO (a interface não congela; há barra e cancelamento)
+        self._job = None; self.jobs = None
+        self._timer = QTimer(self); self._timer.setInterval(200); self._timer.timeout.connect(self._poll)
+        bl = QHBoxLayout(); self.progress = QProgressBar(); self.progress.setVisible(False); bl.addWidget(self.progress)
+        self.b_cancel = QPushButton("Cancelar"); self.b_cancel.setEnabled(False); self.b_cancel.clicked.connect(self.cancelar); bl.addWidget(self.b_cancel)
+        L.addLayout(bl)
         self.out = QTextEdit(); self.out.setReadOnly(True); L.addWidget(self.out)
 
     @staticmethod
@@ -56,26 +63,65 @@ class NLDialog(QDialog):
         for x in ws: h.addWidget(x)
         return w
 
-    def _peca(self, lado):
+    def _spec(self, lado):
         d = self.pc[lado]; t = d["tipo"].currentText(); k = d["dims"]
-        spec = {"caixa": dict(tipo="caixa", dx=k["dx"].value(), dy=k["dy"].value(), dz=k["dz"].value()),
+        return {"caixa": dict(tipo="caixa", dx=k["dx"].value(), dy=k["dy"].value(), dz=k["dz"].value()),
                 "cilindro": dict(tipo="cilindro", r=k["r"].value(), h=k["h"].value()),
                 "step": dict(tipo="step", path=d["path"].text())}[t]
-        return CN.peca_de_especificacao(spec)
 
     def run_contato2(self):
-        def f():
-            i, s_ = self.pc["inf"], self.pc["sup"]
-            return CN.contato_duas_pecas(self._peca("inf"), self._peca("sup"), i["E"].value(), i["nu"].value(), s_["E"].value(), s_["nu"].value(),
-                                         self.pc_F.value(), self.pc_h.value(), self.pc_K.value(), self.pc_mu.value() or None)
-        self._mostra(f)
+        i, s_ = self.pc["inf"], self.pc["sup"]
+        self._submete("Contato (2 peças)", "contato2", dict(inferior=self._spec("inf"), superior=self._spec("sup"), E1=i["E"].value(), nu1=i["nu"].value(),
+                      E2=s_["E"].value(), nu2=s_["nu"].value(), forca=self.pc_F.value(), tamanho=self.pc_h.value(), K=self.pc_K.value(), mu=self.pc_mu.value() or None))
 
-    def _mostra(self, fn):
-        try: r = fn()
-        except (ValueError, KeyError) as e: self.out.setPlainText(f"ERRO: {e}"); return
+    def run_plastico(self):
+        p = self.p; self._submete("Barra elastoplástica", "plastico", dict(E=p["E"].value(), nu=p["nu"].value(), sigma_y=p["sy"].value(), Et=p["Et"].value(),
+                                  comprimento=p["L"].value(), lado=p["a"].value(), deformacao=p["eps"].value()))
+
+    def run_serie(self):
+        s = self.s; self._submete("Barras em série", "serie", dict(E1=s["E1"].value(), E2=s["E2"].value(), nu=s["nu"].value(), comprimento=s["L"].value(),
+                                  lado=s["a"].value(), forca=s["F"].value()))
+
+    def run_contato(self):
+        c = self.c; self._submete("Blocos em contato", "contato", dict(E=c["E"].value(), nu=c["nu"].value(), comprimento_bloco=c["L"].value(),
+                                  lado=c["a"].value(), forca=c["F"].value(), K=c["K"].value()))
+
+    # ---- execução isolada
+    def _submete(self, nome, caso, params):
+        if self._job is not None and not self._job.terminal:
+            return
+        from core.jobs import JobManager
+        self.jobs = self.jobs or JobManager(1)
+        self._job = self.jobs.submit_python(f"{nome} (isolado)", "modules.nl_job", "run", dict(caso=caso, params=params), timeout=3600)
+        self.progress.setRange(0, 100); self.progress.setValue(0); self.progress.setVisible(True); self.b_cancel.setEnabled(True)
+        self.out.setPlainText("Executando em processo separado…")
+        self._timer.start()
+
+    def cancelar(self):
+        if self._job is not None and not self._job.terminal:
+            self.jobs.cancel(self._job.id)
+
+    def aguardar(self, timeout=600.0):
+        """Espera o job terminar e mostra o resultado (usado pelos testes e por quem chama por API)."""
+        if self._job is not None:
+            self._job.wait(timeout)
+            self._poll()
+        return self.out.toPlainText()
+
+    def _poll(self):
+        j = self._job
+        if j is None:
+            self._timer.stop(); return
+        self.progress.setValue(int(j.progress))
+        if not j.terminal:
+            return
+        self._timer.stop(); self.b_cancel.setEnabled(False); self.progress.setVisible(False)
+        if j.state == "CANCELLED":
+            self.out.setPlainText("Cancelado pelo usuário. Nenhum resultado foi gravado."); return
+        if j.state != "DONE":
+            self.out.setPlainText(f"{j.state}: {j.error}\n\n--- log do processo ---\n" + "\n".join(j.log.splitlines()[-25:])); return
+        r = j.result()
+        if "_erro" in r:
+            self.out.setPlainText(f"ERRO: {r['_erro']}"); return
         self.out.setPlainText("\n".join(f"{k}: {v:.5g}" if isinstance(v, float) else f"{k}: {v}" for k, v in r.items()) +
                               "\n\nCalculiX real × solução analítica de barra. Malha grosseira de verificação: NÃO é validação de peça real.")
-
-    def run_plastico(self): p = self.p; self._mostra(lambda: CN.barra_plastica(p["E"].value(), p["nu"].value(), p["sy"].value(), p["Et"].value(), p["L"].value(), p["a"].value(), p["eps"].value()))
-    def run_serie(self): s = self.s; self._mostra(lambda: CN.serie_materiais(s["E1"].value(), s["E2"].value(), s["nu"].value(), s["L"].value(), s["a"].value(), s["F"].value()))
-    def run_contato(self): c = self.c; self._mostra(lambda: CN.blocos_contato(c["E"].value(), c["nu"].value(), c["L"].value(), c["a"].value(), c["F"].value(), c["K"].value()))

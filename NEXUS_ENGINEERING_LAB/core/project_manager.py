@@ -112,7 +112,7 @@ class ProjectManager:
         return project
 
     # ------------------------------------------------------------------- salvar
-    def save(self, project: Project, path: Optional[str | Path] = None) -> Path:
+    def save(self, project: Project, path: Optional[str | Path] = None, backup: bool = True) -> Path:
         target = Path(path) if path else project.path
         if target is None:
             raise ProjectError("O projeto ainda não tem arquivo; use 'Salvar como'.")
@@ -143,6 +143,9 @@ class ProjectManager:
                     "root": tree,
                 }
                 zf.writestr("project.json", json.dumps(doc, ensure_ascii=False, indent=2))
+            if backup and target.exists():                        # V4.0: nunca perde a versão anterior (mantém as 10 últimas em backups/)
+                from core.backup import backup_file
+                backup_file(target, keep=10, motivo="antes de salvar")
             os.replace(tmp_target, target)
         except Exception as exc:
             if tmp_target.exists():

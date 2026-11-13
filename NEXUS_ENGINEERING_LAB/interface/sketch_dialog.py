@@ -1,7 +1,7 @@
 """Editor de sketch 2D: perfis (retângulo, círculo, polígono) → extrusão (adicionar/cortar) no histórico paramétrico."""
 from __future__ import annotations
 
-from PySide6.QtWidgets import (QComboBox, QDialog, QDoubleSpinBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox, QPushButton, QVBoxLayout)
+from PySide6.QtWidgets import (QLineEdit, QComboBox, QDialog, QDoubleSpinBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox, QPushButton, QVBoxLayout)
 
 from modules.sketch2d import Sketch, SketchError
 
@@ -36,6 +36,19 @@ class SketchDialog(QDialog):
         self.mode = QComboBox(); self.mode.addItems(["add", "cut"])
         r.addWidget(QLabel("extrusão")); r.addWidget(self.dist); r.addWidget(self.mode)
         b = QPushButton("Aplicar ao histórico"); b.clicked.connect(self.apply); r.addWidget(b)
+        v.addLayout(r)
+        r = QHBoxLayout()                                                      # V4.1b: revolução em torno de um eixo do plano do esboço
+        self.ang = QDoubleSpinBox(); self.ang.setRange(1, 360); self.ang.setDecimals(2); self.ang.setValue(360.0)
+        self.eixo = [QDoubleSpinBox() for _ in range(4)]
+        for w, val in zip(self.eixo, (0, 0, 0, 1)):
+            w.setRange(-1e6, 1e6); w.setDecimals(3); w.setValue(val)
+        r.addWidget(QLabel("revolução [°]")); r.addWidget(self.ang); r.addWidget(QLabel("eixo u0 v0 u1 v1"))
+        for w in self.eixo: r.addWidget(w)
+        b = QPushButton("Revolucionar"); b.clicked.connect(self.apply_revolve); r.addWidget(b)
+        v.addLayout(r)
+        r = QHBoxLayout()                                                      # V4.2: varredura ao longo de uma poligonal 3D
+        self.caminho = QLineEdit("0,0,0; 0,0,20"); r.addWidget(QLabel("caminho x,y,z; …")); r.addWidget(self.caminho)
+        b = QPushButton("Varrer"); b.clicked.connect(self.apply_sweep); r.addWidget(b)
         v.addLayout(r)
         self.refresh()
 
@@ -108,6 +121,35 @@ class SketchDialog(QDialog):
             self.info.setText(f"Área líquida: {self.sk.area():.4f} (unidades²) — furos por aninhamento" if self.sk.entities else "Adicione perfis.")
         except SketchError as ex:
             self.info.setText(f"⚠ {ex}")
+
+    def apply_sweep(self) -> None:
+        self._sync()
+        try:
+            self.sk.validate()
+            caminho = [[float(c) for c in p.split(",")] for p in self.caminho.text().split(";") if p.strip()]
+        except (SketchError, ValueError) as ex:
+            QMessageBox.warning(self, "Sketch", str(ex)); return
+        if self.history is None:
+            QMessageBox.information(self, "Sketch", "Abra uma peça no histórico paramétrico primeiro."); return
+        try:
+            self.history.add("sketch_sweep", sketch=self.sk.to_dict(), path=caminho, mode=self.mode.currentText())
+        except Exception as ex:
+            QMessageBox.warning(self, "Varredura", str(ex)); return
+        self.accept()
+
+    def apply_revolve(self) -> None:
+        self._sync()
+        try:
+            self.sk.validate()
+        except SketchError as ex:
+            QMessageBox.warning(self, "Sketch", str(ex)); return
+        if self.history is None:
+            QMessageBox.information(self, "Sketch", "Abra uma peça no histórico paramétrico primeiro."); return
+        try:
+            self.history.add("sketch_revolve", sketch=self.sk.to_dict(), angle_deg=self.ang.value(), axis=[w.value() for w in self.eixo], mode=self.mode.currentText())
+        except Exception as ex:
+            QMessageBox.warning(self, "Revolução", str(ex)); return
+        self.accept()
 
     def apply(self) -> None:
         self._sync()

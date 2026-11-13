@@ -19,8 +19,8 @@ def test_dialogo():
     from PySide6.QtWidgets import QApplication
     app = QApplication.instance() or QApplication([])
     from interface.nl_dialog import NLDialog
-    d = NLDialog(); d.run_plastico(); assert "erro_pct" in d.out.toPlainText()
-    d.p["Et"].setValue(300000); d.run_plastico(); assert "ERRO" in d.out.toPlainText()
+    d = NLDialog(); d.run_plastico(); d.aguardar(); assert "erro_pct" in d.out.toPlainText()
+    d.p["Et"].setValue(300000); d.run_plastico(); d.aguardar(); assert "ERRO" in d.out.toPlainText()
 
 
 # ---------------------------------------------------------------- V3.8: contato entre duas peças (OCP/STEP) na interface
@@ -68,7 +68,7 @@ def test_dialogo_contato_duas_pecas():
     from PySide6.QtWidgets import QApplication
     app = QApplication.instance() or QApplication([])
     from interface.nl_dialog import NLDialog
-    d = NLDialog(); d.run_contato2(); t = d.out.toPlainText()
+    d = NLDialog(); d.run_contato2(); t = d.aguardar()
     assert "SIMULACAO_NUMERICA" in t and "erro_equilibrio_pct" in t
-    d.pc["sup"]["tipo"].setCurrentText("step"); d.run_contato2()                 # sem caminho → erro tratado
+    d.pc["sup"]["tipo"].setCurrentText("step"); d.run_contato2(); d.aguardar()                 # sem caminho → erro tratado
     assert "ERRO" in d.out.toPlainText()

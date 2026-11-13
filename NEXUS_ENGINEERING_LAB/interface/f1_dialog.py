@@ -96,6 +96,7 @@ class F1Dialog(QDialog):
         tabs.addTab(self._mass_tab(), "Massa e CG")
         tabs.addTab(self._lap_tab(), "Volta")
         tabs.addTab(self._tel_tab(), "Telemetria")
+        tabs.addTab(self._ab_tab(), "Comparar A/B")
 
     # ------------------------------------------------------------------ regulamento
     def _regs_tab(self):
@@ -235,6 +236,52 @@ class F1Dialog(QDialog):
             self.plot.set_data(q["s_m"], q["v_ms"])
         except Exception as e:  # noqa: BLE001
             self.lap_out.setText(f"Não foi possível simular: {e}")
+
+    # ------------------------------------------------------------------ comparação A/B (V4.3)
+    def _ab_tab(self):
+        w = QWidget(); v = QVBoxLayout(w)
+        v.addWidget(self._warn("A = os valores da aba Volta. Edite B abaixo e compare: o MESMO solver roda nas duas configurações. A diferença vale para este modelo simplificado, "
+                               "não prevê a diferença no carro real."))
+        form = QFormLayout(); self.ab: dict[str, QLineEdit] = {}
+        for k in self.lap:
+            e = QLineEdit(self.lap[k].text()); self.ab[k] = e; form.addRow("B — " + k, e)
+        v.addLayout(form)
+        h = QHBoxLayout()
+        b = QPushButton("Comparar A × B"); b.clicked.connect(self.run_ab); h.addWidget(b)
+        self.sw_campo = QLineEdit("p_ice"); self.sw_vals = QLineEdit("400, 500, 600"); h.addWidget(QLabel("varrer:")); h.addWidget(self.sw_campo); h.addWidget(self.sw_vals)
+        c = QPushButton("Varredura de parâmetro"); c.clicked.connect(self.run_sweep); h.addWidget(c)
+        v.addLayout(h)
+        self.ab_out = QPlainTextEdit(); self.ab_out.setReadOnly(True); v.addWidget(self.ab_out)
+        return w
+
+    @staticmethod
+    def _carro(d):
+        return lapsim.Carro(d["massa"], d["p_ice"] * 1e3, d["cda"], d["cla"], d["mu"], d["crr"], p_ers=d["p_ers"] * 1e3, e_ers=d["e_ers"] * 1e6)
+
+    def run_ab(self):
+        from modules import comparacao
+        try:
+            _, pista = self._car_and_track()
+            a = self._carro({k: _num(e) for k, e in self.lap.items()})
+            b = self._carro({k: _num(e) for k, e in self.ab.items()})
+            self.last_ab = comparacao.comparar_voltas(a, b, pista, ds=3.0)
+            self.ab_out.setPlainText(comparacao.texto(self.last_ab))
+        except Exception as e:  # noqa: BLE001
+            self.ab_out.setPlainText(f"Não foi possível comparar: {e}")
+
+    def run_sweep(self):
+        from modules import comparacao
+        try:
+            car, pista = self._car_and_track()
+            campo = self.sw_campo.text().strip()
+            escala = {"p_ice": 1e3, "p_ers": 1e3, "e_ers": 1e6}.get(campo, 1.0)            # campos em kW/MJ na interface, W/J no solver
+            vals = [float(x) * escala for x in self.sw_vals.text().replace(";", ",").split(",") if x.strip()]
+            r = comparacao.varrer_parametro(car, campo, vals, pista)
+            self.ab_out.setPlainText(f"Varredura de {campo} (demais parâmetros = aba Volta)\n" + "\n".join(
+                f"{x['valor'] / escala:>10g}  →  volta {x['tempo_s']:.3f} s  (Δ vs primeiro {x['delta_vs_primeiro_s']:+.3f} s) · v máx {x['v_max_kmh']:.0f} km/h" for x in r)
+                + "\n\n⚠ Mesmo modelo simplificado (ponto material, pista sintética).")
+        except Exception as e:  # noqa: BLE001
+            self.ab_out.setPlainText(f"Não foi possível varrer: {e}")
 
     # ------------------------------------------------------------------ telemetria
     def _tel_tab(self):

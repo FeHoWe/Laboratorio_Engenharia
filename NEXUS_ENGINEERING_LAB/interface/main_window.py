@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from PySide6.QtCore import QObject, QSignalBlocker, QThread, Qt, Signal, Slot
+from PySide6.QtCore import QObject, QSignalBlocker, QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QFileDialog, QInputDialog, QLabel,
                                QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar, QTableWidget,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QFileDia
 from core.i18n import tr, idioma, idiomas_disponiveis, definir_idioma
 from core.cad_engine import CadEngine, environment_report
 from core.project_manager import PROJECT_FILTER, Project, ProjectError, ProjectManager
+from core.project_safety import AutoSaver
 from interface import styles
 from interface.bom_dialog import BomDialog
 from interface.joints_dialog import JointsDialog
@@ -38,7 +39,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "3.9"
+APP_VERSION = "5.0"
 
 
 # --------------------------------------------------------------- console inferior
@@ -116,6 +117,9 @@ class MainWindow(QMainWindow):
         self.fatigue_tab = FatigueTab(self.project.materials, self._primary_name)
         self.central_tabs = QTabWidget()  # noqa
         self.central_tabs.setObjectName("central_tabs")
+        from interface.home_tab import HomeTab
+        self.home_tab = HomeTab(self)                      # V5.0: tela inicial por ambientes
+        self.central_tabs.addTab(self.home_tab, "NEXUS HOME")
         self.central_tabs.addTab(self.viewport, "Bancada 3D")
         self.central_tabs.addTab(self.fatigue_tab, "Simulação de fadiga")
         from interface.lab_tab import LabTab
@@ -133,6 +137,12 @@ class MainWindow(QMainWindow):
         self._create_statusbar()
         self._connect()
         self._set_project(self.project, rebuild=True)
+        # V4.0: salvamento automático de recuperação (não altera o arquivo do usuário)
+        self.autosaver = AutoSaver(self.project_manager)
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setInterval(int(float(self.config.get("autosave_s", 60)) * 1000))
+        self._autosave_timer.timeout.connect(self.autosave_agora)
+        self._autosave_timer.start()
         self.console.log("info", f"{APP_NAME} {APP_VERSION} pronto. Backend CAD: {self.engine.backend_name}.")
         self.console.log("info", "Importe um modelo (Ctrl+I) ou abra um projeto (Ctrl+O).")
 
@@ -163,6 +173,8 @@ class MainWindow(QMainWindow):
         a("open", "Abrir", lambda: self.open_project(), "Ctrl+O", "open", "Abrir projeto NEXUS (.nexus)")
         a("save", "Salvar", self.save_project, "Ctrl+S", "save", "Salvar projeto")
         a("save_as", "Salvar como…", self.save_project_as, "Ctrl+Shift+S")
+        a("save_version", "Registrar versão…", lambda: self.registrar_versao())
+        a("versions", "Versões do projeto…", lambda: self.mostrar_versoes())
         a("export", "Exportar modelo…", lambda: self.export_model(), "Ctrl+Shift+E")
         a("quit", "Sair", self.close, "Ctrl+Q")
         # editar
@@ -275,7 +287,7 @@ class MainWindow(QMainWindow):
         pm = m.addMenu(tr("Projetos predefinidos"))
         for _p in all_projects():
             pm.addAction(A[f"proj_{_p.key}"])
-        for k in ("new", "import", "open", "sample_engine", None, "save", "save_as", None, "export", "report_pdf", None, "quit"):
+        for k in ("new", "import", "open", "sample_engine", None, "save", "save_as", "save_version", "versions", None, "export", "report_pdf", None, "quit"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu(tr("Edit"))
         for k in ("select_all", "clear_selection", None, "rename", None, "history"):
@@ -446,6 +458,12 @@ class MainWindow(QMainWindow):
 
     def _update_title(self) -> None:
         self.setWindowTitle(f"{self.project.title} — {APP_NAME}")
+        if hasattr(self, "home_tab"):
+            self.home_tab.atualizar()
+
+    def mostrar_home(self) -> None:
+        self.home_tab.atualizar()
+        self.central_tabs.setCurrentWidget(self.home_tab)
 
     def _update_state_labels(self) -> None:
         comps = self.project.components
@@ -518,8 +536,35 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Falha ao salvar", str(exc))
             return False
         self._update_title()
+        self.autosaver.limpar()
         self.console.log("ok", f"Projeto salvo em {saved}.")
         return True
+
+    # ---- V4.0: recuperação e versões
+    def autosave_agora(self) -> bool:
+        """Grava o instantâneo de recuperação se houver alterações não salvas. Nunca interrompe o usuário."""
+        if self.busy or not self.project.dirty:
+            return False
+        try:
+            return self.autosaver.gravar(self.project) is not None
+        except Exception as exc:  # noqa: BLE001 - o autosave jamais deve derrubar a aplicação
+            self.console.log("warn", f"Autosave falhou: {exc}")
+            return False
+
+    def verificar_recuperacao(self, decidir=None) -> int:
+        from interface.safety_ui import verificar_recuperacao
+        return verificar_recuperacao(self, decidir)
+
+    def registrar_versao(self, nota=None) -> bool:
+        from interface.safety_ui import registrar_versao
+        return registrar_versao(self, nota)
+
+    def mostrar_versoes(self) -> None:
+        from interface.safety_ui import VersoesDialog
+        if self.project.path is None:
+            QMessageBox.information(self, tr("Versões do projeto"), tr("Salve o projeto antes de registrar uma versão."))
+            return
+        VersoesDialog(self).exec()
 
     # ---- importar
     def import_model(self, path: Optional[str] = None, background: bool = True,
@@ -1661,4 +1706,6 @@ class MainWindow(QMainWindow):
             self._thread.quit()
             self._thread.wait(3000)
         self.viewport.shutdown()
+        self._autosave_timer.stop()
+        self.autosaver.limpar()
         event.accept()
