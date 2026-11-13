@@ -1,7 +1,7 @@
 """Estudo FEA 3D de peça da biblioteca (NEXUS-Tet4). Material e carga: SEMPRE digitados pelo usuário."""
 from __future__ import annotations
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QProgressBar, QHBoxLayout, QDialog, QDoubleSpinBox, QFormLayout, QLabel, QMessageBox, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QProgressBar, QHBoxLayout, QDialog, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
                                QTextEdit, QVBoxLayout, QWidget)
 from samples.library import PARTS
 from modules import fea_study, fea3d, fea_voxel, fea_gmsh, fea_tet10
@@ -66,6 +66,13 @@ class FeaDialog(QDialog):
         r3.addWidget(QLabel("deformada ×")); r3.addWidget(self.defscale)
         v.addLayout(r3)
         b6 = QPushButton("Mostrar mapa de tensões (von Mises) no visualizador 3D"); b6.clicked.connect(self.show_in_viewer); v.addWidget(b6)
+        r4 = QHBoxLayout()
+        self.frac_crit = _spin(0.8, 0.05, 1.0, 2); self.frac_crit.setToolTip("Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).")
+        r4.addWidget(QLabel("fração do máx.")); r4.addWidget(self.frac_crit)
+        self.q_ponto = QLineEdit(); self.q_ponto.setPlaceholderText("x,y,z (mm) para consultar o nó mais próximo")
+        r4.addWidget(self.q_ponto)
+        v.addLayout(r4)
+        b7 = QPushButton("Analisar regiões críticas / consultar ponto / sugerir fator da deformada"); b7.clicked.connect(self.analisar_campo); v.addWidget(b7)
         b4 = QPushButton("Salvar último resultado em um projeto…"); b4.clicked.connect(self.save_result); v.addWidget(b4)
         self.last = None
         self.out = QTextEdit(); self.out.setReadOnly(True); v.addWidget(self.out)
@@ -196,6 +203,32 @@ class FeaDialog(QDialog):
                         "Suavizado por nó (valor de pico pode diferir do por-elemento). Limpe em Visualizar → Limpar mapa.]")
         if not self.sync:
             self.accept()                                      # o diálogo é modal: fecha para o mapa ficar visível
+
+    def analisar_campo(self) -> None:
+        """Regiões críticas (limiar), consulta do nó mais próximo e fator visual sugerido para a deformada; usa só o campo já calculado."""
+        from modules import campo_analise as CA
+        c = self._campos.get(self.src.currentData())
+        if not c:
+            QMessageBox.information(self, "FEA", "Execute um estudo estático primeiro (síncrono ou isolado)."); return
+        try:
+            nodes, vm = c["nodes"], c["vm"]
+            if c["loc"] != "point":
+                raise ValueError("a análise por região usa o campo nodal; este resultado é por elemento")
+            r = CA.regioes_criticas(nodes, vm, self.frac_crit.value())
+            L = [f"[Regiões críticas — von Mises ≥ {r['limiar']:.4g} MPa ({self.frac_crit.value():.0%} do máximo {r['valor_max']:.4g}): {r['n_elementos']} nó(s) em {len(r['regioes'])} região(ões)]"]
+            for i, g in enumerate(r["regioes"][:5], 1):
+                L.append(f"  {i}. {g['n_elementos']} nó(s), máx {g['valor_max']:.4g} MPa, centro ({g['centro'][0]:.2f}, {g['centro'][1]:.2f}, {g['centro'][2]:.2f}) mm")
+            if self.q_ponto.text().strip():
+                pt = [float(x) for x in self.q_ponto.text().replace(";", ",").replace(" ", "").split(",") if x]
+                q = CA.consultar(nodes, vm, pt, 1)[0]
+                L.append(f"  Nó mais próximo de {tuple(pt)}: índice {q['indice']}, a {q['distancia_mm']:.3g} mm, von Mises {q['valor']:.4g} MPa")
+            f = CA.fator_sugerido(nodes, c["u"])
+            self.defscale.setValue(round(f, 2))
+            L.append(f"  Fator visual sugerido da deformada: {f:.4g}× (aplicado ao campo ‘deformada ×’). Só exibição.")
+            L.append("  " + " ".join(r["avisos"]))
+            self.out.append("\n" + "\n".join(L))
+        except Exception as e:  # noqa: BLE001
+            self.out.append(f"\n[Não foi possível analisar o campo: {e}]")
 
     def _shape(self):
         return PARTS[self.part.currentData()].make(**{k: s.value() for k, s in self.pspin.items()})

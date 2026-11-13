@@ -39,7 +39,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "100.0"
+APP_VERSION = "106.0"
 
 
 # --------------------------------------------------------------- console inferior
@@ -243,6 +243,8 @@ class MainWindow(QMainWindow):
           "Remove o mapa de cores (FEA/CFD) exibido no visualizador 3D e devolve as peças")
         a("f1tools", "Engenharia F1 (regulamento, massa/CG, volta)…", lambda: self.show_f1tools(), "Ctrl+Alt+F", None,
           "Conformidade geométrica com limites públicos do regulamento, massa/CG/inércia e simulação de volta quase-estacionária (estudo, não homologação)")
+        a("estudosav", "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…", lambda: self.show_estudos_avancados(), "Ctrl+Alt+E", None,
+          "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)")
         a("f1sim", "Simulador F1 completo (volta, pneus, estratégia, telemetria, áudio, análise)…", lambda: self.show_f1sim(), "Ctrl+Alt+S", None,
           "NEXUS F1: simulador quase-estático por circuito, pneus, estratégia de pit stop, comparação A/B/C, análise estilo i2/OptimumLap e som sintetizado do motor (dados sintéticos, parâmetros estimados)")
         a("lab", "Laboratório de testes (aba)…", lambda: self.open_lab(), "Ctrl+Shift+L", None,
@@ -312,7 +314,7 @@ class MainWindow(QMainWindow):
         for k in ("hide", "show", "isolate", "show_all", None, "material", "typical_materials", "rename"):
             m.addSeparator() if k is None else m.addAction(A[k])
         m = bar.addMenu(tr("Analyze"))
-        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "hub", "intelligence", "vehgeo", "nlfea", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
+        for k in ("inspector", "identify_solids", "bom", "joints", "interference", "kinematics", "fatigue", "lab", "library", "arsenal", "f1tools", "f1sim", "estudosav", "hub", "intelligence", "vehgeo", "nlfea", "solvers", "clearfield", None, "measure", "measure_angle", "diameters", "clear_measure", None, "stats"):
             if k is None:
                 m.addSeparator()
                 continue
@@ -513,6 +515,8 @@ class MainWindow(QMainWindow):
         self._end_busy()
         self._set_project(project)
         self.console.log("ok", f"Projeto '{project.name}' aberto ({len(project.components.leaves())} peças).")
+        from core import atividade
+        atividade.registrar("projeto", f"Abriu {project.name}", str(path))
         return True
 
     def save_project(self) -> bool:
@@ -538,6 +542,8 @@ class MainWindow(QMainWindow):
         self._update_title()
         self.autosaver.limpar()
         self.console.log("ok", f"Projeto salvo em {saved}.")
+        from core import atividade
+        atividade.registrar("projeto", f"Salvou {self.project.name}", str(saved))
         return True
 
     # ---- V4.0: recuperação e versões
@@ -950,6 +956,10 @@ class MainWindow(QMainWindow):
     def show_f1tools(self) -> None:
         from interface.f1_dialog import F1Dialog
         F1Dialog(self).exec()
+
+    def show_estudos_avancados(self) -> None:
+        from interface.estudos_avancados_dialog import EstudosAvancadosDialog
+        EstudosAvancadosDialog(self).exec()
 
     def show_library(self) -> None:
         from interface.library_dialog import LibraryDialog

@@ -458,5 +458,16 @@
  "Pareto": "Pareto",
  "Stint": "Stint",
  "Relatório consolidado…": "Samengesteld rapport…",
- "Executar receita…": "Recept uitvoeren…"
+ "Executar receita…": "Recept uitvoeren…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "Geavanceerde studies (validatie, kalibratie, remmen, zijdelingse dynamica, dossier)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "Grafische interface voor telemetrievalidatie, kalibratie, projectmassa, remthermiek, zijdelingse dynamica en reproduceerbaar dossier (vereenvoudigde modellen; voorbeeldwaarden zijn illustratief)",
+ "Estudos avançados": "Geavanceerde studies",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "Kritieke gebieden analyseren / punt opvragen / vervormingsfactor voorstellen",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "Kritiek gebied = knooppunten met von Mises ≥ dit deel van het maximum (drempelsnede, geen bezwijkcriterium).",
+ "fração do máx.": "deel van max.",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z (mm) om het dichtstbijzijnde knooppunt op te vragen",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "Technische diagnose (berekend, interpretatie, hypothese, aanbeveling)",
+ "Projetos recentes": "Recente projecten",
+ "Atividade recente": "Recente activiteit",
+ "Abrir projeto recente": "Recent project openen"
 }

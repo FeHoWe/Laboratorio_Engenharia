@@ -627,5 +627,16 @@
  "Pareto": "Pareto",
  "Stint": "Stint",
  "Relatório consolidado…": "Informe consolidado…",
- "Executar receita…": "Ejecutar receta…"
+ "Executar receita…": "Ejecutar receta…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "Estudios avanzados (validación, calibración, frenos, dinámica lateral, dossier)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "Interfaz gráfica para validación con telemetría, calibración, masa del proyecto, térmica de frenos, dinámica lateral y dossier reproducible (modelos simplificados; valores de ejemplo ilustrativos)",
+ "Estudos avançados": "Estudios avanzados",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "Analizar regiones críticas / consultar punto / sugerir factor de deformación",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "Región crítica = nodos con von Mises ≥ esta fracción del máximo (corte por umbral, no es criterio de falla).",
+ "fração do máx.": "fracción del máx.",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z (mm) para consultar el nodo más cercano",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "Diagnóstico técnico (calculado, interpretación, hipótesis, recomendación)",
+ "Projetos recentes": "Proyectos recientes",
+ "Atividade recente": "Actividad reciente",
+ "Abrir projeto recente": "Abrir proyecto reciente"
 }

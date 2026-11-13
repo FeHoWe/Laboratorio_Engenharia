@@ -12,11 +12,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 
-TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint", "validacao", "calibracao", "dinamica_lateral", "freio_termico")
+TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint", "validacao", "calibracao", "dinamica_lateral", "freio_termico", "comparacao_veiculos")
 _TITULO = {"comparacao": "Comparação A/B de volta", "tornado": "Sensibilidade (tornado)", "otimizacao": "Otimização de parâmetros",
-           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)", "validacao": "Validação com telemetria do usuário", "calibracao": "Calibração de parâmetros", "dinamica_lateral": "Dinâmica lateral linear (2 GDL)", "freio_termico": "Freios: energia e temperatura de disco"}
+           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)", "validacao": "Validação com telemetria do usuário", "calibracao": "Calibração de parâmetros", "dinamica_lateral": "Dinâmica lateral linear (2 GDL)", "freio_termico": "Freios: energia e temperatura de disco", "comparacao_veiculos": "Comparação A/B de veículos"}
 _CHAVE = {"comparacao": ("campos",), "tornado": ("linhas", "variacao_pct"), "otimizacao": ("parametros", "tempo_otimo_s"), "fatorial": ("ordenados", "execucoes"),
-          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta"), "validacao": ("metricas", "veredito"), "calibracao": ("parametros_calibrados", "numero_condicao"), "dinamica_lateral": ("varredura", "limitacoes"), "freio_termico": ("voltas", "energia_frenagem_MJ")}
+          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta"), "validacao": ("metricas", "veredito"), "calibracao": ("parametros_calibrados", "numero_condicao"), "dinamica_lateral": ("varredura", "limitacoes"), "freio_termico": ("voltas", "energia_frenagem_MJ"), "comparacao_veiculos": ("linhas", "notas")}
 
 
 def _limpo(o):
@@ -56,6 +56,9 @@ def linhas_tabela(tipo: str, e: dict) -> tuple[list[str], list[list]]:
         a, b = e["objetivos"]
         ks = list(e["frente"][0]["parametros"]) if e["frente"] else []
         return ([a, b, *ks, "equivalentes"], [[*p["objetivos"], *[p["parametros"][k] for k in ks], p.get("equivalentes", 0)] for p in e["frente"]])
+    if tipo == "comparacao_veiculos":
+        return (["metrica", "A", "B", "B_menos_A", "delta_pct", "modelo", "hipoteses"],
+                [[x["metrica"], x["A"], x["B"], x["delta_B_menos_A"], x["delta_pct"], x["modelo"], x["hipoteses"]] for x in e["linhas"]])
     if tipo == "freio_termico":
         return (["volta", "T_pico_diant_C", "T_pico_tras_C", "T_media_diant_C", "T_media_tras_C", "T_fim_diant_C", "T_fim_tras_C"],
                 [[x["volta"], x["T_pico_diant_C"], x["T_pico_tras_C"], x["T_media_diant_C"], x["T_media_tras_C"], x["T_fim_diant_C"], x["T_fim_tras_C"]] for x in e["voltas"]])

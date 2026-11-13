@@ -458,5 +458,16 @@
  "Pareto": "Pareto",
  "Stint": "Stint",
  "Relatório consolidado…": "Laporan gabungan…",
- "Executar receita…": "Jalankan resep…"
+ "Executar receita…": "Jalankan resep…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "Studi lanjutan (validasi, kalibrasi, rem, dinamika lateral, dosir)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "Antarmuka grafis untuk validasi telemetri, kalibrasi, massa proyek, termal rem, dinamika lateral, dan dosir yang dapat direproduksi (model disederhanakan; nilai contoh bersifat ilustrasi)",
+ "Estudos avançados": "Studi lanjutan",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "Analisis wilayah kritis / kueri titik / usulkan faktor deformasi",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "Wilayah kritis = simpul dengan von Mises ≥ fraksi maksimum ini (pemotongan ambang, bukan kriteria kegagalan).",
+ "fração do máx.": "fraksi maks.",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z (mm) untuk menanyakan simpul terdekat",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "Diagnosis teknis (terhitung, interpretasi, hipotesis, rekomendasi)",
+ "Projetos recentes": "Proyek terbaru",
+ "Atividade recente": "Aktivitas terbaru",
+ "Abrir projeto recente": "Buka proyek terbaru"
 }

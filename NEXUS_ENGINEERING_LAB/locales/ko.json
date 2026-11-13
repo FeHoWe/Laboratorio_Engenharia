@@ -458,5 +458,16 @@
  "Pareto": "파레토",
  "Stint": "스틴트",
  "Relatório consolidado…": "통합 보고서…",
- "Executar receita…": "레시피 실행…"
+ "Executar receita…": "레시피 실행…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "고급 연구(검증, 보정, 브레이크, 횡방향 동역학, 도시에)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "텔레메트리 검증, 보정, 프로젝트 질량, 브레이크 열, 횡방향 동역학, 재현 가능한 도시에를 위한 그래픽 인터페이스(단순화 모델, 예시 값은 설명용)",
+ "Estudos avançados": "고급 연구",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "임계 영역 분석 / 점 조회 / 변형 배율 제안",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "임계 영역 = von Mises가 최댓값의 이 비율 이상인 노드(임계값 절단이며 파손 기준이 아님).",
+ "fração do máx.": "최댓값 비율",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z(mm): 가장 가까운 노드 조회",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "기술 진단(계산, 해석, 가설, 권고)",
+ "Projetos recentes": "최근 프로젝트",
+ "Atividade recente": "최근 활동",
+ "Abrir projeto recente": "최근 프로젝트 열기"
 }

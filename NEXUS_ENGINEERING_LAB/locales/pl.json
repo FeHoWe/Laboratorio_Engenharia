@@ -458,5 +458,16 @@
  "Pareto": "Pareto",
  "Stint": "Stint",
  "Relatório consolidado…": "Raport zbiorczy…",
- "Executar receita…": "Uruchom przepis…"
+ "Executar receita…": "Uruchom przepis…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "Zaawansowane badania (walidacja, kalibracja, hamulce, dynamika boczna, dossier)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "Interfejs graficzny do walidacji telemetrią, kalibracji, masy projektu, termiki hamulców, dynamiki bocznej i odtwarzalnego dossier (uproszczone modele; wartości przykładowe są poglądowe)",
+ "Estudos avançados": "Zaawansowane badania",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "Analizuj obszary krytyczne / zapytaj o punkt / zasugeruj współczynnik odkształcenia",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "Obszar krytyczny = węzły z von Mises ≥ tej części maksimum (cięcie progowe, nie kryterium zniszczenia).",
+ "fração do máx.": "część maks.",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z (mm) do zapytania o najbliższy węzeł",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "Diagnoza techniczna (obliczone, interpretacja, hipoteza, zalecenie)",
+ "Projetos recentes": "Ostatnie projekty",
+ "Atividade recente": "Ostatnia aktywność",
+ "Abrir projeto recente": "Otwórz ostatni projekt"
 }
