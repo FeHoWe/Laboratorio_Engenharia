@@ -97,7 +97,7 @@ def write_inp_nl(mesh, materiais, regioes, fixed, loads, path, disp=None, nlgeom
     if rf_nos: L += ["*NODE PRINT, NSET=NRF", "RF"]
     L += ["*EL PRINT, ELSET=R%d" % next(r for r in range(len(materiais)) if (regioes == r).any()), "S"] + (["PEEQ"] if any(m.get("plastico") for m in materiais) else [])
     L += ["*END STEP"]
-    Path(path).write_text("\n".join(L) + "\n")
+    Path(path).write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
 
 
 def _linhas(ids, n=8):
@@ -136,7 +136,7 @@ def parse_dat_nl(text: str):
 
 def incremento_total(inp_path):
     """Tempo total do passo (2º valor da linha de incrementos do *STATIC)."""
-    L = Path(inp_path).read_text().splitlines()
+    L = Path(inp_path).read_text(encoding="utf-8").splitlines()
     for i, l in enumerate(L):
         if l.strip().upper().startswith("*STATIC"):
             try: return float(L[i + 1].split(",")[1])
@@ -154,7 +154,7 @@ def run_nl(inp_path, timeout=1800):
     dat = job.with_suffix(".dat")
     if r.returncode != 0 or not dat.exists():
         return TracedResult("CalculiX", "NAO_EXECUTADO", "ccx *STATIC não linear", limitacoes=["falha: " + (r.stderr or r.stdout)[-400:]]), {}, {}, 0.0
-    U, RF, pe = parse_dat_nl(dat.read_text())
+    U, RF, pe = parse_dat_nl(dat.read_text(encoding="utf-8"))
     if parse_dat_nl.tempo < 0.9999 * incremento_total(p):
         return TracedResult("CalculiX", "NAO_EXECUTADO", "ccx *STATIC não linear", limitacoes=[
             f"NÃO CONVERGIU: o passo parou em t={parse_dat_nl.tempo:g} (de {incremento_total(p):g}); resultado parcial descartado"]), {}, {}, 0.0

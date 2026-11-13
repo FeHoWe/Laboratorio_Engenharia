@@ -198,3 +198,87 @@ def test_dialogos_constroem_e_revolucao_pelo_dialogo():
     assert d.hist.ops[-1]["type"] == "sketch_revolve" and d.hist.volume() > 1000
     d.refresh()
     assert "sketch_revolve" in d.lst.item(0).text()
+
+
+# ------------------------------------------------------------------ V5.3: ajuste de uma variável a um alvo
+def test_ajustar_diametro_para_atingir_volume():
+    h = CadHistory(box())
+    h.definir("D", 2)
+    h.add("hole", x=20, y=20, z=-1, dx=0, dy=0, dz=1, diameter="=D", depth=12)
+    r = h.ajustar("D", "volume", 15000, 0.5, 30)
+    assert h.vars["D"] == pytest.approx(r["valor"]) and h.volume() == pytest.approx(15000, abs=1e-3)
+    assert r["valor"] == pytest.approx(2 * math.sqrt(1000 / (math.pi * 10)), rel=1e-6)          # π(D/2)²·10 = 1000
+    assert abs(r["obtido"] - 15000) < 1e-3
+
+
+def test_ajustar_dimensao_da_caixa_envolvente():
+    h = CadHistory(box())
+    h.definir("L", 5)
+    h.add("box_add", x0=40, y0=0, z0=0, x1="=40+L", y1=40, z1=10)
+    h.ajustar("L", "dx", 70, 1, 100)
+    assert h.vars["L"] == pytest.approx(30, abs=1e-5)
+
+
+def test_ajustar_recusa_fora_da_faixa_e_nao_altera_nada():
+    h = CadHistory(box())
+    h.definir("D", 2)
+    h.add("hole", x=20, y=20, z=-1, dx=0, dy=0, dz=1, diameter="=D", depth=12)
+    h.restringir("D < 20")
+    with pytest.raises(CadHistoryError, match="não está entre"):
+        h.ajustar("D", "volume", 1000, 0.5, 30)                    # com o furo máximo o volume ainda é > 1000
+    with pytest.raises(CadHistoryError, match="não existe"):
+        h.ajustar("X", "volume", 1, 0, 1)
+    with pytest.raises(CadHistoryError, match="métrica"):
+        h.ajustar("D", "massa", 1, 0, 1)
+    with pytest.raises(CadHistoryError, match="faixa"):
+        h.ajustar("D", "volume", 1, 5, 1)
+    assert h.vars["D"] == 2 and h.restricoes == ["D < 20"]
+
+
+def test_ajustar_respeita_restricoes_ao_aplicar():
+    h = CadHistory(box())
+    h.definir("D", 2)
+    h.add("hole", x=20, y=20, z=-1, dx=0, dy=0, dz=1, diameter="=D", depth=12)
+    h.restringir("D < 5")
+    with pytest.raises(CadHistoryError, match="violada"):
+        h.ajustar("D", "volume", 15000, 0.5, 30)                   # a solução (≈11,3) viola D < 5
+    assert h.vars["D"] == 2
+
+
+def test_ajustar_geometria_invalida_na_faixa_e_reportada():
+    h = CadHistory(box())
+    h.definir("R", 1)
+    h.add("fillet", radius="=R", edges="all")
+    with pytest.raises(CadHistoryError, match="falha com R"):
+        h.ajustar("R", "volume", 15000, 0.5, 50)                    # R = 50 não cabe numa caixa de 10 mm
+    assert h.vars["R"] == 1
+
+
+def test_textos_das_caixas_do_editor_cad_estao_traduzidos_nos_5_idiomas():
+    """V5.4 — todo tr("…") literal dos diálogos do editor CAD tem tradução em en/es/de/fr/zh (os 10 outros caem para o inglês)."""
+    import ast, json
+    from pathlib import Path
+    raiz = Path(__file__).resolve().parent.parent
+    textos = set()
+    for f in ("interface/cad_history_dialog.py", "interface/sketch_dialog.py"):
+        for n in ast.walk(ast.parse((raiz / f).read_text(encoding="utf-8"))):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "tr" and n.args and isinstance(n.args[0], ast.Constant):
+                textos.add(n.args[0].value)
+    assert len(textos) > 40
+    for lang in ("en", "es", "de", "fr", "zh"):
+        cat = json.loads((raiz / "locales" / f"{lang}.json").read_text(encoding="utf-8"))
+        falta = [t for t in textos if t not in cat]
+        assert not falta, (lang, falta)
+
+
+def test_ajustar_pelo_dialogo(monkeypatch):
+    from PySide6.QtWidgets import QApplication, QInputDialog
+    QApplication.instance() or QApplication([])
+    from interface.cad_history_dialog import CadHistoryDialog
+    d = CadHistoryDialog(); d.hist = CadHistory(box()); d.hist.definir("D", 2)
+    d.hist.add("hole", x=20, y=20, z=-1, dx=0, dy=0, dz=1, diameter="=D", depth=12)
+    monkeypatch.setattr(QInputDialog, "getItem", staticmethod(lambda *a, **k: (a[3][0], True)))
+    vals = iter([15000.0, 0.5, 30.0])
+    monkeypatch.setattr(QInputDialog, "getDouble", staticmethod(lambda *a, **k: (next(vals), True)))
+    d.ajustar()
+    assert d.hist.volume() == pytest.approx(15000, abs=1e-3) and "D =" in d.info.text()

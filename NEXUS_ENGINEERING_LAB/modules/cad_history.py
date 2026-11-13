@@ -524,6 +524,57 @@ class CadHistory:
         except Exception:
             (self.vars.__setitem__(nome, old) if old is not None else self.vars.pop(nome, None)); raise
 
+    def ajustar(self, variavel, metrica, alvo, lo, hi, tol=1e-6, max_iter=80):
+        """V5.3 — procura (bisseção) o valor de `variavel` em [lo, hi] que leva `metrica` ('volume', 'dx', 'dy' ou 'dz') ao `alvo`.
+        Não é um solver paramétrico geral: UMA variável, métrica MONÓTONA na faixa (se `alvo` não estiver entre os valores nas pontas, recusa).
+        As restrições ficam suspensas durante a busca e são verificadas ao aplicar o resultado; em qualquer erro nada muda."""
+        if variavel not in self.vars:
+            raise CadHistoryError(f"variável '{variavel}' não existe (defina-a antes e use-a em '=…' nos parâmetros)")
+        if metrica not in ("volume", "dx", "dy", "dz"):
+            raise CadHistoryError("métrica deve ser 'volume', 'dx', 'dy' ou 'dz'")
+        if not lo < hi:
+            raise CadHistoryError("faixa inválida: lo deve ser menor que hi")
+        original, restr = self.vars[variavel], self.restricoes
+
+        def f(x):
+            self.vars[variavel] = float(x)
+            try:
+                forma = self.rebuild_sem_restricoes()
+            except CadHistoryError as exc:
+                raise CadHistoryError(f"a geometria falha com {variavel} = {x:g}: {exc}")
+            if metrica == "volume":
+                return exact_volume(forma) - alvo
+            b = _bbox(forma)
+            return (b[3 + "xyz".index(metrica[1])] - b[:3]["xyz".index(metrica[1])]) - alvo
+
+        try:
+            self.restricoes = []
+            fl, fh = f(lo), f(hi)
+            if abs(fl) <= tol: x = lo
+            elif abs(fh) <= tol: x = hi
+            elif fl * fh > 0:
+                raise CadHistoryError(f"o alvo {metrica} = {alvo:g} não está entre os valores nas pontas da faixa ({metrica} = {fl + alvo:g} em {lo:g} e {fh + alvo:g} em {hi:g})")
+            else:
+                a_, b_ = float(lo), float(hi)
+                x = 0.5 * (a_ + b_)
+                for _ in range(max_iter):
+                    x = 0.5 * (a_ + b_); fx = f(x)
+                    if abs(fx) <= tol or (b_ - a_) < 1e-12: break
+                    if fl * fx < 0: b_ = x
+                    else: a_, fl = x, fx
+            obtido = f(x) + alvo
+        except Exception:
+            self.vars[variavel] = original; self.restricoes = restr; raise
+        self.restricoes = restr
+        self.vars[variavel] = original
+        self.definir(variavel, x)                                   # aplica e verifica restrições; reverte sozinho se violar
+        return {"variavel": variavel, "valor": x, "metrica": metrica, "obtido": obtido, "alvo": alvo}
+
+    def rebuild_sem_restricoes(self):
+        s, _ = self._rastrear()
+        if not BRepCheck_Analyzer(s).IsValid(): raise CadHistoryError("sólido resultante inválido")
+        return s
+
     def restringir(self, expressao):
         self.restricoes.append(expressao)
         try: self.rebuild()

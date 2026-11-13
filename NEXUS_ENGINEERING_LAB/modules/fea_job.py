@@ -63,7 +63,7 @@ def run_static(part_key: str, part_params: dict, h: float, E: float, nu: float, 
                 o["comparacao"] = C.compare(float(np.linalg.norm(u, axis=1).max()), r, tol_pct=3.0)
                 frd = od / "ccx.frd"
                 if frd.exists():
-                    fr = C.parse_frd(frd.read_text())
+                    fr = C.parse_frd(frd.read_text(encoding="utf-8"))
                     C.export_vtk_frd(od / "resultado_ccx.vtk", mesh, fr)
                     o["vtk"] = str(od / "resultado_ccx.vtk")
                     n = len(mesh.nodes)

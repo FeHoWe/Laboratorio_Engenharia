@@ -31,4 +31,4 @@ for tag, cel, it in (("fina", (120, 48, 48), 1500),) if (CAM and FINA) else (("m
     v = r["result"]["valores"]
     res.append({"malha": tag, "camadas": CAM, "afilada": AFILADA, "y_mais_alvo": YP, "celulas": cel, "convergiu": v.get("convergiu"), "cd_atrito_estimado": v.get("cd_atrito_estimado"), "alvo_2cf": alvo, "cf_schlichting": cf,
                 "cd_pressao": v.get("cd_pressao"), "y_primeira_celula_m": v.get("y_primeira_celula_m"), "s": time.time() - t})
-    json.dump(res, open(f"{OUT}/res.json", "w"), ensure_ascii=False, indent=1)
+    json.dump(res, open(f"{OUT}/res.json", "w", encoding="utf-8", newline="\n"), ensure_ascii=False, indent=1)

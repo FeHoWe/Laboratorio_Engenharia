@@ -1,5 +1,10 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V6.0 — 2026-11-12
+Resultado da suíte completa (principal + `test_v22`): **660 passed, 4 skipped** (619 + 4 skipped na suíte principal, 41 em test_v22; 0 falhas)
+Novos desde a V5.0: `test_portabilidade`, consistência no PDF (`test_scenes`), `ajustar` e traduções do CAD (`test_cad_nomes_restricoes`). `mobile/validate_lab.py`: paridade JS×Python incluindo A/B (≈2,6e‑13).
+Não testado: Windows 11, WSL2, instalador.
+
 ## V5.0 — 2026-11-12
 Suíte completa: **644 passed, 4 skipped** (603 passed + 4 skipped na execução principal em 19 min 26 s com `MALLOC_CHECK_=3`, saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 10 s).
 Novos: `test_cad_v42` (varredura reta e em L, loft tronco de cone e prisma, entradas inválidas, filete variável, diálogo), `test_comparacao` (A=B ⇒ delta zero, mais potência/mais massa, fechamento do delta acumulado com o tempo de volta, varredura monotônica, aba no diálogo F1), `test_verificacao_projeto` (projeto vazio, sem material/PARCIAL/não atribui nada, material inexistente crítico, massa completa), `test_home` (primeira aba, resumo, atalhos, verificação, versões).

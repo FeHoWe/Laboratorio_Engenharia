@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## V6.0 — 2026-11-12 (consolidação das etapas V5.1 → V5.5)
+Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
+- **V5.1 — Portabilidade (preparação para Windows):** checagem de processo vivo no Windows sem `os.kill(pid,0)` (que lá encerra o processo) — `core/project_safety._pid_vivo`; saída do worker de jobs em JSON ASCII e ambiente UTF‑8 nos subprocessos (evita erro de cp1252); `encoding="utf-8"` explícito em 44 aberturas de arquivo; fins de linha LF nos arquivos do OpenFOAM/Allrun. Testes em `test_portabilidade`. **Continua NÃO testado em Windows real.**
+- **V5.2 — Relatório PDF:** nova seção de *consistência do projeto* (mesmos achados de `verificar_projeto`, com evidência), texto em português.
+- **V5.3 — Ajuste de uma variável no CAD:** `CadHistory.ajustar(variavel, metrica, alvo, [lo, hi])` encontra por bisseção o valor da variável que leva uma métrica monótona ao alvo; avisa se o alvo não está no intervalo ou a métrica não é monótona; botão *Ajustar…* no diálogo. É um solver de UMA variável — as restrições seguem apenas verificando.
+- **V5.4 — Diálogos do CAD traduzidos** para en, es, de, fr, zh (teste de cobertura). Os outros 10 idiomas caem em inglês nesses diálogos; traduções são de IA sem revisão nativa.
+- **V5.5 — Celular:** aba *Engenharia F1* ganhou **Comparar A/B** (`compararVoltas` em `lab.js`, espelho de `modules/comparacao.py`): campos B vazios = iguais a A; deltas absolutos e %, quem é melhor, parâmetros diferentes e maior ganho/perda acumulados ao longo da pista. `validate_lab.py` confere JS × Python (erro ≈ 2,6e‑13).
+- **Não feito / limites (honestos):** Windows 11, WSL2 e instalador nunca foram executados em máquina real; sem seleção de face clicando no 3D; Home é tela de partida, não redesenho por ambientes; atrito do CFD não validado; verificação de consistência ainda não existe no celular.
+- Versão do app 6.0.
+
 ## V5.0 — 2026-11-12 (consolidação: NEXUS HOME, comparação A/B, verificação de consistência, CAD completo)
 Reúne as etapas V4.2 → V4.4 e a tela inicial por ambientes. Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
 - **V4.2 — CAD:** `sketch_sweep` (varredura de um perfil ao longo de uma poligonal 3D, cantos em esquadro), `loft` (entre 2+ perfis, reto ou suave) e `fillet_variable` (raio linear de `radius1` a `radius2` ao longo da aresta). Volumes conferidos: varredura reta = área×comprimento; loft de círculos = tronco de cone πh(r₁²+r₁r₂+r₂²)/3; loft de retângulos iguais = prisma; filete variável dentro de 3 % da integral teórica (a superfície real do OpenCascade é levemente inclinada, então não é igual à fórmula de seções perpendiculares). A varredura usa `MakePipeShell` com transição em esquadro (o `MakePipe` simples descartava o 2º trecho numa poligonal em L — detectado pelos testes). Botão *Varrer* no diálogo de esboço; o loft é criado pela API/receita (o diálogo avisa).

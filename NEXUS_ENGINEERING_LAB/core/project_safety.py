@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import re
 import shutil
 import time
@@ -33,25 +34,37 @@ def pasta_recuperacao() -> Path:
     return p
 
 
+_WINDOWS = sys.platform == "win32"
+_STILL_ACTIVE = 259
+
+
+def _pid_vivo_windows(pid: int, kernel32) -> bool:
+    """Windows: NUNCA usar os.kill(pid, 0) — no Windows isso chama TerminateProcess e ENCERRARIA o processo. Consulta o código de saída."""
+    import ctypes
+    h = kernel32.OpenProcess(0x1000, False, pid)             # PROCESS_QUERY_LIMITED_INFORMATION
+    if not h:
+        return False
+    try:
+        codigo = ctypes.c_ulong(0)
+        if not kernel32.GetExitCodeProcess(h, ctypes.byref(codigo)):
+            return True                                       # não conseguiu consultar: assume vivo (nunca descarta uma sessão por engano)
+        return codigo.value == _STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(h)
+
+
 def _pid_vivo(pid: int) -> bool:
     if pid <= 0:
         return False
+    if _WINDOWS:
+        import ctypes
+        return _pid_vivo_windows(pid, ctypes.windll.kernel32)   # type: ignore[attr-defined]
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True
-    except OSError:                       # Windows: sinal 0 não existe → usa a lista de processos
-        try:
-            import ctypes
-            h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)        # type: ignore[attr-defined]
-            if h:
-                ctypes.windll.kernel32.CloseHandle(h)                          # type: ignore[attr-defined]
-                return True
-        except Exception:  # noqa: BLE001
-            pass
-        return False
     return True
 
 

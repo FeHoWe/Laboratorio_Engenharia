@@ -36,7 +36,7 @@ def write_inp(mesh, E, nu, fixed, loads, path, rho=None, frd=False):
     L += ["*END STEP"]
     # conjunto de todos os nós
     L.insert(L.index("*MATERIAL, NAME=MAT"), "*NSET, NSET=NALL, GENERATE\n1, %d, 1" % len(mesh.nodes))
-    Path(path).write_text("\n".join(L) + "\n")
+    Path(path).write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
 
 
 def parse_dat(text: str):
@@ -102,7 +102,7 @@ def export_vtk_frd(path, mesh, frd: dict, title="CalculiX") -> None:
     L += [f"POINT_DATA {n}", "VECTORS deslocamento_mm double"] + [f"{a:.9g} {b:.9g} {c:.9g}" for a, b, c in U]
     if vm:
         L += ["SCALARS von_mises_MPa double 1", "LOOKUP_TABLE default"] + [f"{vm.get(i + 1, 0.0):.9g}" for i in range(n)]
-    Path(path).write_text("\n".join(L) + "\n")
+    Path(path).write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
 
 
 def vm_from_S(S) -> dict:
@@ -124,13 +124,13 @@ def run(inp_path, timeout=3600) -> TracedResult:
     dat = job.with_suffix(".dat")
     if r.returncode != 0 or not dat.exists():
         return TracedResult("CalculiX", "NAO_EXECUTADO", "ccx *STATIC", limitacoes=["falha: " + (r.stderr or r.stdout)[-300:]])
-    U, S = parse_dat(dat.read_text())
+    U, S = parse_dat(dat.read_text(encoding="utf-8"))
     vm = vm_from_S(S)
     um = max((np.linalg.norm(v) for v in U.values()), default=0.0)
     vals = {"u_max_mm": float(um), "vm_max_MPa": max(vm.values(), default=0.0), "nos": len(U)}
     frd = job.with_suffix(".frd")
     if frd.exists():
-        fr = parse_frd(frd.read_text())
+        fr = parse_frd(frd.read_text(encoding="utf-8"))
         if fr["S"]:
             vals["vm_nodal_max_MPa"] = max(vm_nodal(fr["S"]).values())
             vals["vm_nodal_origem"] = ".frd (extrapolação nodal do CalculiX)"

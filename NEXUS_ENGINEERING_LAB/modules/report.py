@@ -149,6 +149,7 @@ class ReportBuilder:
         story += self._cover(bom, snap.overview() if snap.ok else None)
         tick(tr("Vista geral"))
         story += self._bom_pages(bom)
+        story += self._consistencia_pages()
         story += self._joints_pages()
         for sc in scenes:
             story += self._scene_page(sc, snap.saved_scene(sc) if snap.ok else None)
@@ -226,6 +227,23 @@ class ReportBuilder:
             out += [Spacer(1, 3 * mm), Paragraph(
                 tr("Atenção: a massa é PARCIAL. Peças sem material definido pelo usuário (ou sem volume calculável) não entram nos totais e estão listadas em “Pendências”."), self.warn)]
         out.append(Paragraph(tr("Valores calculados da geometria importada (mm, mm², mm³) e de densidades nominais de tabelas publicadas; ligas reais variam. Documento de apoio, não substitui memorial de cálculo."), self.small))
+        return out
+
+    def _consistencia_pages(self) -> list:
+        """V5.2 — verificação de consistência (regras, sem números inventados). Os textos dos achados são gerados em português."""
+        from modules.intelligence import verificar_projeto
+        try:
+            par = verificar_projeto(self.project)
+        except Exception as exc:  # noqa: BLE001 - o relatório não pode falhar por causa da verificação
+            return [Spacer(1, 4 * mm), Paragraph(_txt(f"{tr('Verificação de consistência do projeto')}: {exc}"), self.small)]
+        cor = {"CRITICO": "#b3261e", "ATENCAO": "#9a6700", "INFO": "#444444"}
+        out = [Spacer(1, 6 * mm), Paragraph(tr("Verificação de consistência do projeto"), self.h1), Paragraph(_txt(par.resumo), self.body), Spacer(1, 2 * mm)]
+        for a in sorted(par.achados, key=lambda a: ("CRITICO", "ATENCAO", "INFO").index(a.nivel)):
+            ev = f" <i>({tr('fonte')}: {_txt(a.evidencia)})</i>" if a.evidencia else ""
+            out.append(Paragraph(f"<font color='{cor[a.nivel]}'><b>[{a.nivel}]</b></font> {_txt(a.texto)}{ev}", self.cell))
+        out.append(Spacer(1, 2 * mm))
+        out.append(Paragraph(tr("Parecer gerado por regras do NEXUS (não é IA generativa); apoia a decisão, não a substitui.") + " " +
+                             tr("Os textos dos achados são gerados em português."), self.small))
         return out
 
     def _bom_pages(self, bom: BomReport) -> list:

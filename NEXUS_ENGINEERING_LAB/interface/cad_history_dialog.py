@@ -1,5 +1,6 @@
 """Editor paramétrico com histórico (V2.6): peça da biblioteca ou STEP → operações reaplicáveis → exportar STEP."""
 from __future__ import annotations
+from core.i18n import tr
 from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox,
                                QPushButton, QVBoxLayout)
 from modules.cad_history import BOOL_MODES, BOOL_TOOLS, CadHistory, CadHistoryError, OPS, load_step
@@ -23,7 +24,7 @@ class CadHistoryDialog(QDialog):
             b = QPushButton(txt); b.clicked.connect(fn); r.addWidget(b)
         v.addLayout(r)
         r = QHBoxLayout()                                                       # V4.1b
-        for txt, fn in (("Nomear face/aresta…", self.nomear), ("Variável…", self.variavel), ("Restrição…", self.restricao)):
+        for txt, fn in (("Nomear face/aresta…", self.nomear), ("Variável…", self.variavel), ("Restrição…", self.restricao), ("Ajustar variável…", self.ajustar)):
             b = QPushButton(txt); b.clicked.connect(fn); r.addWidget(b)
         v.addLayout(r)
         self.info = QLabel(""); v.addWidget(self.info)
@@ -31,7 +32,7 @@ class CadHistoryDialog(QDialog):
 
     def _need(self) -> bool:
         if self.hist is None:
-            QMessageBox.information(self, "Editor", "Escolha uma peça ou STEP."); return False
+            QMessageBox.information(self, tr("Editor"), tr("Escolha uma peça ou STEP.")); return False
         return True
 
     def refresh(self) -> None:
@@ -53,23 +54,23 @@ class CadHistoryDialog(QDialog):
         p, _ = QFileDialog.getOpenFileName(self, "Abrir STEP", "", "STEP (*.step *.stp)")
         if p:
             try: self.hist = CadHistory(load_step(p), f"step:{p}")
-            except CadHistoryError as e: QMessageBox.warning(self, "STEP", str(e))
+            except CadHistoryError as e: QMessageBox.warning(self, tr("STEP"), str(e))
             self.refresh()
 
     def add(self) -> None:
         if not self._need(): return
-        t, ok = QInputDialog.getItem(self, "Operação", "Tipo:", list(OPS), 0, False)
+        t, ok = QInputDialog.getItem(self, tr("Operação"), tr("Tipo:"), list(OPS), 0, False)
         if not ok: return
         if t == "loft":
-            QMessageBox.information(self, "Loft", "O loft entre perfis é criado pela API/receita (modules.cad_history, operação 'loft'): cada seção é um esboço de um perfil."); return
+            QMessageBox.information(self, tr("Loft"), tr("O loft entre perfis é criado pela API/receita (modules.cad_history, operação 'loft'): cada seção é um esboço de um perfil.")); return
         if t in ("sketch_extrude", "sketch_revolve", "sketch_sweep"):
             from interface.sketch_dialog import SketchDialog
             SketchDialog(self, self.hist).exec(); self.refresh(); return
         params = {}
         if t == "boolean":
-            m, ok = QInputDialog.getItem(self, "Booleana", "Operação:", list(BOOL_MODES), 0, False)
+            m, ok = QInputDialog.getItem(self, tr("Booleana"), tr("Operação:"), list(BOOL_MODES), 0, False)
             if not ok: return
-            tool, ok = QInputDialog.getItem(self, "Booleana", "Ferramenta:", list(BOOL_TOOLS), 0, False)
+            tool, ok = QInputDialog.getItem(self, tr("Booleana"), tr("Ferramenta:"), list(BOOL_TOOLS), 0, False)
             if not ok: return
             params.update(mode=m, tool=tool)
             if tool == "step":
@@ -77,92 +78,114 @@ class CadHistoryDialog(QDialog):
                 if not pth: return
                 params["path"] = pth
             if tool == "cylinder":
-                params["axis"], ok = QInputDialog.getItem(self, "Cilindro", "Eixo:", ["x", "y", "z"], 2, False)
+                params["axis"], ok = QInputDialog.getItem(self, tr("Cilindro"), tr("Eixo:"), ["x", "y", "z"], 2, False)
                 if not ok: return
         if t in ("linear_pattern", "circular_pattern"):
-            m, ok = QInputDialog.getItem(self, t, "Operação:", ["cut", "union"], 0, False)
+            m, ok = QInputDialog.getItem(self, t, tr("Operação:"), ["cut", "union"], 0, False)
             if not ok: return
-            tool, ok = QInputDialog.getItem(self, t, "Ferramenta repetida:", ["cylinder", "box", "sphere"], 0, False)
+            tool, ok = QInputDialog.getItem(self, t, tr("Ferramenta repetida:"), ["cylinder", "box", "sphere"], 0, False)
             if not ok: return
             params.update(mode=m, tool=tool)
             if tool == "cylinder":
-                params["axis"], ok = QInputDialog.getItem(self, t, "Eixo do cilindro:", ["x", "y", "z"], 2, False)
+                params["axis"], ok = QInputDialog.getItem(self, t, tr("Eixo do cilindro:"), ["x", "y", "z"], 2, False)
                 if not ok: return
         if t == "mirror":
-            params["plane"], ok = QInputDialog.getItem(self, t, "Plano normal ao eixo:", ["x", "y", "z"], 0, False)
+            params["plane"], ok = QInputDialog.getItem(self, t, tr("Plano normal ao eixo:"), ["x", "y", "z"], 0, False)
             if not ok: return
         if t == "shell":
-            params["open_face"], ok = QInputDialog.getItem(self, t, "Face aberta:", ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
+            params["open_face"], ok = QInputDialog.getItem(self, t, tr("Face aberta:"), ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
             if not ok: return
         for k in [k for k in OPS[t] if k not in params]:
             v, ok = QInputDialog.getDouble(self, t, k, 0.0, -1e9, 1e9, 4)
             if not ok: return
             params[k] = v
         if t in ("fillet", "chamfer", "fillet_variable"):
-            params["edges"], ok = QInputDialog.getItem(self, t, "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
+            params["edges"], ok = QInputDialog.getItem(self, t, tr("Arestas:"), ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
         try: self.hist.add(t, **params)
-        except Exception as e: QMessageBox.warning(self, "Operação", str(e))
+        except Exception as e: QMessageBox.warning(self, tr("Operação"), str(e))
         self.refresh()
 
     def nomear(self) -> None:
         if not self._need(): return
-        tipo, ok = QInputDialog.getItem(self, "Nomear", "Tipo:", ["face", "aresta"], 0, False)
+        tipo, ok = QInputDialog.getItem(self, tr("Nomear"), tr("Tipo:"), ["face", "aresta"], 0, False)
         if not ok: return
-        nome, ok = QInputDialog.getText(self, "Nomear", "Nome (letras, números, _):")
+        nome, ok = QInputDialog.getText(self, tr("Nomear"), tr("Nome (letras, números, _):"))
         if not ok: return
-        modo, ok = QInputDialog.getItem(self, "Nomear", "Escolher por:", ["extrema (±x/±y/±z)", "perto de um ponto"] if tipo == "face" else ["seletor (top:z, axis:x…)", "perto de um ponto"], 0, False)
+        modo, ok = QInputDialog.getItem(self, tr("Nomear"), tr("Escolher por:"), ["extrema (±x/±y/±z)", "perto de um ponto"] if tipo == "face" else ["seletor (top:z, axis:x…)", "perto de um ponto"], 0, False)
         if not ok: return
         if modo.startswith("perto"):
-            txt, ok = QInputDialog.getText(self, "Nomear", "Ponto x,y,z [mm]:")
+            txt, ok = QInputDialog.getText(self, tr("Nomear"), tr("Ponto x,y,z [mm]:"))
             if not ok: return
             try: sel = {"modo": "perto", "ponto": [float(x) for x in txt.replace(";", ",").split(",")]}
-            except ValueError: QMessageBox.warning(self, "Nomear", "Ponto inválido."); return
+            except ValueError: QMessageBox.warning(self, tr("Nomear"), tr("Ponto inválido.")); return
         elif tipo == "face":
-            lado, ok = QInputDialog.getItem(self, "Nomear", "Face:", ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
+            lado, ok = QInputDialog.getItem(self, tr("Nomear"), tr("Face:"), ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
             if not ok: return
             sel = {"modo": "extrema", "lado": lado}
         else:
-            e, ok = QInputDialog.getItem(self, "Nomear", "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
+            e, ok = QInputDialog.getItem(self, tr("Nomear"), tr("Arestas:"), ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
             if not ok: return
             sel = {"modo": "sel", "sel": e}
         try: self.hist.nomear(nome.strip(), tipo, sel)
-        except Exception as e: QMessageBox.warning(self, "Nomear", str(e))
+        except Exception as e: QMessageBox.warning(self, tr("Nomear"), str(e))
         self.refresh()
 
     def variavel(self) -> None:
         if not self._need(): return
-        nome, ok = QInputDialog.getText(self, "Variável", "Nome:")
+        nome, ok = QInputDialog.getText(self, tr("Variável"), tr("Nome:"))
         if not ok: return
-        val, ok = QInputDialog.getDouble(self, "Variável", "Valor:", self.hist.vars.get(nome.strip(), 0.0), -1e9, 1e9, 4)
+        val, ok = QInputDialog.getDouble(self, tr("Variável"), tr("Valor:"), self.hist.vars.get(nome.strip(), 0.0), -1e9, 1e9, 4)
         if ok:
             try: self.hist.definir(nome.strip(), val)
-            except Exception as e: QMessageBox.warning(self, "Variável", str(e))
+            except Exception as e: QMessageBox.warning(self, tr("Variável"), str(e))
         self.refresh()
+
+    def ajustar(self) -> None:
+        """V5.3 — leva uma variável ao valor que dá o volume (ou dx/dy/dz) desejado, por bisseção numa faixa dada."""
+        if not self._need(): return
+        if not self.hist.vars:
+            QMessageBox.information(self, tr("Ajustar variável"), tr("Defina uma variável (e use-a em '=…' nos parâmetros) primeiro.")); return
+        nome, ok = QInputDialog.getItem(self, tr("Ajustar variável"), tr("Variável:"), list(self.hist.vars), 0, False)
+        if not ok: return
+        met, ok = QInputDialog.getItem(self, tr("Ajustar variável"), tr("Métrica:"), ["volume", "dx", "dy", "dz"], 0, False)
+        if not ok: return
+        alvo, ok = QInputDialog.getDouble(self, tr("Ajustar variável"), tr("Valor desejado da métrica:"), 0.0, -1e12, 1e12, 4)
+        if not ok: return
+        lo, ok = QInputDialog.getDouble(self, tr("Ajustar variável"), tr("Mínimo da variável:"), 0.0, -1e9, 1e9, 4)
+        if not ok: return
+        hi, ok = QInputDialog.getDouble(self, tr("Ajustar variável"), tr("Máximo da variável:"), 100.0, -1e9, 1e9, 4)
+        if not ok: return
+        try:
+            r = self.hist.ajustar(nome, met, alvo, lo, hi)
+        except Exception as e:
+            QMessageBox.warning(self, tr("Ajustar variável"), str(e)); self.refresh(); return
+        self.refresh()
+        self.info.setText(f"{nome} = {r['valor']:.6g}  →  {met} = {r['obtido']:.6g}   |   " + self.info.text())
 
     def restricao(self) -> None:
         if not self._need(): return
-        txt, ok = QInputDialog.getText(self, "Restrição", "Expressão (ex.: op[0].diameter < 10 ; volume > 1000):")
+        txt, ok = QInputDialog.getText(self, tr("Restrição"), tr("Expressão (ex.: op[0].diameter < 10 ; volume > 1000):"))
         if ok and txt.strip():
             try: self.hist.restringir(txt.strip())
-            except Exception as e: QMessageBox.warning(self, "Restrição", str(e))
+            except Exception as e: QMessageBox.warning(self, tr("Restrição"), str(e))
         self.refresh()
 
     def edit(self) -> None:
         if not self._need() or self.lst.currentRow() < 0: return
         i = self.lst.currentRow(); keys = [k for k, v in self.hist.ops[i]["params"].items() if not isinstance(v, (str, dict))]
-        k, ok = QInputDialog.getItem(self, "Parâmetro", "Qual:", keys, 0, False)
+        k, ok = QInputDialog.getItem(self, tr("Parâmetro"), tr("Qual:"), keys, 0, False)
         if not ok: return
-        v, ok = QInputDialog.getDouble(self, k, "Novo valor:", float(self.hist.ops[i]["params"][k]), -1e9, 1e9, 4)
+        v, ok = QInputDialog.getDouble(self, k, tr("Novo valor:"), float(self.hist.ops[i]["params"][k]), -1e9, 1e9, 4)
         if ok:
             try: self.hist.set_param(i, k, v)
-            except Exception as e: QMessageBox.warning(self, "Parâmetro", str(e))
+            except Exception as e: QMessageBox.warning(self, tr("Parâmetro"), str(e))
         self.refresh()
 
     def toggle(self) -> None:
         if self._need() and self.lst.currentRow() >= 0:
             i = self.lst.currentRow()
             try: self.hist.suppress(i, self.hist.ops[i]["enabled"])
-            except Exception as e: QMessageBox.warning(self, "Operação", str(e))
+            except Exception as e: QMessageBox.warning(self, tr("Operação"), str(e))
             self.refresh()
 
     def undo(self) -> None:
