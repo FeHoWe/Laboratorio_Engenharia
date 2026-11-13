@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## V50.0 — 2026-11-13 (marco: ponte projeto CAD → carro; etapas V41–V50)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V41–V49 (agrupadas):** reaproveitamento do levantamento de massa (V2.8) com lista de peças fora, extras com posição, verificação de CG dentro do entre-eixos, a/b e Izz para o modelo de bicicleta.
+- **V50 — `modules/carro_do_projeto.py` + CLI `projeto-carro`:** lê um `.nexus` e devolve massa, CG (% dianteiro/traseiro, altura), a/b, entre-eixos e Izz; `--volta` roda o `lapsim` com a massa do projeto. **Regras mantidas:** só entram peças COM material escolhido por você (nunca atribuído automaticamente; sem nenhuma, o comando recusa); as peças sem material são LISTADAS e a massa vira PISO (aviso); piloto/combustível/lastro entram como extras SEUS com posição (`--extra Piloto=75@0,80,20`). Potência, aerodinâmica e μ continuam sendo os que você informa.
+- Testes: `test_carro_do_projeto` (6) + CLI.
+- **Limites:** massas pontuais (inércia própria das peças ignorada); não é pesagem do carro real; sem GUI nova (o diálogo F1 já tinha a aba de massa); Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V40.0 — 2026-11-13 (marco: calibração + identificabilidade; etapas V31–V40)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V31–V39 (agrupadas):** Jacobiano por diferenças centrais em coordenadas normalizadas, SVD/número de condição, matriz de correlação dos parâmetros, incertezas por linearização, validação por trecho da volta.

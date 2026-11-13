@@ -117,3 +117,17 @@ def test_calibrar_cli(tmp_path):
     assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9", "--saida", str(o))[0] == 0 and o.stat().st_size > 100
     assert run("calibrar", "--telemetria", str(f), "--param", "mu")[0] == 1
     assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.7:1.9")[0] == 1       # inicial fora da faixa
+
+
+def test_projeto_carro_cli(engine, motor_project, tmp_path):
+    pm = ProjectManager(engine)
+    sem = pm.save(motor_project, tmp_path / "sem.nexus")
+    assert run("projeto-carro", str(sem), "--eixos", "-50", "150")[0] == 1            # sem material: recusa
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = pm.save(motor_project, tmp_path / "com.nexus")
+    c, t = run("projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Piloto=75@0,80,20")
+    assert c == 0 and "Levantamento" in t and "1 extras" in t
+    c, j = run("--json", "projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Lastro=700@0,50,10", "--volta")
+    d = json.loads(j)
+    assert c == 0 and d["massa_kg"] > 700 and d["volta"]["tempo_s"] > 0
+    assert run("projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "x")[0] == 1

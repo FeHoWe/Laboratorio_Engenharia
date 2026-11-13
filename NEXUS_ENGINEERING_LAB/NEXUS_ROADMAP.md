@@ -23,6 +23,9 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V50.0
+- Ponte CAD→carro (CLI/API). Pendente: inércia própria das peças, GUI dedicada.
+
 ## Feito na V40.0
 - Calibração com identificabilidade (CLI/API). Pendente: GUI/celular, calibração multi-volta, ruído colorido nas incertezas.
 

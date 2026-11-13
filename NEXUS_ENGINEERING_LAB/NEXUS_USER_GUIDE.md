@@ -111,3 +111,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V40.0
 - **Calibrar com telemetria sua:** `python nexus_cli.py calibrar --telemetria volta.csv --carro massa=… --param mu=1.2:1.9 cla=2:5 --treino 0.7`. Leia os avisos: parâmetros correlacionados ou na borda não foram bem determinados; os valores são “efetivos” do modelo, não medidas físicas. Depois valide em OUTRA volta com `validar`.
+
+
+## Novidades da V50.0
+- **Projeto → carro:** `python nexus_cli.py projeto-carro meu.nexus --eixos -300 2700 --extra Piloto=75@0,1200,350 Combustivel=40@0,1800,200 --volta --carro p_ice=500000 cda=1.0 cla=3.0 mu=1.6`. Escolha antes os materiais no projeto: peças sem material ficam de fora (o total é um piso) e o aviso as lista.

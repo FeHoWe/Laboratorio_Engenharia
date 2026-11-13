@@ -13,6 +13,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   Todos os comandos de volta aceitam --pista arquivo.csv (comprimento_m, raio_m; raio 0 = reta).
   validar   [--carro k=v ...] --telemetria arq.csv [--tol rmse_kmh=3 tempo_pct_abs=1 ...] [--normalizar] [--setores 5]   compara com telemetria REAL sua
   calibrar  [--carro k=v ...] --telemetria arq.csv --param mu=1.2:1.9 cla=2:5 [--treino 0.7]   ajusta parâmetros EFETIVOS à telemetria
+  projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
 Parâmetros do carro (padrão = exemplo ILUSTRATIVO): massa, p_ice (W), cda, cla, mu, crr, p_ers (W), e_ers (J). Classes: SIMULACAO_NUMERICA / ANALITICO.
@@ -153,6 +154,13 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    pc = sub.add_parser("projeto-carro")
+    pc.add_argument("arquivo")
+    pc.add_argument("--eixos", nargs=2, type=float, required=True, metavar=("Y_DIANT", "Y_TRAS"))
+    pc.add_argument("--extra", nargs="*", metavar="nome=kg@x,y,z")
+    pc.add_argument("--volta", action="store_true", help="roda a volta com a massa do projeto (demais parâmetros de --carro)")
+    pc.add_argument("--carro", nargs="*", metavar="k=v")
+    pc.add_argument("--ds", type=float, default=3.0)
     v = sub.add_parser("verificar")
     v.add_argument("arquivo")
     try:
@@ -222,6 +230,26 @@ def executar(argv=None, out=None) -> int:
             r = KB.calibrar(_carro(a.carro), _faixas(a.param), VD.ler_telemetria(Path(a.telemetria)), _pista(a), a.ds, a.treino)
             _exportar(a, "calibracao", r)
             emit(KB.texto(r), r)
+        elif a.cmd == "projeto-carro":
+            from core.cad_engine import CadEngine
+            from core.project_manager import ProjectManager
+            from modules import carro_do_projeto as CP, lapsim
+            extras = []
+            for it in a.extra or []:
+                try:
+                    nome, r_ = it.split("=", 1)
+                    m_, pos = r_.split("@", 1)
+                    extras.append((nome.strip(), float(m_), tuple(float(x) for x in pos.split(","))))
+                except ValueError:
+                    raise ValueError(f"--extra: use nome=kg@x,y,z (recebido '{it}')")
+            lev = CP.levantar(ProjectManager(CadEngine()).open(a.arquivo), a.eixos[0], a.eixos[1], extras)
+            txt = CP.texto(lev)
+            if a.volta:
+                c = CP.carro_do_projeto(_carro(a.carro), lev)
+                v = lapsim.volta(c, None, a.ds).valores
+                lev["volta"] = {k: x for k, x in v.items() if not isinstance(x, list)}
+                txt += f"\nVolta com a massa do projeto ({c.massa:.1f} kg; demais parâmetros SEUS/exemplo): {v['tempo_s']:.3f} s"
+            emit(txt, lev)
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")
