@@ -19,6 +19,11 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V5.0
+- **NEXUS HOME** (primeira aba): vê o estado do projeto e abre cada ambiente. **Verificar consistência do projeto** mostra o que falta (materiais, massa parcial, interferência não verificada, alterações não salvas) — sem inventar números.
+- **Ferramentas F1 → Comparar A/B:** edite a configuração B, compare com a aba Volta e veja em que ponto da pista B ganha ou perde tempo; a *varredura de parâmetro* mostra o tempo de volta para vários valores de um parâmetro (ex.: `p_ice`: 400, 500, 600 kW).
+- **Editor paramétrico:** *Varrer* (perfil ao longo de um caminho x,y,z; …) e a operação *filete variável* (raio muda de uma ponta à outra da aresta). O loft entre perfis é feito pela API.
+
 ## Novidades da V4.1b — nomes, revolução e restrições
 No editor paramétrico: **Nomear face/aresta…** dá um nome a uma face ou aresta (a face de cima, uma aresta perto de um ponto…). O nome *acompanha* a peça pelas operações seguintes — mover, escalar, furar, editar um parâmetro antigo — e pode ser usado em filetes, chanfros e na casca (`nome:borda`). Se uma operação destrói aquela face ou aresta, o NEXUS avisa “referência perdida” em vez de escolher outra. **Revolucionar** (no diálogo de esboço) gira o perfil em torno de um eixo. **Variável…** e **Restrição…** permitem escrever parâmetros como `=D*2` ou `=op[0].diameter`, e regras como `volume > 1000`; uma edição que quebre uma regra é desfeita. As regras só *verificam* — o NEXUS não reajusta sozinho.
 

@@ -39,7 +39,7 @@ from modules.selection_manager import SelectionManager
 from modules.solid_analyzer import analyze_tree, can_split, split_into_solids, undo_split
 
 APP_NAME = "NEXUS ENGINEERING LAB"
-APP_VERSION = "4.1b"
+APP_VERSION = "5.0"
 
 
 # --------------------------------------------------------------- console inferior
@@ -117,6 +117,9 @@ class MainWindow(QMainWindow):
         self.fatigue_tab = FatigueTab(self.project.materials, self._primary_name)
         self.central_tabs = QTabWidget()  # noqa
         self.central_tabs.setObjectName("central_tabs")
+        from interface.home_tab import HomeTab
+        self.home_tab = HomeTab(self)                      # V5.0: tela inicial por ambientes
+        self.central_tabs.addTab(self.home_tab, "NEXUS HOME")
         self.central_tabs.addTab(self.viewport, "Bancada 3D")
         self.central_tabs.addTab(self.fatigue_tab, "Simulação de fadiga")
         from interface.lab_tab import LabTab
@@ -455,6 +458,12 @@ class MainWindow(QMainWindow):
 
     def _update_title(self) -> None:
         self.setWindowTitle(f"{self.project.title} — {APP_NAME}")
+        if hasattr(self, "home_tab"):
+            self.home_tab.atualizar()
+
+    def mostrar_home(self) -> None:
+        self.home_tab.atualizar()
+        self.central_tabs.setCurrentWidget(self.home_tab)
 
     def _update_state_labels(self) -> None:
         comps = self.project.components

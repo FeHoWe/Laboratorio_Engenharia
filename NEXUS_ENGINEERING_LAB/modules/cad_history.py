@@ -34,6 +34,9 @@ OPS = {"translate": ["dx", "dy", "dz"], "rotate": ["px", "py", "pz", "ax", "ay",
        "box_add": ["x0", "y0", "z0", "x1", "y1", "z1"], "fillet": ["radius"], "chamfer": ["distance"],
        "sketch_extrude": ["sketch", "distance", "mode"],
        "sketch_revolve": ["sketch", "angle_deg", "axis", "mode"],
+       "sketch_sweep": ["sketch", "path", "mode"],
+       "loft": ["sections", "ruled", "mode"],
+       "fillet_variable": ["radius1", "radius2"],
        "boolean": ["mode", "tool", "x", "y", "z", "a", "b", "c"],
        # V4.1
        "counterbore": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth", "cb_diameter", "cb_depth"],
@@ -338,6 +341,27 @@ def _apply(shape, op):
         except SketchError as e:
             raise CadHistoryError(f"sketch inválido: {e}")
         return _bool((BRepAlgoAPI_Fuse if p["mode"] == "add" else BRepAlgoAPI_Cut)(shape, s))
+    if t in ("sketch_sweep", "loft"):
+        from .sketch2d import Sketch, SketchError, loft
+        if p["mode"] not in ("add", "cut"):
+            raise CadHistoryError(f"{t}: mode deve ser 'add' ou 'cut'")
+        try:
+            s = Sketch.from_dict(p["sketch"]).varrer(p["path"]) if t == "sketch_sweep" else loft(p["sections"], bool(p["ruled"]))
+        except SketchError as e:
+            raise CadHistoryError(f"{t}: {e}")
+        return _bool((BRepAlgoAPI_Fuse if p["mode"] == "add" else BRepAlgoAPI_Cut)(shape, s))
+    if t == "fillet_variable":
+        if p["radius1"] <= 0 or p["radius2"] <= 0:
+            raise CadHistoryError("filete variável: raios devem ser > 0")
+        es = _edges(shape, p.get("edges", "all"))
+        if not es: raise CadHistoryError("nenhuma aresta selecionada")
+        mk = BRepFilletAPI_MakeFillet(shape)
+        for e in es: mk.Add(p["radius1"], p["radius2"], e)        # raio varia linearmente do início ao fim de cada aresta
+        mk.Build()
+        if not mk.IsDone(): raise CadHistoryError("filete variável falhou (raio grande demais para a geometria)")
+        if _RASTREIO is not None:
+            _RASTREIO.avancar(mk)
+        return mk.Shape()
     if t == "boolean":
         if p["mode"] not in BOOL_MODES or p["tool"] not in BOOL_TOOLS:
             raise CadHistoryError(f"boolean: mode ∈ {BOOL_MODES}, tool ∈ {BOOL_TOOLS}")

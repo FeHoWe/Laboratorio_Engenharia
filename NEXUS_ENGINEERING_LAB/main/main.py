@@ -43,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     window = MainWindow(config=load_config(), engine=engine)
     window.show()
     window.verificar_recuperacao()
+    if not argv:
+        window.mostrar_home()
     if argv:
         target = argv[0]
         if target.lower().endswith(".nexus"):

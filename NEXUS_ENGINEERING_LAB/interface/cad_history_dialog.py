@@ -60,7 +60,9 @@ class CadHistoryDialog(QDialog):
         if not self._need(): return
         t, ok = QInputDialog.getItem(self, "Operação", "Tipo:", list(OPS), 0, False)
         if not ok: return
-        if t in ("sketch_extrude", "sketch_revolve"):
+        if t == "loft":
+            QMessageBox.information(self, "Loft", "O loft entre perfis é criado pela API/receita (modules.cad_history, operação 'loft'): cada seção é um esboço de um perfil."); return
+        if t in ("sketch_extrude", "sketch_revolve", "sketch_sweep"):
             from interface.sketch_dialog import SketchDialog
             SketchDialog(self, self.hist).exec(); self.refresh(); return
         params = {}
@@ -96,7 +98,7 @@ class CadHistoryDialog(QDialog):
             v, ok = QInputDialog.getDouble(self, t, k, 0.0, -1e9, 1e9, 4)
             if not ok: return
             params[k] = v
-        if t in ("fillet", "chamfer"):
+        if t in ("fillet", "chamfer", "fillet_variable"):
             params["edges"], ok = QInputDialog.getItem(self, t, "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
         try: self.hist.add(t, **params)
         except Exception as e: QMessageBox.warning(self, "Operação", str(e))

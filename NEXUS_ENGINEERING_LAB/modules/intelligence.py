@@ -199,3 +199,78 @@ def explicar(termo: str) -> str:
         if k in t or t in k:
             return f"{k}: {d}"
     return f"Termo '{termo}' não está no glossário do NEXUS. Disponíveis: {', '.join(sorted(GLOSSARIO))}."
+
+
+# ---------------------------------------------------------------------------------------------------------- V4.4: consistência do projeto
+def verificar_projeto(project, clashes=None, limite_nomes: int = 8) -> Parecer:
+    """Checagens DETERMINÍSTICAS do projeto aberto (peças, materiais, massa, estado). Cada achado cita a evidência; nada é estimado.
+
+    `clashes`: lista de interferências já calculadas (modules.interference.find_interferences) ou None = não verificado (dito explicitamente).
+    Materiais nunca são atribuídos aqui; a verificação só aponta o que falta."""
+    from collections import Counter
+    from core.model import GeometryKind
+    from modules.bom import BomBuilder
+
+    achados: list[Achado] = []
+    passos: list[str] = []
+    folhas = project.components.leaves()
+    nomes = lambda xs: ", ".join(xs[:limite_nomes]) + (f" … (+{len(xs) - limite_nomes})" if len(xs) > limite_nomes else "")  # noqa: E731
+    if not folhas:
+        return Parecer(f"Verificação do projeto '{project.name}'", "O projeto não tem peças.",
+                       [Achado(INFO, "Nada a verificar: importe um modelo ou abra um exemplo.", "components.leaves() vazio")],
+                       ["Importe um modelo CAD (STEP, STL, OBJ) ou abra um projeto."])
+
+    sem_geo = [c.name for c in folhas if c.geometry_kind == GeometryKind.NONE]
+    if sem_geo:
+        achados.append(Achado(CRITICO, f"{len(sem_geo)} peça(s) sem geometria: {nomes(sem_geo)}.", "geometry_kind = NONE"))
+        passos.append("Reimporte ou remova as peças sem geometria.")
+
+    lib = project.materials
+    desconhecidos = sorted({c.material for c in folhas if c.material and lib.get(c.material) is None})
+    if desconhecidos:
+        achados.append(Achado(CRITICO, f"Material(is) atribuído(s) que não existem na biblioteca: {nomes(desconhecidos)}. A massa dessas peças não pode ser calculada.",
+                              "material do componente × MaterialLibrary.get()"))
+        passos.append("Cadastre o material (nome e densidade SUA) ou escolha outro da biblioteca.")
+
+    rep = BomBuilder(project.components, lib).build()
+    n = rep.total_parts
+    if rep.missing:
+        sem_mat = [c.name for c in folhas if not c.material]
+        if sem_mat:
+            achados.append(Achado(ATENCAO, f"{len(sem_mat)} de {n} peça(s) sem material: {nomes(sem_mat)}. O NEXUS nunca atribui material sozinho.", "Component.material vazio"))
+            passos.append("Atribua materiais (ou use ‘materiais típicos’ como ponto de partida, conferindo cada um).")
+        outros = [m for m in rep.missing if m not in sem_mat]
+        if outros:
+            achados.append(Achado(ATENCAO, f"{len(outros)} peça(s) com material mas sem massa calculável (volume indisponível): {nomes(outros)}.", "BomReport.missing"))
+    if rep.complete:
+        achados.append(Achado(INFO, f"Massa total calculada de todas as {n} peças: {rep.total_mass_g / 1000:.3f} kg.", "BomReport.total_mass_g"))
+    else:
+        achados.append(Achado(ATENCAO, f"A massa total é PARCIAL: {rep.parts_with_mass} de {n} peças têm massa ({rep.total_mass_g / 1000:.3f} kg só dessas); o CG vale apenas para elas.",
+                              "BomReport.parts_with_mass"))
+
+    malhas = [c.name for c in folhas if c.geometry_kind in (GeometryKind.MESH, GeometryKind.MESH_MULTI)]
+    if malhas:
+        achados.append(Achado(INFO, f"{len(malhas)} peça(s) são malhas (STL/OBJ), não sólidos exatos: volume e massa dependem de a malha ser fechada e na unidade certa: {nomes(malhas)}.",
+                              "geometry_kind = MESH"))
+    desloc = project.components.displaced_ids()
+    if desloc:
+        achados.append(Achado(INFO, f"{len(desloc)} peça(s) estão deslocadas (vista explodida). Massa/CG usam a posição de repouso; medidas e interferências usam a posição atual.", "displaced_ids()"))
+    ocultas = [c.name for c in folhas if not c.visible]
+    if ocultas:
+        achados.append(Achado(INFO, f"{len(ocultas)} peça(s) ocultas: {nomes(ocultas)}.", "Component.visible = False"))
+
+    if clashes is None:
+        achados.append(Achado(INFO, "Interferências NÃO foram verificadas nesta análise (NAO_EXECUTADO).", "clashes não informado"))
+        passos.append("Rode a verificação de interferência para completar o parecer.")
+    elif clashes:
+        achados.append(Achado(ATENCAO, f"{len(clashes)} interferência(s) entre peças encontrada(s).", "find_interferences()"))
+        passos.append("Revise as interferências: pode ser encaixe com folga negativa intencional (prensagem) ou erro de montagem.")
+    else:
+        achados.append(Achado(INFO, "Nenhuma interferência encontrada com o volume mínimo usado na verificação.", "find_interferences()"))
+
+    if project.dirty:
+        achados.append(Achado(ATENCAO, "O projeto tem alterações não salvas.", "Project.dirty"))
+        passos.append("Salve o projeto (ou registre uma versão) antes de continuar.")
+    pior = min((a.nivel for a in achados), key=_ORDEM.get, default=INFO)
+    resumo = {CRITICO: "Há problemas que impedem resultados confiáveis.", ATENCAO: "Há pontos de atenção antes de usar os resultados.", INFO: "Nenhum problema encontrado pelas regras aplicadas."}[pior]
+    return Parecer(f"Verificação do projeto '{project.name}'", f"{n} peça(s). {resumo}", achados, passos)

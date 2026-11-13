@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V5.0
+CAD (varredura, loft, filete variável), comparação A/B + varredura de parâmetro, verificação de consistência do projeto e NEXUS HOME.
+**Depois da 5.0 (nada disso foi feito):** validação real no Windows 11 + instalador; redesenho completo em ambientes com barras próprias; seleção de entidades CAD clicando no 3D; solver paramétrico de restrições; A/B e verificação no celular; relatório PDF do projeto incluindo o parecer de consistência; tradução completa das caixas de entrada simples.
+
 ## Feito na V4.1b
 Nomes persistentes de faces/arestas por rastreio do histórico do OpenCascade, revolução de esboço, variáveis/expressões e restrições verificadas.
 **Próximo no CAD:** varredura (sweep) e loft, filete de raio variável, restrições que *resolvem* (solver paramétrico), seleção de entidade clicando no visualizador 3D, tradução completa dos diálogos de entrada.

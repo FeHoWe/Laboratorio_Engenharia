@@ -272,6 +272,32 @@ class Sketch:
         vec = gp_Vec(*(c * distance for c in n))
         return self._combinar(lambda face: BRepPrimAPI_MakePrism(face, vec).Shape())
 
+    def varrer(self, caminho: list):
+        """V4.2 — sólido por VARREDURA do perfil ao longo de uma poligonal 3D `caminho` = [[x,y,z], …] (≥ 2 pontos; o perfil deve estar no
+        início do caminho e, de preferência, perpendicular ao primeiro trecho). Cantos vivos geram a transição padrão do OpenCascade."""
+        from OCP.BRepBuilderAPI import BRepBuilderAPI_RightCorner
+        from OCP.BRepOffsetAPI import BRepOffsetAPI_MakePipeShell
+        from OCP.BRepTools import BRepTools
+        pts = [tuple(float(c) for c in p) for p in caminho]
+        if len(pts) < 2 or any(len(p) != 3 for p in pts):
+            raise SketchError("caminho: lista de pontos [x, y, z] com pelo menos 2 pontos")
+        if any(math.dist(a, b) < 1e-9 for a, b in zip(pts, pts[1:])):
+            raise SketchError("caminho com dois pontos consecutivos iguais")
+        mk = BRepBuilderAPI_MakePolygon()
+        for p in pts:
+            mk.Add(gp_Pnt(*p))
+        spine = mk.Wire()
+        def gerar(face):
+            mk2 = BRepOffsetAPI_MakePipeShell(spine)
+            mk2.SetMode(False)                                       # Frenet corrigido (estável em poligonais)
+            mk2.SetTransitionMode(BRepBuilderAPI_RightCorner)        # canto em esquadro (mitre)
+            mk2.Add(BRepTools.OuterWire_s(face))
+            mk2.Build()
+            if not mk2.IsDone() or not mk2.MakeSolid():
+                raise SketchError("varredura falhou (perfil fora do início do caminho ou caminho inadequado)")
+            return mk2.Shape()
+        return self._combinar(gerar)
+
     def revolve(self, angle_deg: float, axis: list | tuple):
         """V4.1b — sólido por REVOLUÇÃO em torno de um eixo DO PLANO do esboço: `axis` = (u0, v0, u1, v1) em coordenadas do esboço.
         Ângulo em (0, 360]. O eixo não pode cortar o interior de um perfil (o resultado seria inválido; a verificação do sólido recusa)."""
@@ -287,3 +313,22 @@ class Sketch:
         ax = gp_Ax1(gp_Pnt(*p0), gp_Dir(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]))
         ang = math.radians(angle_deg)
         return self._combinar(lambda face: BRepPrimAPI_MakeRevol(face, ax, ang).Shape())
+
+
+def loft(secoes: list, reto: bool = False):
+    """V4.2 — sólido por LOFT entre perfis: `secoes` = lista de dicts de Sketch com UMA entidade fechada cada (≥ 2, em planos/offsets distintos).
+    `reto=True` liga com superfícies regradas; False deixa o OpenCascade suavizar entre 3+ seções."""
+    from OCP.BRepOffsetAPI import BRepOffsetAPI_ThruSections
+    from OCP.BRepTools import BRepTools
+    if len(secoes) < 2:
+        raise SketchError("loft precisa de pelo menos 2 seções")
+    mk = BRepOffsetAPI_ThruSections(True, bool(reto))
+    for d in secoes:
+        sk = Sketch.from_dict(d); sk.validate()
+        if len(sk.entities) != 1:
+            raise SketchError("cada seção do loft deve ter exatamente 1 perfil")
+        mk.AddWire(BRepTools.OuterWire_s(sk._face(sk.entities[0])))
+    mk.Build()
+    if not mk.IsDone():
+        raise SketchError("loft falhou (seções incompatíveis ou torcidas)")
+    return mk.Shape()

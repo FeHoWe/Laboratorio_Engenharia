@@ -1,5 +1,10 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V5.0 — 2026-11-12
+Suíte completa: **644 passed, 4 skipped** (603 passed + 4 skipped na execução principal em 19 min 26 s com `MALLOC_CHECK_=3`, saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 10 s).
+Novos: `test_cad_v42` (varredura reta e em L, loft tronco de cone e prisma, entradas inválidas, filete variável, diálogo), `test_comparacao` (A=B ⇒ delta zero, mais potência/mais massa, fechamento do delta acumulado com o tempo de volta, varredura monotônica, aba no diálogo F1), `test_verificacao_projeto` (projeto vazio, sem material/PARCIAL/não atribui nada, material inexistente crítico, massa completa), `test_home` (primeira aba, resumo, atalhos, verificação, versões).
+Não validado: aparência real da Home em Windows/DPI diferentes; fluxo completo de instalação; Windows/WSL2.
+
 ## V4.1b — 2026-11-12
 Suíte completa: **627 passed, 4 skipped** (586 passed + 4 skipped na execução principal em 18 min 49 s com `MALLOC_CHECK_=3`, saída 0; `tests/test_v22.py` separado: 41 passed em 3 min 10 s).
 Novos: `test_cad_nomes_restricoes` (15): rastreio de nomes por transformações, furo e edição de parâmetro; nome apagado → erro explícito sem entrar no histórico; filete e casca por nome após rotação/translação; tipo errado e seletor ambíguo; desfazer; serialização (inclusive arquivo antigo sem os campos novos); revolução (tubo completo, meio tubo, corte, entradas inválidas); variáveis, referência entre operações, restrições com reversão, expressões maliciosas e circulares recusadas; diálogo de esboço.
