@@ -23,6 +23,24 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V80.0
+V90: dossiê reprodutível; V100: receitas em lote
+
+## Feito na V70.0
+- Dinâmica lateral linear (CLI/API). Pendente: pneus não lineares, transferência lateral, GUI.
+
+## Feito na V60.0
+- Modelo de bicicleta (CLI/API). Pendente: transferência lateral, pneus, GUI.
+
+## Feito na V50.0
+- Ponte CAD→carro (CLI/API). Pendente: inércia própria das peças, GUI dedicada.
+
+## Feito na V40.0
+- Calibração com identificabilidade (CLI/API). Pendente: GUI/celular, calibração multi-volta, ruído colorido nas incertezas.
+
+## Feito na V30.0
+- Validação com telemetria real do usuário (CLI/API). Pendente: GUI/celular para validação, várias voltas, sincronismo automático.
+
 ## Feito na V20.0 (V11–V19)
 - Fatorial 2^k, Monte Carlo, Pareto, stint, pistas de arquivo, relatório consolidado, celular com fatorial/Monte Carlo.
 - Pendente: Windows 11 real, correlação entre incertezas, superfície de resposta, pista a partir de dados reais (GPS) com validação, interface para `ajustar_multi`, seleção de face no 3D, tradução nativa revisada, i18n do celular para os textos novos.

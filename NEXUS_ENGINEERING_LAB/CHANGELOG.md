@@ -1,5 +1,53 @@
 # CHANGELOG
 
+## V80.0 — 2026-11-13 (marco: energia de frenagem e térmica de disco; etapas V71–V80)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V71–V79 (agrupadas):** potência de frenagem a partir do perfil de velocidade do lapsim (desaceleração menos arrasto e rolamento), repartição dianteira/traseira, integração térmica por segmento (RK2), convecção h = h0 + h1·v, radiação, regime ao longo de várias voltas.
+- **V80 — `modules/freio_termico.py` + CLI `freio-termico`:** energia de frenagem por volta (MJ) e temperatura de pico/média/fim por eixo. Conferido: sem troca de calor ΔT = E/(m·cp) (0,5 %), repartição conserva energia, mais massa ou mais ventilação → menos pico.
+- **Honestidade:** massa, cp, área, h0, h1, emissividade e limite de temperatura são SEUS (o exemplo é ilustrativo, não um freio real; com discos pequenos o modelo pode dar temperaturas fisicamente absurdas — é sinal de dado de entrada irreal, não de resultado). Modelo concentrado (1 nó/eixo): sem gradiente no disco, pastilha/pinça/fluido, desgaste, fade nem regeneração. Classe SIMULACAO_NUMERICA; não validado contra bancada.
+- Exportação: tipo `freio_termico` (CSV/JSON/PDF e consolidado). Testes: `test_freio_termico` (8) + exportação.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V70.0 — 2026-11-13 (marco: dinâmica lateral linear; etapas V61–V70)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V61–V69 (agrupadas):** matrizes de estado do modelo de bicicleta linear (β, r), gradiente de subesterço, velocidades característica/crítica, autovalores (ωn, ζ), exponencial de matriz, métricas do degrau (t63, sobressinal, acomodação, pico), varredura de velocidade.
+- **V70 — `modules/dinamica_lateral.py` + CLI `dinamica-lateral`:** resposta de guinada/deriva/ay ao degrau de esterço (solução EXATA por exponencial de matriz, conferida contra integração Euler independente a 1e‑3), ganhos de regime (r/δ = U/(L + K·U²), conferido contra a forma fechada), tipo (sub/sobre/neutro), velocidade característica (subesterçante) ou CRÍTICA (sobreesterçante; acima dela o modelo diverge e o NEXUS marca “INSTÁVEL”). `--projeto arq.nexus --eixos …` toma massa, a, b e Iz do projeto (V50). Classe: ANALITICO.
+- **Honestidade:** Cf e Cr (rigidez de curva por EIXO, N/rad) são SEUS — o comando recusa rodar sem eles e o NEXUS não os estima; modelo LINEAR (ângulos pequenos, pneus lineares, velocidade constante, sem transferência de carga nem aerodinâmica): não vale perto do limite de aderência. Resposta que não acomoda na janela é sinalizada (sem sobressinal inventado).
+- Exportação: tipo `dinamica_lateral` (CSV/JSON/PDF e consolidado). Testes: `test_dinamica_lateral` (8) + CLI/exportação.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V60.0 — 2026-11-13 (marco: modelo de bicicleta com transferência de carga; etapas V51–V60)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V51–V59 (agrupadas):** cargas por eixo (estática + downforce com balanço + transferência longitudinal), limite de curva por eixo com bisseção, tração traseira/integral por ponto fixo, limite de empinamento, frenagem com divisão fixa ou ideal, indicador sub/sobre-esterço no limite.
+- **V60 — `modules/lapsim_bicicleta.py` + CLI `volta-bicicleta` e `projeto-carro --bicicleta`:** volta quase-estacionária de bicicleta (a, b, h, μ por eixo, balanço aerodinâmico, `k_carga` opcional de sensibilidade de carga, freio ideal ou com divisão fixa). Com h = 0, μ iguais, tração integral e balanço 50/50 reduz ao `lapsim` de ponto material (tempo e vmax dentro de 2–3 %, testado); a força de tração traseira bate a forma fechada F = μ·N_r0/(1 − μ·h/L) (testado). `projeto-carro --bicicleta` usa massa, a, b e h DO PROJETO (V50).
+- Rótulo de honestidade novo na saída: **sem transferência LATERAL, subir o CG só ajuda a tração traseira e não penaliza curvas — o modelo NÃO serve para otimizar a altura do CG** (artefato medido nos testes: h 0,5 m deu volta mais rápida que h 0,2 m).
+- Refinamento da V30: o resultado `VALIDADO` agora carrega `validacao_ref` (telemetria + critérios do usuário), como exige o rastreamento de resultados.
+- Testes: `test_lapsim_bicicleta` (8) + CLI.
+- **Limites:** sem transferência lateral entre rodas, sem cinemática, sem curva de pneu real; μ por eixo e k_carga são SEUS; fator elíptico aproximado; sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V50.0 — 2026-11-13 (marco: ponte projeto CAD → carro; etapas V41–V50)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V41–V49 (agrupadas):** reaproveitamento do levantamento de massa (V2.8) com lista de peças fora, extras com posição, verificação de CG dentro do entre-eixos, a/b e Izz para o modelo de bicicleta.
+- **V50 — `modules/carro_do_projeto.py` + CLI `projeto-carro`:** lê um `.nexus` e devolve massa, CG (% dianteiro/traseiro, altura), a/b, entre-eixos e Izz; `--volta` roda o `lapsim` com a massa do projeto. **Regras mantidas:** só entram peças COM material escolhido por você (nunca atribuído automaticamente; sem nenhuma, o comando recusa); as peças sem material são LISTADAS e a massa vira PISO (aviso); piloto/combustível/lastro entram como extras SEUS com posição (`--extra Piloto=75@0,80,20`). Potência, aerodinâmica e μ continuam sendo os que você informa.
+- Testes: `test_carro_do_projeto` (6) + CLI.
+- **Limites:** massas pontuais (inércia própria das peças ignorada); não é pesagem do carro real; sem GUI nova (o diálogo F1 já tinha a aba de massa); Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V40.0 — 2026-11-13 (marco: calibração + identificabilidade; etapas V31–V40)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V31–V39 (agrupadas):** Jacobiano por diferenças centrais em coordenadas normalizadas, SVD/número de condição, matriz de correlação dos parâmetros, incertezas por linearização, validação por trecho da volta.
+- **V40 — `modules/calibracao.py` + CLI `calibrar`:** ajusta (mínimos quadrados com faixas) os parâmetros que você liberar para reproduzir a velocidade medida. Entrega valores iniciais × calibrados, RMSE antes/depois, número de condição, correlação entre parâmetros, incerteza aproximada, e **avisos** de parâmetro na borda da faixa, parâmetros inseparáveis (|ρ| > 0,95), matriz singular e pouca redução do erro. `--treino 0.7` calibra só com os primeiros 70 % da volta e mede o erro no trecho NÃO usado (teste mínimo contra “decorar” a telemetria). Recupera μ conhecido (1,5) a ±0,002 em telemetria sintética de teste.
+- **Honestidade:** os valores calibrados são EFETIVOS do modelo simplificado — absorvem erro de modelo, de medição e de sincronismo; **não** são propriedades físicas medidas. Calibrar ≠ validar (valide em outra volta com `validar`). Incerteza = linearização com resíduos independentes (otimista).
+- Exportação: tipo `calibracao` (CSV/JSON/PDF e consolidado). Testes: `test_calibracao` (7) + CLI/exportação.
+- **Limites:** uma volta; sem GUI/celular nesta etapa (CLI/API); Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V30.0 — 2026-11-13 (marco: validação com telemetria real do usuário; etapas V21–V30)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). A numeração salta de propósito: só numerei etapas com conteúdo.
+- **V21–V29 (agrupadas, sem números próprios):** leitura de telemetria CSV tolerante (acentos, `;` `,` tab, `_ms`), interpolação, métricas, setores, avisos de escala de odômetro.
+- **V30 — `modules/validacao_dados.py` + CLI `validar` / `formato-telemetria`:** você fornece UMA volta medida (distância × velocidade, tempo opcional); o NEXUS roda o `lapsim` na mesma pista e entrega viés, RMSE, MAE, erro máximo, correlação, erro de tempo (pela coluna `tempo_s` ou pela integral ds/v) e RMSE/viés por setor. **Honestidade:** sem tolerâncias suas só há métricas (modelo NÃO declarado validado). Com tolerâncias suas e todas atendidas a classe vira **VALIDADO — apenas para essa telemetria, essa pista e esses critérios** (não generaliza). Comprimento medido que difere >1 % do simulado gera aviso; `--normalizar` reescala a distância (escolha sua). `formato-telemetria` gera um CSV de exemplo marcado “NÃO é telemetria real”.
+- Exportação: novo tipo `validacao` (CSV/JSON/PDF e relatório consolidado).
+- Testes: `test_validacao_dados` (10) + CLI/exportação.
+- **Limites:** uma volta por vez; o modelo continua simplificado (ponto material, μ constante, sem vento/pneu/temperatura/inclinação); sem GUI nem celular para esta etapa (CLI/API); Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V20.0 — 2026-11-13 (consolidação das etapas V11 → V19)
 Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
 - **V11 — Fatorial 2^k** (`doe.fatorial`, até 6 fatores): efeitos principais e interações de 2 fatores no tempo de volta, ordenados pela magnitude. Só níveis extremos (±x %), sem curvatura. Conferido contra cálculo direto das corridas.

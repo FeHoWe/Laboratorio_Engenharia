@@ -83,3 +83,85 @@ def test_novos_comandos_e_pista(tmp_path):
     for bad in (("fatorial", "--campos", "x"), ("montecarlo", "--inc", "mu=beta:1"), ("montecarlo", "--inc", "mu"), ("pareto", "--grade", "e_ers"), ("pareto", "--grade", "e_ers=1", "--objetivos", "tempo_s", "tempo_s"),
                 ("stint", "--voltas", "0", "--taxa", "massa=1"), ("stint", "--voltas", "2", "--taxa", "massa")):
         assert run(*bad)[0] == 1
+
+
+def test_validar_telemetria_cli(tmp_path):
+    c, csv = run("formato-telemetria")
+    assert c == 0 and "NÃO é telemetria real" in csv
+    f = tmp_path / "t.csv"; f.write_text(csv.replace("(.*)", ""), encoding="utf-8")
+    c, t = run("validar", "--telemetria", str(f), "--ds", "5")
+    assert c == 0 and "SIMULACAO_NUMERICA" in t and "NÃO é declarado validado" in t
+    c, t = run("validar", "--telemetria", str(f), "--tol", "rmse_kmh=5", "tempo_pct_abs=2")
+    assert c == 0 and "VALIDADO" in t and "✔" in t
+    c, j = run("--json", "validar", "--telemetria", str(f), "--carro", "mu=1.3", "--tol", "rmse_kmh=1")
+    d = json.loads(j)
+    assert c == 0 and d["classe"] == "SIMULACAO_NUMERICA" and not d["veredito"][0]["atende"] and "comparacao" not in d
+    for ext in ("csv", "json", "pdf"):
+        o = tmp_path / f"v.{ext}"
+        assert run("validar", "--telemetria", str(f), "--saida", str(o))[0] == 0 and o.stat().st_size > 100
+    assert run("validar", "--telemetria", str(tmp_path / "x.csv"))[0] == 1
+    assert run("validar", "--telemetria", str(f), "--tol", "xx=1")[0] == 1
+
+
+def test_calibrar_cli(tmp_path):
+    from dataclasses import replace
+    from modules import validacao_dados as VD
+    from nexus_cli import EXEMPLO
+    from modules import lapsim
+    f = tmp_path / "t.csv"; f.write_text(VD.para_csv_exemplo(replace(lapsim.Carro(**EXEMPLO), mu=1.5), ds=3.0), encoding="utf-8")
+    c, t = run("calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9", "--treino", "0.7")
+    assert c == 0 and "Calibração" in t and "EFETIVOS" in t
+    c, j = run("--json", "calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9")
+    assert abs(json.loads(j)["parametros_calibrados"]["mu"] - 1.5) < 0.01
+    o = tmp_path / "c.pdf"
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9", "--saida", str(o))[0] == 0 and o.stat().st_size > 100
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu")[0] == 1
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.7:1.9")[0] == 1       # inicial fora da faixa
+
+
+def test_projeto_carro_cli(engine, motor_project, tmp_path):
+    pm = ProjectManager(engine)
+    sem = pm.save(motor_project, tmp_path / "sem.nexus")
+    assert run("projeto-carro", str(sem), "--eixos", "-50", "150")[0] == 1            # sem material: recusa
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = pm.save(motor_project, tmp_path / "com.nexus")
+    c, t = run("projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Piloto=75@0,80,20")
+    assert c == 0 and "Levantamento" in t and "1 extras" in t
+    c, j = run("--json", "projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Lastro=700@0,50,10", "--volta")
+    d = json.loads(j)
+    assert c == 0 and d["massa_kg"] > 700 and d["volta"]["tempo_s"] > 0
+    assert run("projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "x")[0] == 1
+
+
+def test_volta_bicicleta_cli(engine, motor_project, tmp_path):
+    c, t = run("volta-bicicleta")
+    assert c == 0 and "bicicleta" in t and "balanço no limite" in t
+    c2, t2 = run("volta-bicicleta", "--tracao", "integral", "--carro", "h=0.1")
+    assert c2 == 0 and t2 != t
+    c, j = run("--json", "volta-bicicleta", "--freio-diant", "0.6")
+    assert c == 0 and json.loads(j)["classe"] == "SIMULACAO_NUMERICA"
+    assert run("volta-bicicleta", "--carro", "foo=1")[0] == 1 and run("volta-bicicleta", "--freio-diant", "1.5")[0] == 1
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = ProjectManager(engine).save(motor_project, tmp_path / "m.nexus")
+    c, j = run("--json", "projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Lastro=700@0,50,10", "--bicicleta")
+    d = json.loads(j)
+    assert c == 0 and d["volta_bicicleta"]["tempo_s"] > 0
+
+
+def test_dinamica_lateral_cli(engine, motor_project, tmp_path):
+    base = ["dinamica-lateral", "--massa", "800", "--a", "1.6", "--b", "1.7", "--iz", "900", "--cf", "120000", "--cr", "140000"]
+    c, t = run(*base, "--u", "20", "40", "--delta", "0.02")
+    assert c == 0 and "ANALITICO" in t and "sobressinal" in t and t.count("U = ") == 2
+    c, j = run("--json", *base, "--u", "30")
+    d = json.loads(j)
+    assert c == 0 and d["varredura"][0]["estavel"] and d["degrau"]["r_regime_rad_s"] > 0
+    for ext in ("csv", "json", "pdf"):
+        o = tmp_path / f"d.{ext}"
+        assert run(*base, "--saida", str(o))[0] == 0 and o.stat().st_size > 50
+    assert run("dinamica-lateral", "--massa", "800")[0] == 1                    # faltam parâmetros: não inventa rigidez
+    assert run(*base, "--u", "0.1")[0] == 1
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = ProjectManager(engine).save(motor_project, tmp_path / "m.nexus")
+    c, t = run("dinamica-lateral", "--projeto", str(f), "--eixos", "-50", "150", "--iz", "5", "--cf", "1000", "--cr", "1200")
+    assert c == 0 and "K =" in t
+    assert run("dinamica-lateral", "--projeto", str(f), "--iz", "5", "--cf", "1", "--cr", "1")[0] == 1

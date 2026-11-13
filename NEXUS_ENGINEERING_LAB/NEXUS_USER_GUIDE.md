@@ -103,3 +103,27 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 - **Relatório consolidado…:** junta num PDF o último resultado de cada tipo de estudo calculado na sessão.
 - **CLI:** `python nexus_cli.py fatorial --campos massa mu`, `montecarlo --inc mu=normal:2 --n 300 --semente 1`, `pareto --grade e_ers=0,2e6,4e6`, `stint --voltas 10 --taxa massa=-1.5`, todos com `--pista arquivo.csv` e `--saida r.pdf|csv|json`.
 - **Celular → Engenharia F1:** Fatorial e Monte Carlo (mesma semente ⇒ mesmo resultado do desktop).
+
+
+## Novidades da V30.0
+- **Validar com telemetria sua:** salve a volta como CSV com `distancia_m` e `v_kmh` (ou `v_ms`; `tempo_s` opcional) e rode `python nexus_cli.py validar --telemetria volta.csv --carro massa=… mu=… [--pista pista.csv] [--tol rmse_kmh=3 tempo_pct_abs=1] [--normalizar]`. Os critérios (`--tol`) são SEUS; sem eles o NEXUS só mostra métricas. `python nexus_cli.py formato-telemetria` mostra o formato esperado.
+
+
+## Novidades da V40.0
+- **Calibrar com telemetria sua:** `python nexus_cli.py calibrar --telemetria volta.csv --carro massa=… --param mu=1.2:1.9 cla=2:5 --treino 0.7`. Leia os avisos: parâmetros correlacionados ou na borda não foram bem determinados; os valores são “efetivos” do modelo, não medidas físicas. Depois valide em OUTRA volta com `validar`.
+
+
+## Novidades da V50.0
+- **Projeto → carro:** `python nexus_cli.py projeto-carro meu.nexus --eixos -300 2700 --extra Piloto=75@0,1200,350 Combustivel=40@0,1800,200 --volta --carro p_ice=500000 cda=1.0 cla=3.0 mu=1.6`. Escolha antes os materiais no projeto: peças sem material ficam de fora (o total é um piso) e o aviso as lista.
+
+
+## Novidades da V60.0
+- **Modelo de bicicleta:** `python nexus_cli.py volta-bicicleta --carro massa=800 a=1.6 b=1.7 h=0.3 mu_f=1.6 mu_r=1.6 bal_aero=0.45 k_carga=0.1 --tracao traseira --freio-diant 0.62`. Mostra quantos pontos de curva saturam no eixo dianteiro (subesterço) ou traseiro (sobreesterço). Cuidado: sem transferência lateral, o modelo não deve ser usado para otimizar a altura do CG. Com projeto: `projeto-carro meu.nexus --eixos … --bicicleta`.
+
+
+## Novidades da V70.0
+- **Dinâmica lateral:** `python nexus_cli.py dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 --u 20 40 60 --delta 0.02 --t 3 [--saida d.pdf]`. Cf e Cr (N/rad, por eixo) são seus; sem eles o comando não roda. Veja o tipo (sub/sobreesterçante), as velocidades característica/crítica e se o modelo é estável. Só vale perto do regime linear (longe do limite de aderência).
+
+
+## Novidades da V80.0
+- **Freios:** `python nexus_cli.py freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 --voltas 5 [--saida f.pdf]`. Todas as propriedades do disco são suas (opcionais: h0, h1, emissividade, f_disco, lim_T_C). O limite de temperatura é o SEU; o NEXUS só marca onde foi ultrapassado. Modelo concentrado, não substitui ensaio.

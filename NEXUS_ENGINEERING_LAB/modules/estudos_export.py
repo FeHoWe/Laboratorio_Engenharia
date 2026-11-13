@@ -12,11 +12,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 
-TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint")
+TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint", "validacao", "calibracao", "dinamica_lateral", "freio_termico")
 _TITULO = {"comparacao": "Comparação A/B de volta", "tornado": "Sensibilidade (tornado)", "otimizacao": "Otimização de parâmetros",
-           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)"}
+           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)", "validacao": "Validação com telemetria do usuário", "calibracao": "Calibração de parâmetros", "dinamica_lateral": "Dinâmica lateral linear (2 GDL)", "freio_termico": "Freios: energia e temperatura de disco"}
 _CHAVE = {"comparacao": ("campos",), "tornado": ("linhas", "variacao_pct"), "otimizacao": ("parametros", "tempo_otimo_s"), "fatorial": ("ordenados", "execucoes"),
-          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta")}
+          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta"), "validacao": ("metricas", "veredito"), "calibracao": ("parametros_calibrados", "numero_condicao"), "dinamica_lateral": ("varredura", "limitacoes"), "freio_termico": ("voltas", "energia_frenagem_MJ")}
 
 
 def _limpo(o):
@@ -56,6 +56,22 @@ def linhas_tabela(tipo: str, e: dict) -> tuple[list[str], list[list]]:
         a, b = e["objetivos"]
         ks = list(e["frente"][0]["parametros"]) if e["frente"] else []
         return ([a, b, *ks, "equivalentes"], [[*p["objetivos"], *[p["parametros"][k] for k in ks], p.get("equivalentes", 0)] for p in e["frente"]])
+    if tipo == "freio_termico":
+        return (["volta", "T_pico_diant_C", "T_pico_tras_C", "T_media_diant_C", "T_media_tras_C", "T_fim_diant_C", "T_fim_tras_C"],
+                [[x["volta"], x["T_pico_diant_C"], x["T_pico_tras_C"], x["T_media_diant_C"], x["T_media_tras_C"], x["T_fim_diant_C"], x["T_fim_tras_C"]] for x in e["voltas"]])
+    if tipo == "dinamica_lateral":
+        return (["U_ms", "tipo", "K_graus_por_g", "ganho_guinada_1_s", "estavel", "wn_rad_s", "zeta", "v_caracteristica_ms", "v_critica_ms"],
+                [[g["velocidade_ms"], g["tipo"], g["gradiente_subesterco_graus_por_g"], g["ganho_guinada_1_por_s"], g["estavel"], g["wn_rad_s"], g["zeta"],
+                  g["velocidade_caracteristica_ms"], g["velocidade_critica_ms"]] for g in e["varredura"]])
+    if tipo == "calibracao":
+        return (["parametro", "inicial", "calibrado", "incerteza_aprox"],
+                [[k, e["valores_iniciais"][k], v, e["incerteza_aprox"].get(k)] for k, v in e["parametros_calibrados"].items()]
+                + [["rmse_treino_antes_kmh", e["treino"]["rmse_antes_kmh"], e["treino"]["rmse_depois_kmh"], None], ["numero_condicao", None, e["numero_condicao"], None]]
+                + ([["rmse_trecho_nao_usado_kmh", e["teste"]["rmse_antes_kmh"], e["teste"]["rmse_depois_kmh"], None]] if e["teste"] else []))
+    if tipo == "validacao":
+        m = e["metricas"]
+        return (["item", "valor"], [[k, v] for k, v in m.items()] + [[f"setor_{x['setor']}_rmse_kmh", x["rmse_kmh"]] for x in e["setores"]]
+                + [[f"criterio_{v['criterio']}", f"{v['valor']:.4g} <= {v['limite_seu']:g}: {'atende' if v['atende'] else 'NAO atende'}"] for v in e["veredito"]])
     if tipo == "stint":
         ks = list(e["taxas_por_volta"])
         return (["volta", "tempo_s", "acumulado_s", *ks], [[r["volta"], r["tempo_s"], r["acumulado_s"], *[r["parametros"][k] for k in ks]] for r in e["linhas"]])
@@ -98,6 +114,8 @@ def _elementos(tipo: str, estudo: dict) -> list:
     if tipo == "otimizacao":
         el += [Paragraph(_txt(f"Tempo base {estudo['tempo_base_s']:.3f} s → melhor encontrado {estudo['tempo_otimo_s']:.3f} s "
                                f"(ganho {estudo['ganho_s']:+.3f} s; {estudo['avaliacoes']} avaliações)"), st["BodyText"]), Spacer(1, 3 * mm)]
+    if tipo == "validacao":
+        el += [Paragraph(_txt(f"Classe do resultado: {estudo['classe']} · " + " ".join(estudo.get("avisos", []))), st["BodyText"]), Spacer(1, 3 * mm)]
     if tipo == "stint":
         el += [Paragraph(_txt(f"{estudo['voltas']} voltas · total {estudo['total_s']:.3f} s · taxas por volta (SUAS): " + ", ".join(f"{k} {v:+g}" for k, v in estudo["taxas_por_volta"].items())), st["BodyText"]), Spacer(1, 3 * mm)]
     if tipo == "monte_carlo":
