@@ -16,6 +16,9 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
   freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 [--voltas 5]   energia de frenagem e temperatura de disco (propriedades SUAS)
+  comparar-veiculos a.json b.json [--saida r.pdf]   compara duas configurações (volta, bicicleta, lateral, freios) com as hipóteses de cada modelo
+  diagnostico projeto.nexus [--estudos e.json] [--pergunta "..."]   cinco blocos: calculado, interpretação, hipótese, recomendação, indisponível (sem IA generativa)
+  relatorio projeto.nexus --saida r.pdf [--estudos e.json --objetivo ... --criterio ... --imagem x.png]   relatório técnico de 14 seções (PDF/MD/JSON)
   receita receita.json [--pasta saida]   executa vários estudos em lote (um dossiê por passo + resumo)
   dossie criar espec.json --saida x.dossie.json | dossie verificar x.dossie.json   dossiê reprodutível (entradas+semente+versões+hash; re-executa e confere)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
@@ -160,6 +163,24 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    rt = sub.add_parser("relatorio")
+    rt.add_argument("projeto", metavar="arq.nexus")
+    rt.add_argument("--saida", required=True, metavar="relatorio.{pdf,md,json}")
+    rt.add_argument("--estudos", metavar="estudos.json")
+    rt.add_argument("--objetivo", default="")
+    rt.add_argument("--contorno", default="")
+    rt.add_argument("--criterio", action="append", default=[], help="critério de validação documentado (repetível)")
+    rt.add_argument("--imagem", action="append", default=[], help="PNG/JPG de imagem 3D existente (repetível)")
+    dg = sub.add_parser("diagnostico")
+    dg.add_argument("projeto", metavar="arq.nexus")
+    dg.add_argument("--estudos", metavar="estudos.json", help="lista JSON de estudos já calculados [{nome,classe,valores,premissas,limitacoes,componentes}]")
+    dg.add_argument("--pergunta", help="pergunta roteada para os blocos do diagnóstico (sem IA generativa)")
+    cv = sub.add_parser("comparar-veiculos")
+    cv.add_argument("a", help="configuração A (JSON: carro/bicicleta/lateral/U_ms/freios)")
+    cv.add_argument("b", help="configuração B (JSON)")
+    cv.add_argument("--pista", metavar="arquivo.csv")
+    cv.add_argument("--ds", type=float, default=3.0)
+    cv.add_argument("--saida", metavar="arquivo.{csv,json,pdf}")
     rc_ = sub.add_parser("receita")
     rc_.add_argument("arquivo", help="receita JSON {titulo, passos:[{nome,tipo,parametros,nota}]}")
     rc_.add_argument("--pasta", default="saida_receita", help="pasta onde gravar um dossiê por passo + resumo")
@@ -364,6 +385,43 @@ def executar(argv=None, out=None) -> int:
             emit(RC.texto(rs_), rs_)
             if not rs_["ok"]:
                 return 1
+        elif a.cmd == "comparar-veiculos":
+            from modules import veiculo_comparacao as VC
+            try:
+                ca = json.loads(Path(a.a).read_text(encoding="utf-8")); cb = json.loads(Path(a.b).read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise ValueError(f"configuração ilegível: {exc}")
+            try:
+                r = VC.comparar(ca, cb, _pista(a), a.ds)
+            except TypeError as exc:
+                raise ValueError(f"parâmetro desconhecido ou faltando em alguma configuração ({exc})")
+            _exportar(a, "comparacao_veiculos", r)
+            emit(VC.texto(r), r)
+        elif a.cmd == "diagnostico":
+            from core.cad_engine import CadEngine
+            from core.project_manager import ProjectManager
+            from modules import ai_engenheiro as AE
+            try:
+                est_ = json.loads(Path(a.estudos).read_text(encoding="utf-8")) if a.estudos else []
+            except (OSError, ValueError) as exc:
+                raise ValueError(f"estudos ilegíveis: {exc}")
+            d_ = AE.diagnostico(ProjectManager(CadEngine()).open(a.projeto), est_)
+            if a.pergunta:
+                r_ = AE.responder(a.pergunta, d_)
+                emit(r_["resposta"], r_)
+            else:
+                emit(AE.texto(d_), d_)
+        elif a.cmd == "relatorio":
+            from core.cad_engine import CadEngine
+            from core.project_manager import ProjectManager
+            from modules import relatorio_tecnico as RT
+            try:
+                est_ = json.loads(Path(a.estudos).read_text(encoding="utf-8")) if a.estudos else []
+            except (OSError, ValueError) as exc:
+                raise ValueError(f"estudos ilegíveis: {exc}")
+            rel_ = RT.montar(ProjectManager(CadEngine()).open(a.projeto), a.objetivo, est_, a.criterio, a.imagem, None, a.contorno)
+            p_ = RT.exportar(rel_, a.saida)
+            emit(f"Relatório técnico gravado em {p_} ({len(RT.SECOES)} seções).", {"arquivo": str(p_), "secoes": list(RT.SECOES), "conclusao": rel_["conclusao"]})
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")

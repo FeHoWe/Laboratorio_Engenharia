@@ -23,6 +23,21 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V110.0
+Itens não feitos da V110 listados no CHANGELOG da V110.0 (seleção por mouse, gráficos de dinâmica, animação 3D, suspensão na volta, validação Windows)
+
+## Feito na V106.0
+Fases G–H da V110; itens não feitos
+
+## Feito na V103.0
+Fases E–H da V110; itens de D não feitos
+
+## Feito na V102.0
+Fases D–H da V110
+
+## Feito na V101.0
+Fases C–H da V110
+
 ## Feito na V100.0
 Próximos passos (fora desta rodada): GUI para os módulos 30–90, celular, verificação em Windows 11
 

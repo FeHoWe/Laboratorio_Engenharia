@@ -135,3 +135,24 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V100.0
 - **Receitas:** crie `receita.json` com `{"titulo":"...","passos":[{"nome":"base","tipo":"volta","parametros":{"carro":{...}}},{"nome":"sens","tipo":"tornado","parametros":{...}}]}` e rode `python nexus_cli.py receita receita.json --pasta saida`, ou use F1 → Estudos → “Executar receita…”. Cada passo vira um `.dossie.json` verificável com `dossie verificar`.
+
+
+## Novidades da V101.0
+- **Estudos avançados (Ctrl+Alt+E ou botão na Home):** validação com sua telemetria, calibração, massa do projeto → carro, freios, dinâmica lateral e dossiê, sem linha de comando. Os números de exemplo são ilustrativos; use os seus. A Home agora lista projetos recentes e a atividade recente (arquivo local, nada é enviado).
+
+
+## Novidades da V102.0
+- **Análise do campo FEA:** no diálogo de FEA, após calcular com malha de 2ª ordem (campo nodal), use “Analisar regiões críticas…”: lista as regiões acima da fração do máximo que você escolher, consulta o nó mais próximo de um ponto x,y,z e sugere um fator visual para a deformada (só exibição). Não é critério de falha.
+
+
+## Novidades da V103.0
+- **Comparar veículos A/B:** `python nexus_cli.py comparar-veiculos a.json b.json --saida cmp.pdf` ou a aba “Comparar A/B” em Estudos avançados. Cada JSON pode ter `carro`, `bicicleta`, `lateral` (+`U_ms`) e `freios`. Só entram métricas presentes nas duas; cada linha mostra o modelo e suas hipóteses.
+
+
+## Novidades da V106.0
+- **Diagnóstico técnico:** botão na Home (ou `python nexus_cli.py diagnostico projeto.nexus --estudos e.json`). Mostra, separados, o que foi CALCULADO, a INTERPRETAÇÃO por regras, as HIPÓTESES dos estudos, as RECOMENDAÇÕES (com os dados em que se baseiam) e o que está INDISPONÍVEL. Na Home, rode duas vezes: a segunda compara com a primeira e aponta estudos a refazer.
+
+
+## Novidades da V110.0
+- **Relatório técnico:** botão na Home ou `python nexus_cli.py relatorio projeto.nexus --saida r.pdf --estudos e.json --objetivo "..." --criterio "erro < 5 % contra ensaio X" --imagem vista.png`. As 14 seções aparecem sempre; “Não informado” onde faltar dado. Sem critério de validação, nada é declarado validado.
+- **Windows 11:** siga `docs/WINDOWS_VALIDACAO.md` e marque item a item na sua máquina. Até lá o empacotamento e o instalador continuam NÃO VALIDADOS.

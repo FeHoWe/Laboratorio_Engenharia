@@ -458,5 +458,16 @@
  "Pareto": "パレート",
  "Stint": "スティント",
  "Relatório consolidado…": "統合レポート…",
- "Executar receita…": "レシピを実行…"
+ "Executar receita…": "レシピを実行…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "高度な検討（検証、キャリブレーション、ブレーキ、横方向動力学、ドシエ）…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "テレメトリ検証、キャリブレーション、プロジェクト質量、ブレーキ熱、横方向動力学、再現可能なドシエのためのグラフィカルUI（簡易モデル；例の数値は説明用）",
+ "Estudos avançados": "高度な検討",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "臨界領域の解析 / 点の照会 / 変形倍率の提案",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "臨界領域 = von Mises が最大値のこの割合以上の節点（しきい値による抽出であり、破壊基準ではありません）。",
+ "fração do máx.": "最大値の割合",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z（mm）：最も近い節点を照会",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "技術診断（計算、解釈、仮説、推奨）",
+ "Projetos recentes": "最近のプロジェクト",
+ "Atividade recente": "最近のアクティビティ",
+ "Abrir projeto recente": "最近のプロジェクトを開く"
 }

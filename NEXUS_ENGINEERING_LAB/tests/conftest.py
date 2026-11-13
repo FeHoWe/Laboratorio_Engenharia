@@ -87,3 +87,9 @@ def pytest_sessionfinish(session, exitstatus):
     except Exception:
         pass
     gc.collect()
+
+
+@pytest.fixture(autouse=True)
+def _dados_isolados(tmp_path_factory, monkeypatch):
+    """V110: o histórico de atividade nunca grava no ~/.nexus_lab real durante os testes."""
+    monkeypatch.setenv("NEXUS_DATA_DIR", str(tmp_path_factory.mktemp("nexus_dados")))

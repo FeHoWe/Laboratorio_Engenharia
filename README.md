@@ -14,7 +14,9 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 
 | Versão | Data | Destaques | Ver | Baixar |
 |---|---|---|---|---|
-| **V100.0** | 13/11/2026 | Receitas em lote (vários estudos com um dossiê por passo) e consolidação dos marcos V30 a V100 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/0f1b17d8fe4f45bddf5a5a1f25fa59b4a3e37b41/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/0f1b17d8fe4f45bddf5a5a1f25fa59b4a3e37b41.zip) |
+| **V110.0** | 13/11/2026 | Relatório técnico de 14 seções, auditoria do empacotamento para Windows | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/09805dd4ad9ed3f0bfdd10d8e6b92d4d7b440b00/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/09805dd4ad9ed3f0bfdd10d8e6b92d4d7b440b00.zip) |
+| V106.0 | 13/11/2026 | Estudos avançados, análise de campo FEA, A/B de veículos, gêmeo digital, AI Engineer determinístico; inclui V101 a V103 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/90e67f4b897d3fc30438222592fd72ddb820599d/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/90e67f4b897d3fc30438222592fd72ddb820599d.zip) |
+| V100.0 | 13/11/2026 | Receitas em lote (vários estudos com um dossiê por passo) e consolidação dos marcos V30 a V100 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/0f1b17d8fe4f45bddf5a5a1f25fa59b4a3e37b41/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/0f1b17d8fe4f45bddf5a5a1f25fa59b4a3e37b41.zip) |
 | V90.0 | 13/11/2026 | Dossiê reprodutível com SHA-256 e verificação por re-execução | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/583421f38b17e84bd5d76b27b0f160e51595de1f/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/583421f38b17e84bd5d76b27b0f160e51595de1f.zip) |
 | V80.0 | 13/11/2026 | Energia de frenagem e térmica de disco | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/41af60627604f52b9c1d7f21d327e3ac57a71ac4/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/41af60627604f52b9c1d7f21d327e3ac57a71ac4.zip) |
 | V70.0 | 13/11/2026 | Dinâmica lateral linear (resposta ao degrau de esterço, subesterço, estabilidade) | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/83b6c020ed9264e591874d2a3005de98a84457c9/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/83b6c020ed9264e591874d2a3005de98a84457c9.zip) |
@@ -45,8 +47,9 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 | V2.4 | 05/11/2026 | Treliça (MEF de barras), relatórios rastreáveis; inclui a V2.3 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/347a2610ca08e27dd9efcdfd04110b1ac6223651/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/347a2610ca08e27dd9efcdfd04110b1ac6223651.zip) |
 | V2.2 | 05/11/2026 | Projetos predefinidos, biblioteca de peças, laboratório de testes | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/152263c8a843b0a3cf061333c3e85e4958dcfba6/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/152263c8a843b0a3cf061333c3e85e4958dcfba6.zip) |
 
-As V2.3, V3.2, V4.2 a V4.4, V5.1 a V5.5, V6.1 a V9.0, V11 a V19 e V30.0 não tinham zip próprio.
-As mudanças delas já estão nas versões seguintes (V2.4, V3.3, V5.0, V6.0, V10.0, V20.0 e V40.0).
+As V2.3, V3.2, V4.2 a V4.4, V5.1 a V5.5, V6.1 a V9.0, V11 a V19, V30.0 e V101.0 a V103.0 não
+tinham zip próprio. As mudanças delas já estão nas versões seguintes (V2.4, V3.3, V5.0, V6.0,
+V10.0, V20.0, V40.0 e V106.0).
 De V21 em diante as etapas intermediárias são agrupadas em marcos de 10 em 10 (V30, V40, …). O histórico completo está no `README.md` e no `CHANGELOG.md` do projeto.
 
 ## Como pegar uma versão antiga

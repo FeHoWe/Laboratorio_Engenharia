@@ -458,5 +458,16 @@
  "Pareto": "باريتو",
  "Stint": "ستنت",
  "Relatório consolidado…": "تقرير موحّد…",
- "Executar receita…": "تشغيل الوصفة…"
+ "Executar receita…": "تشغيل الوصفة…",
+ "Estudos avançados (validação, calibração, freios, dinâmica lateral, dossiê)…": "دراسات متقدمة (تحقق، معايرة، فرامل، ديناميكا جانبية، ملف)…",
+ "Interface gráfica para validação com telemetria, calibração, massa do projeto, térmica de freio, dinâmica lateral e dossiê reprodutível (modelos simplificados; valores de exemplo ilustrativos)": "واجهة رسومية للتحقق بالقياس عن بُعد والمعايرة وكتلة المشروع والنمذجة الحرارية للفرامل والديناميكا الجانبية وملف قابل لإعادة الإنتاج (نماذج مبسطة؛ القيم المثالية توضيحية)",
+ "Estudos avançados": "دراسات متقدمة",
+ "Analisar regiões críticas / consultar ponto / sugerir fator da deformada": "تحليل المناطق الحرجة / الاستعلام عن نقطة / اقتراح معامل التشوه",
+ "Região crítica = nós com von Mises ≥ esta fração do máximo (recorte por limiar, não é critério de falha).": "المنطقة الحرجة = العقد التي تبلغ فيها قيمة von Mises نسبة من الحد الأقصى أو أكثر (قطع بعتبة وليس معيار فشل).",
+ "fração do máx.": "نسبة من الأقصى",
+ "x,y,z (mm) para consultar o nó mais próximo": "x,y,z (مم) للاستعلام عن أقرب عقدة",
+ "Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)": "التشخيص التقني (محسوب، تفسير، فرضية، توصية)",
+ "Projetos recentes": "المشاريع الأخيرة",
+ "Atividade recente": "النشاط الأخير",
+ "Abrir projeto recente": "فتح المشروع الأخير"
 }

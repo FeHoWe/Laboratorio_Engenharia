@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## V110.0 — 2026-11-13 (V110 final: relatórios técnicos, auditoria de empacotamento e consolidação 101→110)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Etapas: V101 (A+B), V106 (C–F), V110 (G+H); V102–V105 e V107–V109 não foram empacotadas separadamente.
+- **Fase G — `modules/relatorio_tecnico.py`, CLI `relatorio` e botão na Home:** relatório de 14 seções SEMPRE presentes (identificação, objetivo, geometria, materiais, parâmetros, contorno, método, hipóteses, resultados, gráficos, imagens 3D, limitações, critérios de validação, conclusão); o que falta diz “Não informado”; resultados agrupados por classe sem misturar; sem critério de validação documentado nenhum resultado é declarado validado; imagens/gráficos só os arquivos que você indicar. Exporta PDF, Markdown e JSON.
+- **Fase H — Windows (SÓ preparação, NÃO VALIDADO):** auditoria estática do `nexus.spec` achou 3 falhas reais e corrigiu: faltavam `locales/` (traduções sumiriam no executável), `nexus_f1/data` e os pacotes `nexus_f1`, `ai`, `simulation` (importados só sob demanda). Novo roteiro `docs/WINDOWS_VALIDACAO.md` (checklist de 6 etapas, nada marcado) e `tests/test_spec_windows.py` (garantia ESTÁTICA; não prova que o `.exe` abre). Instalador, atualização e recuperação seguem sem teste em máquina real.
+- **Consolidação V101→V110 (o que existe agora):** estudos avançados e Control Center na interface; análise de campo FEA + assinatura de estudos; comparação A/B de veículos; gêmeo digital; AI Engineer determinístico; relatório técnico. Todos reutilizam os módulos existentes, sem duplicar solvers.
+- **Honestidade / não feito (vai para o ROADMAP):** seleção de face/aresta pelo mouse e edição interativa de esboços no viewport; gráficos de deriva/guinada/rolagem e animação 3D dirigida pelo simulador; gráficos sincronizados de telemetria A×B; suspensão elastocinemática integrada à volta; gravar assinatura/gêmeo digital automaticamente com cada resultado no projeto; revisão nativa das traduções; validação em Windows 11 real.
+- Testes: `test_relatorio_tecnico` (5), `test_spec_windows` (5), Home (+1).
+
+## V106.0 — 2026-11-13 (V110 Fases E+F: F1 verificado, gêmeo digital e AI Engineer determinístico)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). **V102 e V103 não foram empacotadas separadamente**: o código das fases C–F foi acumulado e verificado na suíte desta versão.
+- **Correção de documentação:** nos pacotes V30–V100 já entregues, `NEXUS_TEST_REPORT.md` repetia o resultado do próprio pacote em todas as seções antigas (erro do gerador de relatório). Nesta versão cada seção tem o resultado real daquela versão (30: 738, 40: 747, 50: 754, 60: 763, 70: 773, 80: 782, 90: 793, 100: 798, 101: 808). O código dos pacotes anteriores não é afetado.
+- **Fase E (F1):** auditoria mostrou que `nexus_f1` já cobre setores, pneus/degradação (modelo declarado), estratégia de pit, deltas por segmento, sensibilidade e comparação A/B/C (adendo em `NEXUS_AUDIT_V110.md`); nada duplicado.
+- **Fase F — `modules/gemeo_digital.py`:** estado por peça (id, material, massa só com material, posição, impressão digital da geometria B-Rep/malha), diferença entre dois levantamentos e `estudos_afetados` (REFAZER/VIGENTE com motivos). Nada é apagado nem gravado no `.nexus`.
+- **Fase F — `modules/ai_engenheiro.py`, CLI `diagnostico projeto.nexus [--estudos e.json] [--pergunta …]` e botão na Home:** cinco blocos separados (CALCULADO, INTERPRETACAO, HIPOTESE, RECOMENDACAO, INDISPONIVEL); cada recomendação cita os dados; sem IA generativa; pergunta fora do escopo recebe “não sei”. Teste confere que os números do bloco calculado só vêm dos campos.
+- **Traduções:** textos novos da Fase C e botões da Home nas 15 línguas (IA, sem revisão nativa).
+- Testes: `test_gemeo_digital` (3), `test_ai_engenheiro` (4), Home (+2).
+- **Limites:** a assinatura de estudos e o gêmeo digital ainda não são gravados automaticamente com cada resultado no projeto; seleção de face/aresta pelo mouse e edição interativa de esboços não foram feitas; Windows 11/instalador não testados.
+
+## V103.0 — 2026-11-13 (V110 Fase D: comparação A/B de veículos)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1).
+- **`modules/veiculo_comparacao.py` + CLI `comparar-veiculos a.json b.json` + aba “Comparar A/B” em Estudos avançados:** compara duas configurações pelos modelos EXISTENTES — lapsim (ponto material), bicicleta, dinâmica lateral linear e térmica de freio — numa só tabela (A, B, B−A, %, modelo e hipóteses de cada linha). Só compara blocos presentes nas DUAS configurações; o que falta vira nota “não comparável”, nunca número inventado. Exportação CSV/JSON/PDF (tipo `comparacao_veiculos`, entra no relatório consolidado).
+- **Honestidade:** tempos de modelos diferentes não são somados nem tratados como o mesmo tempo de volta; parâmetros hipotéticos geram resultados hipotéticos; nada é validação.
+- **Não feito nesta etapa (declarado):** gráficos novos de deriva/guinada/rolagem, modelo de suspensão elastocinemática integrado à volta e animação 3D dirigida pelos estados do simulador — esses itens da V110 ficam no ROADMAP; o que existe (kinematics, suspension, vehicle_*) permanece como estava.
+- Testes: `test_veiculo_comparacao` (5) + export + aba da GUI.
+
+## V102.0 — 2026-11-13 (V110 Fase C: análise de campo FEA e invalidação de estudos)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1).
+- **`modules/campo_analise.py`:** regiões críticas (recorte por limiar da fração do máximo, agrupadas por proximidade), consulta do ponto mais próximo, malha deformada com fator visual SEMPRE informado, fator sugerido, escala de cores com limites do usuário (recorta a cor, não os valores). Conferido na viga em balanço: a região crítica fica junto do engaste.
+- **`modules/assinatura_estudo.py`:** hash por categoria (geometria, material, contorno, malha, outros); `comparar` diz QUAIS categorias mudaram e marca o resultado como OBSOLETO com o motivo; `revisar` anota sem remover nem alterar valores. Ruído abaixo de 9 algarismos significativos não invalida. Complementa `result_store` (que só olhava a geometria).
+- **Interface (diálogo FEA):** botão “Analisar regiões críticas / consultar ponto / sugerir fator da deformada” sobre o campo já calculado (precisa do campo nodal, ex.: Tet10; campo por elemento recebe aviso claro).
+- **Honestidade:** “região crítica” é só recorte por limiar sobre o campo calculado, não é critério de falha; Tet4 tem tensão constante por elemento; nenhuma simulação é declarada validada sem referência documentada.
+- **Não feito nesta etapa (declarado):** seleção de faces/arestas pelo mouse e edição interativa de esboços no viewport — exigem teste interativo que o ambiente sem tela não permite; o que já existe (`selection_manager`, `sketch2d`, histórico) segue como estava. A assinatura ainda não está ligada ao salvamento automático de resultados no `.nexus` (próxima etapa, Digital Twin).
+- Testes: `test_campo_analise` (6) + 1 teste de diálogo.
+
+## V101.0 — 2026-11-13 (V110 Fases A+B: auditoria, Control Center e estudos avançados na interface)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração por fase: V101 = fases A+B, V102 = C, … V110 = final.
+- **Fase A — auditoria (`NEXUS_AUDIT_V110.md`):** mapa módulos × GUI × CLI × testes; lacunas reais de interface: validação, calibração, projeto→carro, bicicleta, dinâmica lateral, freios e dossiê. Referência textual não prova funcionamento: o mapa só orienta.
+- **Fase B — `interface/estudos_avancados_dialog.py` (Ctrl+Alt+E e tela Home):** abas Validação, Calibração, Projeto → carro, Freios, Dinâmica lateral e Dossiê, chamando os módulos existentes (nenhum cálculo novo na GUI; teste confere que o texto da tela é idêntico ao do módulo). Erros viram texto na janela, nunca exceção.
+- **Control Center (evolução da Home):** “Projetos recentes” (só os que ainda existem em disco) e “Atividade recente”, alimentados por `core/atividade.py` (JSON‑lines local em `NEXUS_DATA_DIR` ou `~/.nexus_lab`; nada é enviado; falha de gravação nunca interrompe; testes isolados por fixture).
+- **Honestidade:** valores de exemplo do carro e do disco são ILUSTRATIVOS; modelos continuam simplificados; “VALIDADO” só com tolerâncias SUAS. Textos traduzidos nas 15 línguas: menu, descrição e título; rótulos internos do diálogo novo ainda aparecem em português nas outras línguas (IA, sem revisão nativa).
+- Testes: `test_estudos_avancados_gui` (6), `test_atividade` (3), Home (+1).
+- **Limites:** ainda sem painel A/B de veículo, FEA 3D no viewport, Digital Twin e AI Engineer (fases seguintes); Windows 11/instalador não testados.
+
 ## V100.0 — 2026-11-13 (marco: receitas em lote e consolidação; etapas V91–V100)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V91–V99 (agrupadas):** validação estrita do JSON da receita, nomes de passo saneados (não escapam da pasta), isolamento de falhas por passo, resumo em JSON e texto, integração com o dossiê reprodutível.

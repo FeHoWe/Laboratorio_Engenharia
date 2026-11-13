@@ -44,3 +44,42 @@ def test_home_mostra_versoes_e_alteracoes_nao_salvas(janela, tmp_path):
     w.home_tab.atualizar()
     t = w.home_tab.resumo.text()
     assert "Versões registradas: 1" in t and "NÃO salvas" in t
+
+
+def test_home_recentes_e_atividade(janela, tmp_path):
+    from core import atividade
+    w = janela
+    w.project.components  # janela com projeto novo
+    assert not w.home_tab.b_recente.isEnabled() and "sem atividade" in w.home_tab.atividade.toPlainText()
+    from modules import importer  # noqa: F401
+    arq = tmp_path / "p.nexus"
+    w.save_project_as(str(arq))
+    w.home_tab.atualizar()
+    assert str(arq) in [w.home_tab.recentes.itemData(i) for i in range(w.home_tab.recentes.count())] and w.home_tab.b_recente.isEnabled()
+    assert "Salvou" in w.home_tab.atividade.toPlainText()
+    assert w.home_tab.abrir_recente() is True
+    assert atividade.ultimos(1)[0]["texto"].startswith("Abriu")
+
+
+def test_home_diagnostico_cinco_blocos(janela):
+    w = janela
+    w.open_sample_engine(background=False)
+    t = w.home_tab.diagnosticar()
+    assert all(f"== {b} ==" in t for b in ("CALCULADO", "INTERPRETACAO", "HIPOTESE", "RECOMENDACAO", "INDISPONIVEL")) and "sem IA generativa" in t
+    assert "massa total" in t and w.home_tab.saida.toPlainText() == t
+    folha = list(w.project.components.leaves())[0]
+    w.project.components.set_material(folha.id, "Aço carbono", recursive=False)
+    w.estudos_diagnostico = [{"nome": "X", "classe": "SIMULACAO_NUMERICA", "valores": {"a": 1.0}, "componentes": [folha.id]}]
+    t2 = w.home_tab.diagnosticar()
+    assert "Refazer os estudos afetados" in t2 and "NÃO validado" in t2
+
+
+def test_home_relatorio_tecnico(janela, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: ("", ""))          # usuário cancela o diálogo
+    w = janela
+    w.open_sample_engine(background=False)
+    msg = w.home_tab.relatorio(str(tmp_path / "r.md"))
+    assert "14 seções" in msg and (tmp_path / "r.md").read_text(encoding="utf-8").count("## ") == 14
+    assert "Não foi possível" in w.home_tab.relatorio(str(tmp_path / "r.xyz"))
+    assert w.home_tab.relatorio("") == ""
