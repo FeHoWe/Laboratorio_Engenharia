@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "هل تريد الاسترداد الآن؟ (لا = تجاهل)",
  "Registrar versão…": "تسجيل إصدار…",
  "Versões do projeto…": "إصدارات المشروع…",
- "Falha ao salvar": "فشل الحفظ"
+ "Falha ao salvar": "فشل الحفظ",
+ "Revolucionar": "تدوير",
+ "revolução [°]": "دوران [°]",
+ "eixo u0 v0 u1 v1": "المحور u0 v0 u1 v1",
+ "Nomear face/aresta…": "تسمية وجه/حافة…",
+ "Variável…": "متغيّر…",
+ "Restrição…": "قيد…"
 }

@@ -527,5 +527,11 @@
  "Recuperar agora? (Não = descartar)": "Recover now? (No = discard)",
  "Registrar versão…": "Record version…",
  "Versões do projeto…": "Project versions…",
- "Falha ao salvar": "Save failed"
+ "Falha ao salvar": "Save failed",
+ "Revolucionar": "Revolve",
+ "revolução [°]": "revolve [°]",
+ "eixo u0 v0 u1 v1": "axis u0 v0 u1 v1",
+ "Nomear face/aresta…": "Name face/edge…",
+ "Variável…": "Variable…",
+ "Restrição…": "Constraint…"
 }

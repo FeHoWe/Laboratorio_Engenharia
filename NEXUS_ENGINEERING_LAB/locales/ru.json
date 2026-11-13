@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "Восстановить сейчас? (Нет = отбросить)",
  "Registrar versão…": "Записать версию…",
  "Versões do projeto…": "Версии проекта…",
- "Falha ao salvar": "Не удалось сохранить"
+ "Falha ao salvar": "Не удалось сохранить",
+ "Revolucionar": "Вращение",
+ "revolução [°]": "вращение [°]",
+ "eixo u0 v0 u1 v1": "ось u0 v0 u1 v1",
+ "Nomear face/aresta…": "Назвать грань/ребро…",
+ "Variável…": "Переменная…",
+ "Restrição…": "Ограничение…"
 }

@@ -22,6 +22,10 @@ class CadHistoryDialog(QDialog):
         for txt, fn in (("Adicionar…", self.add), ("Editar parâmetro…", self.edit), ("Suprimir/ativar", self.toggle), ("Desfazer", self.undo), ("Refazer", self.redo)):
             b = QPushButton(txt); b.clicked.connect(fn); r.addWidget(b)
         v.addLayout(r)
+        r = QHBoxLayout()                                                       # V4.1b
+        for txt, fn in (("Nomear face/aresta…", self.nomear), ("Variável…", self.variavel), ("Restrição…", self.restricao)):
+            b = QPushButton(txt); b.clicked.connect(fn); r.addWidget(b)
+        v.addLayout(r)
         self.info = QLabel(""); v.addWidget(self.info)
         b = QPushButton("Exportar resultado como STEP…"); b.clicked.connect(self.export); v.addWidget(b)
 
@@ -56,7 +60,7 @@ class CadHistoryDialog(QDialog):
         if not self._need(): return
         t, ok = QInputDialog.getItem(self, "Operação", "Tipo:", list(OPS), 0, False)
         if not ok: return
-        if t == "sketch_extrude":
+        if t in ("sketch_extrude", "sketch_revolve"):
             from interface.sketch_dialog import SketchDialog
             SketchDialog(self, self.hist).exec(); self.refresh(); return
         params = {}
@@ -96,6 +100,49 @@ class CadHistoryDialog(QDialog):
             params["edges"], ok = QInputDialog.getItem(self, t, "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
         try: self.hist.add(t, **params)
         except Exception as e: QMessageBox.warning(self, "Operação", str(e))
+        self.refresh()
+
+    def nomear(self) -> None:
+        if not self._need(): return
+        tipo, ok = QInputDialog.getItem(self, "Nomear", "Tipo:", ["face", "aresta"], 0, False)
+        if not ok: return
+        nome, ok = QInputDialog.getText(self, "Nomear", "Nome (letras, números, _):")
+        if not ok: return
+        modo, ok = QInputDialog.getItem(self, "Nomear", "Escolher por:", ["extrema (±x/±y/±z)", "perto de um ponto"] if tipo == "face" else ["seletor (top:z, axis:x…)", "perto de um ponto"], 0, False)
+        if not ok: return
+        if modo.startswith("perto"):
+            txt, ok = QInputDialog.getText(self, "Nomear", "Ponto x,y,z [mm]:")
+            if not ok: return
+            try: sel = {"modo": "perto", "ponto": [float(x) for x in txt.replace(";", ",").split(",")]}
+            except ValueError: QMessageBox.warning(self, "Nomear", "Ponto inválido."); return
+        elif tipo == "face":
+            lado, ok = QInputDialog.getItem(self, "Nomear", "Face:", ["+z", "-z", "+x", "-x", "+y", "-y"], 0, False)
+            if not ok: return
+            sel = {"modo": "extrema", "lado": lado}
+        else:
+            e, ok = QInputDialog.getItem(self, "Nomear", "Arestas:", ["all", "axis:x", "axis:y", "axis:z", "top:x", "top:y", "top:z", "bottom:x", "bottom:y", "bottom:z"], 0, False)
+            if not ok: return
+            sel = {"modo": "sel", "sel": e}
+        try: self.hist.nomear(nome.strip(), tipo, sel)
+        except Exception as e: QMessageBox.warning(self, "Nomear", str(e))
+        self.refresh()
+
+    def variavel(self) -> None:
+        if not self._need(): return
+        nome, ok = QInputDialog.getText(self, "Variável", "Nome:")
+        if not ok: return
+        val, ok = QInputDialog.getDouble(self, "Variável", "Valor:", self.hist.vars.get(nome.strip(), 0.0), -1e9, 1e9, 4)
+        if ok:
+            try: self.hist.definir(nome.strip(), val)
+            except Exception as e: QMessageBox.warning(self, "Variável", str(e))
+        self.refresh()
+
+    def restricao(self) -> None:
+        if not self._need(): return
+        txt, ok = QInputDialog.getText(self, "Restrição", "Expressão (ex.: op[0].diameter < 10 ; volume > 1000):")
+        if ok and txt.strip():
+            try: self.hist.restringir(txt.strip())
+            except Exception as e: QMessageBox.warning(self, "Restrição", str(e))
         self.refresh()
 
     def edit(self) -> None:

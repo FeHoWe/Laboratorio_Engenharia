@@ -527,5 +527,11 @@
  "Recuperar agora? (Não = descartar)": "Récupérer maintenant ? (Non = abandonner)",
  "Registrar versão…": "Enregistrer une version…",
  "Versões do projeto…": "Versions du projet…",
- "Falha ao salvar": "Échec de l'enregistrement"
+ "Falha ao salvar": "Échec de l'enregistrement",
+ "Revolucionar": "Révolution",
+ "revolução [°]": "révolution [°]",
+ "eixo u0 v0 u1 v1": "axe u0 v0 u1 v1",
+ "Nomear face/aresta…": "Nommer face/arête…",
+ "Variável…": "Variable…",
+ "Restrição…": "Contrainte…"
 }

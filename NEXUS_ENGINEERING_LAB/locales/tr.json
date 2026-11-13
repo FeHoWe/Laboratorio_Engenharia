@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "Şimdi kurtarılsın mı? (Hayır = at)",
  "Registrar versão…": "Sürüm kaydet…",
  "Versões do projeto…": "Proje sürümleri…",
- "Falha ao salvar": "Kaydetme başarısız"
+ "Falha ao salvar": "Kaydetme başarısız",
+ "Revolucionar": "Döndür",
+ "revolução [°]": "dönüş [°]",
+ "eixo u0 v0 u1 v1": "eksen u0 v0 u1 v1",
+ "Nomear face/aresta…": "Yüzey/kenar adlandır…",
+ "Variável…": "Değişken…",
+ "Restrição…": "Kısıt…"
 }

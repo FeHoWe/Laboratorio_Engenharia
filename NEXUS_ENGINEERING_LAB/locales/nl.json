@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "Nu herstellen? (Nee = verwijderen)",
  "Registrar versão…": "Versie vastleggen…",
  "Versões do projeto…": "Projectversies…",
- "Falha ao salvar": "Opslaan mislukt"
+ "Falha ao salvar": "Opslaan mislukt",
+ "Revolucionar": "Roteren",
+ "revolução [°]": "rotatie [°]",
+ "eixo u0 v0 u1 v1": "as u0 v0 u1 v1",
+ "Nomear face/aresta…": "Vlak/ribbe benoemen…",
+ "Variável…": "Variabele…",
+ "Restrição…": "Beperking…"
 }

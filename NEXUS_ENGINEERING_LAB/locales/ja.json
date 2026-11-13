@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "今すぐ回復しますか？（いいえ = 破棄）",
  "Registrar versão…": "バージョンを記録…",
  "Versões do projeto…": "プロジェクトのバージョン…",
- "Falha ao salvar": "保存に失敗しました"
+ "Falha ao salvar": "保存に失敗しました",
+ "Revolucionar": "回転",
+ "revolução [°]": "回転 [°]",
+ "eixo u0 v0 u1 v1": "軸 u0 v0 u1 v1",
+ "Nomear face/aresta…": "面/エッジに名前を付ける…",
+ "Variável…": "変数…",
+ "Restrição…": "拘束…"
 }

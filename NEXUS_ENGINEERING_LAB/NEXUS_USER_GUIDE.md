@@ -19,6 +19,9 @@
 - Arsenal: *Exportar…* grava o componente (todas as versões) em JSON; *Importar…* o recria com ID novo (nunca sobrescreve).
 - Windows 11: rode `tools\verificar_windows.bat` e envie o `verificacao_windows.txt` gerado.
 
+## Novidades da V4.1b — nomes, revolução e restrições
+No editor paramétrico: **Nomear face/aresta…** dá um nome a uma face ou aresta (a face de cima, uma aresta perto de um ponto…). O nome *acompanha* a peça pelas operações seguintes — mover, escalar, furar, editar um parâmetro antigo — e pode ser usado em filetes, chanfros e na casca (`nome:borda`). Se uma operação destrói aquela face ou aresta, o NEXUS avisa “referência perdida” em vez de escolher outra. **Revolucionar** (no diálogo de esboço) gira o perfil em torno de um eixo. **Variável…** e **Restrição…** permitem escrever parâmetros como `=D*2` ou `=op[0].diameter`, e regras como `volume > 1000`; uma edição que quebre uma regra é desfeita. As regras só *verificam* — o NEXUS não reajusta sozinho.
+
 ## Novidades da V4.1 — CAD avançado
 No *Editor paramétrico com histórico* (Solvers → Editor paramétrico) há novas operações: **furo escareado**, **padrão linear** e **padrão circular** (repete furos/saliências), **espelhar** e **casca** (esvazia o sólido deixando uma face aberta). Filete e chanfro aceitam arestas do **topo** ou da **base** de um eixo. Tudo entra no histórico: dá para editar parâmetros, suprimir e desfazer. Se uma operação não cabe na geometria (ex.: casca mais grossa que a peça), o NEXUS recusa e mantém o histórico como estava. A *volta do veículo* agora roda em segundo plano, com cancelamento.
 

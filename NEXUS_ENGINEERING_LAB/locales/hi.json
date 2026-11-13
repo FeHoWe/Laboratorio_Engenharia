@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "अभी पुनर्प्राप्त करें? (नहीं = छोड़ें)",
  "Registrar versão…": "संस्करण दर्ज करें…",
  "Versões do projeto…": "प्रोजेक्ट संस्करण…",
- "Falha ao salvar": "सहेजना विफल रहा"
+ "Falha ao salvar": "सहेजना विफल रहा",
+ "Revolucionar": "घुमाएँ",
+ "revolução [°]": "घुमाव [°]",
+ "eixo u0 v0 u1 v1": "अक्ष u0 v0 u1 v1",
+ "Nomear face/aresta…": "फलक/किनारे का नाम दें…",
+ "Variável…": "चर…",
+ "Restrição…": "बाधा…"
 }

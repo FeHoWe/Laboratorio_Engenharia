@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "지금 복구하시겠습니까? (아니요 = 삭제)",
  "Registrar versão…": "버전 기록…",
  "Versões do projeto…": "프로젝트 버전…",
- "Falha ao salvar": "저장 실패"
+ "Falha ao salvar": "저장 실패",
+ "Revolucionar": "회전",
+ "revolução [°]": "회전 [°]",
+ "eixo u0 v0 u1 v1": "축 u0 v0 u1 v1",
+ "Nomear face/aresta…": "면/모서리 이름 지정…",
+ "Variável…": "변수…",
+ "Restrição…": "구속조건…"
 }

@@ -1,4 +1,4 @@
-# NEXUS ENGINEERING LAB — V4.1
+# NEXUS ENGINEERING LAB — V4.1b
 
 Laboratório digital de engenharia para Windows: importa modelos CAD, identifica a estrutura
 (montagens, grupos, peças, sólidos), mostra em 3D, faz **desmontagem virtual (explosão)** e

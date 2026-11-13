@@ -3,11 +3,17 @@
 O resultado é SEMPRE regenerado do sólido-base reaplicando as operações em ordem (receita determinística):
 mudar um parâmetro de uma operação antiga reconstrói tudo depois dela; operações podem ser suprimidas,
 removidas, desfeitas/refeitas. Operações: translate, rotate, scale, hole, box_cut, box_add, fillet, chamfer.
-Limitação honesta: não há referência topológica persistente (nomeação de faces/arestas) — seletores são
-geométricos (por eixo ou 'all'); se uma edição a montante mudar a topologia, seletores são reavaliados.
+V4.1b: (1) NOMES PERSISTENTES de faces/arestas — um nome é ligado a um seletor num passo do histórico e depois RASTREADO pelo histórico de
+modificação do OpenCascade (Modified/IsDeleted de cada operação), não re-adivinhado por geometria; se a entidade é apagada por uma operação, o
+nome fica "perdido" e a reconstrução FALHA com erro explícito (nada é trocado em silêncio). (2) VARIÁVEIS e EXPRESSÕES ("=L/2",
+"=op[1].diameter*2") nos parâmetros e (3) RESTRIÇÕES (expressões booleanas, p.ex. "op[2].diameter < op[0].a/2", "volume > 1000") reverificadas a cada
+reconstrução; violação desfaz a edição. (4) sketch_revolve — esboço girado em torno de um eixo do plano.
+Limitações honestas: o rastreio depende do que o OpenCascade informa em cada operação (casos exóticos de fusão de faces coplanares podem perder o nome —
+aí o erro aparece); seletores iniciais ('extrema', 'perto', 'top:z'…) continuam geométricos, só são avaliados UMA vez, no passo em que o nome é ligado;
+as restrições são verificações, não um solver (nada é reajustado automaticamente).
 """
 from __future__ import annotations
-import json, math, time
+import ast, json, math, operator, time
 from pathlib import Path
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform, BRepBuilderAPI_GTransform
@@ -27,6 +33,7 @@ OPS = {"translate": ["dx", "dy", "dz"], "rotate": ["px", "py", "pz", "ax", "ay",
        "hole": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth"], "box_cut": ["x0", "y0", "z0", "x1", "y1", "z1"],
        "box_add": ["x0", "y0", "z0", "x1", "y1", "z1"], "fillet": ["radius"], "chamfer": ["distance"],
        "sketch_extrude": ["sketch", "distance", "mode"],
+       "sketch_revolve": ["sketch", "angle_deg", "axis", "mode"],
        "boolean": ["mode", "tool", "x", "y", "z", "a", "b", "c"],
        # V4.1
        "counterbore": ["x", "y", "z", "dx", "dy", "dz", "diameter", "depth", "cb_diameter", "cb_depth"],
@@ -53,6 +60,11 @@ def load_step(path):
 
 
 def _edges(shape, sel):
+    n = _ref(sel)
+    if n is not None:
+        if _RASTREIO is None:
+            raise CadHistoryError("nomes só podem ser usados dentro do histórico")
+        return list(_RASTREIO.obter(n, "aresta"))
     ex = TopExp_Explorer(shape, TopAbs_EDGE); out = []; seen = []
     while ex.More():
         e = TopoDS.Edge(ex.Current()); ex.Next()
@@ -73,6 +85,146 @@ def _edges(shape, sel):
     if sel != "all" and sel.split(":")[0] in ("top", "bottom"):
         out = _arestas_no_plano_extremo(shape, out, sel.split(":")[1], sel.startswith("top"))
     return out
+
+
+_RASTREIO = None      # Rastreio ativo durante rebuild() (None fora dela)
+
+
+class Rastreio:
+    """Acompanha entidades nomeadas (faces/arestas) operação a operação usando o histórico de modificação do OpenCascade."""
+
+    def __init__(self):
+        self.vivos: dict[str, list] = {}
+        self.tipo: dict[str, str] = {}
+
+    def avancar(self, maker, transform=False):
+        for nome, lst in list(self.vivos.items()):
+            novo = []
+            for e in lst:
+                if transform:
+                    try:
+                        novo.append(maker.ModifiedShape(e))
+                    except Exception:  # noqa: BLE001
+                        pass
+                    continue
+                if maker.IsDeleted(e):
+                    continue
+                mods = list(maker.Modified(e))
+                novo.extend(mods) if mods else novo.append(e)
+            self.vivos[nome] = novo
+
+    def obter(self, nome, tipo):
+        if nome not in self.vivos:
+            raise CadHistoryError(f"nome '{nome}' não existe (ou ainda não foi ligado neste ponto do histórico)")
+        if self.tipo[nome] != tipo:
+            raise CadHistoryError(f"'{nome}' é {self.tipo[nome]}, mas a operação precisa de {tipo}")
+        if not self.vivos[nome]:
+            raise CadHistoryError(f"referência perdida: '{nome}' foi apagado por uma operação anterior")
+        conv = TopoDS.Face if tipo == "face" else TopoDS.Edge          # o OCP devolve TopoDS_Shape genérico após Modified()
+        return [conv(e) for e in self.vivos[nome]]
+
+
+def _ref(nome_ou_sel):
+    return nome_ou_sel[5:] if isinstance(nome_ou_sel, str) and nome_ou_sel.startswith("nome:") else None
+
+
+def _transf(shape, tr):
+    mk = BRepBuilderAPI_Transform(shape, tr, True)
+    if _RASTREIO is not None:
+        _RASTREIO.avancar(mk, True)
+    return mk.Shape()
+
+
+def _unicas(shape, tipo):
+    ex = TopExp_Explorer(shape, tipo); out = []
+    while ex.More():
+        e = ex.Current(); ex.Next()
+        if not any(e.IsSame(x) for x in out):
+            out.append(e)
+    return out
+
+
+def _entidade_perto(shape, tipo, ponto, tol=1e-9):
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeVertex
+    from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+    from OCP.TopAbs import TopAbs_FACE
+    cands = _unicas(shape, TopAbs_FACE if tipo == "face" else TopAbs_EDGE)
+    v = BRepBuilderAPI_MakeVertex(gp_Pnt(*[float(c) for c in ponto])).Vertex()
+    ds = []
+    for c in cands:
+        d = BRepExtrema_DistShapeShape(v, c); d.Perform()
+        ds.append(d.Value() if d.IsDone() else float("inf"))
+    if not ds:
+        raise CadHistoryError("nenhuma entidade encontrada")
+    ordem = sorted(range(len(ds)), key=lambda i: ds[i])
+    if len(ds) > 1 and ds[ordem[1]] - ds[ordem[0]] < tol:
+        raise CadHistoryError("seletor 'perto' ambíguo: o ponto é equidistante de mais de uma entidade — mova o ponto")
+    return [TopoDS.Face(cands[ordem[0]]) if tipo == "face" else TopoDS.Edge(cands[ordem[0]])]
+
+
+def _resolver_seletor(shape, tipo, sel):
+    modo = sel.get("modo")
+    if tipo == "face" and modo == "extrema":
+        r = _faces_extremas(shape, sel["lado"])
+    elif tipo == "aresta" and modo == "sel":
+        r = _edges(shape, sel["sel"])
+    elif modo == "perto":
+        r = _entidade_perto(shape, "face" if tipo == "face" else "aresta", sel["ponto"])
+    else:
+        raise CadHistoryError(f"seletor inválido para {tipo}: {sel}")
+    if not r:
+        raise CadHistoryError("o seletor não encontrou nenhuma entidade")
+    return list(r)
+
+
+# ---- expressões seguras (variáveis, referências op[i].param, restrições)
+_BIN = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv, ast.Pow: operator.pow,
+        ast.Mod: operator.mod, ast.FloorDiv: operator.floordiv}
+_CMP = {ast.Lt: operator.lt, ast.LtE: operator.le, ast.Gt: operator.gt, ast.GtE: operator.ge, ast.Eq: lambda a, b: abs(a - b) < 1e-9,
+        ast.NotEq: lambda a, b: abs(a - b) >= 1e-9}
+_FUN = {"sqrt": math.sqrt, "sin": math.sin, "cos": math.cos, "tan": math.tan, "radians": math.radians, "degrees": math.degrees,
+        "min": min, "max": max, "abs": abs}
+_CONST = {"pi": math.pi, "e": math.e}
+
+
+def _avaliar_expr(texto, vars_, ref_op):
+    """Avalia `texto` com ast (sem eval). `ref_op(i, chave)` devolve o valor numérico do parâmetro `chave` da operação `i`."""
+    try:
+        arv = ast.parse(texto.strip().lstrip("="), mode="eval")
+    except SyntaxError as exc:
+        raise CadHistoryError(f"expressão inválida '{texto}': {exc.msg}")
+
+    def v(n):
+        if isinstance(n, ast.Expression): return v(n.body)
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) and not isinstance(n.value, bool): return float(n.value)
+        if isinstance(n, ast.Name):
+            if n.id in vars_: return vars_[n.id]
+            if n.id in _CONST: return _CONST[n.id]
+            raise CadHistoryError(f"variável desconhecida '{n.id}' em '{texto}'")
+        if isinstance(n, ast.BinOp) and type(n.op) in _BIN:
+            try: return _BIN[type(n.op)](v(n.left), v(n.right))
+            except ZeroDivisionError: raise CadHistoryError(f"divisão por zero em '{texto}'")
+        if isinstance(n, ast.UnaryOp) and isinstance(n.op, (ast.USub, ast.UAdd)):
+            return -v(n.operand) if isinstance(n.op, ast.USub) else v(n.operand)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _FUN and not n.keywords:
+            return _FUN[n.func.id](*[v(a) for a in n.args])
+        if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Subscript) and isinstance(n.value.value, ast.Name) and n.value.value.id == "op":
+            idx = n.value.slice
+            if isinstance(idx, ast.Constant) and isinstance(idx.value, int):
+                return ref_op(idx.value, n.attr)
+        if isinstance(n, ast.Compare):
+            esq = v(n.left)
+            for o, d in zip(n.ops, n.comparators):
+                dir_ = v(d)
+                if type(o) not in _CMP: raise CadHistoryError(f"comparação não suportada em '{texto}'")
+                if not _CMP[type(o)](esq, dir_): return False
+                esq = dir_
+            return True
+        if isinstance(n, ast.BoolOp):
+            vals = [bool(v(x)) for x in n.values]
+            return all(vals) if isinstance(n.op, ast.And) else any(vals)
+        raise CadHistoryError(f"elemento não permitido em '{texto}' (só números, variáveis, + - * / ** %, sqrt/sin/cos/tan/min/max/abs, op[i].parametro)")
+    return v(arv)
 
 
 def _bbox(shape):
@@ -140,13 +292,13 @@ def _copias_padrao(shape_ferramenta, t, p):
 def _apply(shape, op):
     t, p = op["type"], op["params"]
     if t == "translate":
-        tr = gp_Trsf(); tr.SetTranslation(gp_Vec(p["dx"], p["dy"], p["dz"])); return BRepBuilderAPI_Transform(shape, tr, True).Shape()
+        tr = gp_Trsf(); tr.SetTranslation(gp_Vec(p["dx"], p["dy"], p["dz"])); return _transf(shape, tr)
     if t == "rotate":
         tr = gp_Trsf(); tr.SetRotation(gp_Ax1(gp_Pnt(p["px"], p["py"], p["pz"]), gp_Dir(p["ax"], p["ay"], p["az"])), math.radians(p["angle_deg"]))
-        return BRepBuilderAPI_Transform(shape, tr, True).Shape()
+        return _transf(shape, tr)
     if t == "scale":
         if p["factor"] <= 0: raise CadHistoryError("fator de escala deve ser > 0")
-        tr = gp_Trsf(); tr.SetScale(gp_Pnt(0, 0, 0), p["factor"]); return BRepBuilderAPI_Transform(shape, tr, True).Shape()
+        tr = gp_Trsf(); tr.SetScale(gp_Pnt(0, 0, 0), p["factor"]); return _transf(shape, tr)
     if t == "hole":
         if p["diameter"] <= 0 or p["depth"] <= 0: raise CadHistoryError("furo: diâmetro e profundidade devem ser > 0")
         cyl = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(p["x"], p["y"], p["z"]), gp_Dir(p["dx"], p["dy"], p["dz"])), p["diameter"] / 2, p["depth"]).Shape()
@@ -165,6 +317,8 @@ def _apply(shape, op):
         for e in es: mk.Add(v, e)
         mk.Build()
         if not mk.IsDone(): raise CadHistoryError(f"{t} falhou (raio/distância grande demais para a geometria)")
+        if _RASTREIO is not None:
+            _RASTREIO.avancar(mk)
         return mk.Shape()
     if t == "sketch_extrude":
         from .sketch2d import Sketch, SketchError
@@ -172,6 +326,15 @@ def _apply(shape, op):
             raise CadHistoryError("sketch_extrude: mode deve ser 'add' ou 'cut'")
         try:
             s = Sketch.from_dict(p["sketch"]).extrude(p["distance"])
+        except SketchError as e:
+            raise CadHistoryError(f"sketch inválido: {e}")
+        return _bool((BRepAlgoAPI_Fuse if p["mode"] == "add" else BRepAlgoAPI_Cut)(shape, s))
+    if t == "sketch_revolve":
+        from .sketch2d import Sketch, SketchError
+        if p["mode"] not in ("add", "cut"):
+            raise CadHistoryError("sketch_revolve: mode deve ser 'add' ou 'cut'")
+        try:
+            s = Sketch.from_dict(p["sketch"]).revolve(p["angle_deg"], p["axis"])
         except SketchError as e:
             raise CadHistoryError(f"sketch inválido: {e}")
         return _bool((BRepAlgoAPI_Fuse if p["mode"] == "add" else BRepAlgoAPI_Cut)(shape, s))
@@ -208,11 +371,16 @@ def _apply(shape, op):
         if p["thickness"] <= 0:
             raise CadHistoryError("casca: espessura deve ser > 0")
         lado = str(p["open_face"])
-        if len(lado) != 2 or lado[0] not in "+-" or lado[1] not in "xyz":
-            raise CadHistoryError("casca: open_face deve ser '+x','-x','+y','-y','+z' ou '-z'")
-        faces = _faces_extremas(shape, lado)
-        if not faces:
-            raise CadHistoryError(f"casca: não há face plana em {lado}")
+        if _ref(lado) is not None:
+            if _RASTREIO is None:
+                raise CadHistoryError("nomes só podem ser usados dentro do histórico")
+            faces = list(_RASTREIO.obter(_ref(lado), "face"))
+        else:
+            if len(lado) != 2 or lado[0] not in "+-" or lado[1] not in "xyz":
+                raise CadHistoryError("casca: open_face deve ser '+x','-x','+y','-y','+z', '-z' ou 'nome:<face>'")
+            faces = _faces_extremas(shape, lado)
+            if not faces:
+                raise CadHistoryError(f"casca: não há face plana em {lado}")
         lst = TopTools_ListOfShape()
         for f in faces: lst.Append(f)
         mk = BRepOffsetAPI_MakeThickSolid()
@@ -220,6 +388,8 @@ def _apply(shape, op):
         mk.Build()
         if not mk.IsDone():
             raise CadHistoryError("casca falhou (espessura grande demais para a geometria)")
+        if _RASTREIO is not None:
+            _RASTREIO.avancar(mk)
         return mk.Shape()
     raise CadHistoryError(f"operação desconhecida: {t}")
 
@@ -246,21 +416,26 @@ def _bool_tool(p):
 def _bool(alg):
     alg.Build()
     if not alg.IsDone(): raise CadHistoryError("operação booleana falhou")
+    if _RASTREIO is not None:
+        _RASTREIO.avancar(alg)
     return alg.Shape()
 
 
 class CadHistory:
     def __init__(self, base_shape, base_ref: str = "biblioteca"):
         self.base = base_shape; self.base_ref = base_ref; self.ops: list[dict] = []; self.cursor = 0
+        self.nomes: dict[str, dict] = {}        # nome -> {"tipo": "face"|"aresta", "passo": n, "seletor": {...}}
+        self.vars: dict[str, float] = {}         # variáveis para expressões "=..."
+        self.restricoes: list[str] = []          # expressões booleanas verificadas a cada reconstrução
 
     # --- edição
     def add(self, type_, **params):
+        if type_ not in OPS: raise CadHistoryError("operação desconhecida")
         if type_ in ("boolean", "linear_pattern", "circular_pattern"):
             params.setdefault("b", 0.0); params.setdefault("c", 0.0)         # só caixa/cilindro usam b/c
-        missing = [k for k in OPS[type_] if k not in params and not (type_ in ("fillet", "chamfer") and k in ())]
-        if type_ not in OPS: raise CadHistoryError("operação desconhecida")
+        missing = [k for k in OPS[type_] if k not in params]
         if missing: raise CadHistoryError(f"parâmetros faltando: {missing}")
-        del self.ops[self.cursor:]
+        self._cortar(self.cursor)
         op = {"type": type_, "params": params, "enabled": True, "t": time.time()}
         self.ops.append(op); self.cursor += 1
         try:
@@ -269,12 +444,21 @@ class CadHistory:
             self.ops.pop(); self.cursor -= 1; raise
         return len(self.ops) - 1
 
+    def _cortar(self, n):
+        del self.ops[n:]
+        for k in [k for k, v in self.nomes.items() if v["passo"] > n]:
+            del self.nomes[k]
+
     def set_param(self, index, key, value):
         old = self.ops[index]["params"].get(key); self.ops[index]["params"][key] = value
         try: self.rebuild()
         except Exception: self.ops[index]["params"][key] = old; raise
 
-    def suppress(self, index, flag=True): self.ops[index]["enabled"] = not flag; self.rebuild()
+    def suppress(self, index, flag=True):
+        self.ops[index]["enabled"] = not flag
+        try: self.rebuild()
+        except Exception: self.ops[index]["enabled"] = flag; raise
+
     def undo(self):
         if self.cursor == 0: return False
         self.cursor -= 1; return True
@@ -282,11 +466,101 @@ class CadHistory:
         if self.cursor >= len(self.ops): return False
         self.cursor += 1; return True
 
+    # --- V4.1b: nomes persistentes
+    def nomear(self, nome, tipo, seletor, passo=None):
+        """Liga `nome` a faces ('face') ou arestas ('aresta') escolhidas por `seletor` no ponto `passo` do histórico (padrão: agora).
+        Seletores: face {"modo":"extrema","lado":"+z"} | {"modo":"perto","ponto":[x,y,z]}; aresta {"modo":"sel","sel":"top:z"} | {"modo":"perto","ponto":[…]}.
+        Use depois como edges="nome:<nome>" (filete/chamfer) ou open_face="nome:<nome>" (casca)."""
+        if tipo not in ("face", "aresta"):
+            raise CadHistoryError("tipo deve ser 'face' ou 'aresta'")
+        if not nome or not nome.replace("_", "").isalnum():
+            raise CadHistoryError("nome inválido (use letras, números e _)")
+        if nome in self.nomes:
+            raise CadHistoryError(f"o nome '{nome}' já existe")
+        self.nomes[nome] = {"tipo": tipo, "passo": self.cursor if passo is None else int(passo), "seletor": seletor}
+        try:
+            self.rebuild(); self.entidades(nome)
+        except Exception:
+            del self.nomes[nome]; raise
+
+    def esquecer(self, nome):
+        self.nomes.pop(nome, None); self.rebuild()
+
+    def entidades(self, nome):
+        """Entidades (TopoDS) que o nome designa AGORA (após todas as operações ativas até o cursor)."""
+        ras = self._rastrear()[1]
+        return list(ras.obter(nome, self.nomes[nome]["tipo"]))
+
+    # --- V4.1b: variáveis e restrições
+    def definir(self, nome, valor):
+        if not nome.replace("_", "").isalnum() or nome in _CONST or nome in _FUN or nome == "op":
+            raise CadHistoryError("nome de variável inválido ou reservado")
+        old = self.vars.get(nome); self.vars[nome] = float(valor)
+        try: self.rebuild()
+        except Exception:
+            (self.vars.__setitem__(nome, old) if old is not None else self.vars.pop(nome, None)); raise
+
+    def restringir(self, expressao):
+        self.restricoes.append(expressao)
+        try: self.rebuild()
+        except Exception: self.restricoes.pop(); raise
+
+    def _valor(self, i, chave, pilha=()):
+        if not (0 <= i < len(self.ops)): raise CadHistoryError(f"op[{i}] não existe")
+        if (i, chave) in pilha: raise CadHistoryError(f"referência circular em op[{i}].{chave}")
+        if chave not in self.ops[i]["params"]: raise CadHistoryError(f"op[{i}] não tem o parâmetro '{chave}'")
+        v = self.ops[i]["params"][chave]
+        if isinstance(v, str) and v.startswith("="):
+            return _avaliar_expr(v, self.vars, lambda j, c: self._valor(j, c, pilha + ((i, chave),)))
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            raise CadHistoryError(f"op[{i}].{chave} não é numérico")
+        return float(v)
+
+    def _params(self, i):
+        out = {}
+        for k, v in self.ops[i]["params"].items():
+            out[k] = self._valor(i, k) if isinstance(v, str) and v.startswith("=") else v
+        return out
+
+    def _checar_restricoes(self, shape):
+        if not self.restricoes: return
+        extra = {}
+        if any(w in r for r in self.restricoes for w in ("volume", "dx", "dy", "dz")):
+            b = _bbox(shape); extra = {"volume": exact_volume(shape), "dx": b[3] - b[0], "dy": b[4] - b[1], "dz": b[5] - b[2]}
+        vs = {**self.vars, **extra}
+        for r in self.restricoes:
+            ok = _avaliar_expr(r, vs, lambda j, c: self._valor(j, c))
+            if ok is not True and ok is not False:
+                raise CadHistoryError(f"restrição '{r}' não é uma comparação")
+            if not ok:
+                raise CadHistoryError(f"restrição violada: {r}")
+
+    # --- reconstrução
+    def _rastrear(self, upto=None):
+        global _RASTREIO
+        n = self.cursor if upto is None else upto
+        ras = Rastreio(); anterior = _RASTREIO; _RASTREIO = ras
+
+        def ligar(passo, forma):
+            for nome, d in self.nomes.items():
+                if d["passo"] == passo and nome not in ras.vivos:
+                    ras.vivos[nome] = _resolver_seletor(forma, d["tipo"], d["seletor"]); ras.tipo[nome] = d["tipo"]
+        try:
+            s = self.base
+            ligar(0, s)
+            for i, op in enumerate(self.ops[:n]):
+                if op["enabled"]:
+                    s = _apply(s, {"type": op["type"], "params": self._params(i)})
+                ligar(i + 1, s)
+            return s, ras
+        finally:
+            _RASTREIO = anterior
+
     def rebuild(self, upto=None):
-        s = self.base
-        for op in self.ops[: self.cursor if upto is None else upto]:
-            if op["enabled"]: s = _apply(s, op)
+        s, _ = self._rastrear(upto)
         if not BRepCheck_Analyzer(s).IsValid(): raise CadHistoryError("sólido resultante inválido")
+        if upto is None:
+            self._checar_restricoes(s)
         return s
 
     @property
@@ -294,8 +568,10 @@ class CadHistory:
     def volume(self): return exact_volume(self.shape)
 
     # --- persistência
-    def to_dict(self): return {"base_ref": self.base_ref, "ops": self.ops, "cursor": self.cursor}
+    def to_dict(self): return {"base_ref": self.base_ref, "ops": self.ops, "cursor": self.cursor,
+                               "nomes": self.nomes, "vars": self.vars, "restricoes": self.restricoes}
 
     @classmethod
     def from_dict(cls, d, base_shape):
-        h = cls(base_shape, d["base_ref"]); h.ops = d["ops"]; h.cursor = d["cursor"]; return h
+        h = cls(base_shape, d["base_ref"]); h.ops = d["ops"]; h.cursor = d["cursor"]
+        h.nomes = d.get("nomes", {}); h.vars = d.get("vars", {}); h.restricoes = d.get("restricoes", []); return h

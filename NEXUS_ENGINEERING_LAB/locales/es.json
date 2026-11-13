@@ -527,5 +527,11 @@
  "Recuperar agora? (Não = descartar)": "¿Recuperar ahora? (No = descartar)",
  "Registrar versão…": "Registrar versión…",
  "Versões do projeto…": "Versiones del proyecto…",
- "Falha ao salvar": "Error al guardar"
+ "Falha ao salvar": "Error al guardar",
+ "Revolucionar": "Revolucionar",
+ "revolução [°]": "revolución [°]",
+ "eixo u0 v0 u1 v1": "eje u0 v0 u1 v1",
+ "Nomear face/aresta…": "Nombrar cara/arista…",
+ "Variável…": "Variable…",
+ "Restrição…": "Restricción…"
 }

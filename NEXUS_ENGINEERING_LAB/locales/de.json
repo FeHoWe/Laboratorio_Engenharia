@@ -527,5 +527,11 @@
  "Recuperar agora? (Não = descartar)": "Jetzt wiederherstellen? (Nein = verwerfen)",
  "Registrar versão…": "Version speichern…",
  "Versões do projeto…": "Projektversionen…",
- "Falha ao salvar": "Speichern fehlgeschlagen"
+ "Falha ao salvar": "Speichern fehlgeschlagen",
+ "Revolucionar": "Rotieren",
+ "revolução [°]": "Rotation [°]",
+ "eixo u0 v0 u1 v1": "Achse u0 v0 u1 v1",
+ "Nomear face/aresta…": "Fläche/Kante benennen…",
+ "Variável…": "Variable…",
+ "Restrição…": "Bedingung…"
 }

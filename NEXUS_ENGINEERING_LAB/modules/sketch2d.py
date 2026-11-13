@@ -15,8 +15,8 @@ import math
 
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakePolygon, BRepBuilderAPI_MakeWire
-from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism
-from OCP.gp import gp_Ax2, gp_Circ, gp_Dir, gp_Pnt, gp_Vec
+from OCP.BRepPrimAPI import BRepPrimAPI_MakePrism, BRepPrimAPI_MakeRevol
+from OCP.gp import gp_Ax1, gp_Ax2, gp_Circ, gp_Dir, gp_Pnt, gp_Vec
 
 PLANOS = {"XY": ((0, 0, 1), lambda u, v, o: (u, v, o)), "XZ": ((0, -1, 0), lambda u, v, o: (u, o, v)), "YZ": ((1, 0, 0), lambda u, v, o: (o, u, v))}
 
@@ -248,15 +248,12 @@ class Sketch:
             if not ok: bad.append(c)
         return bad                                                         # restrições posteriores podem desfazer anteriores: aparece aqui
 
-    def extrude(self, distance: float):
-        """Sólido por extrusão ao longo da normal do plano (distance>0 no sentido +normal; <0 no oposto)."""
-        if distance == 0:
-            raise SketchError("distância de extrusão não pode ser 0")
-        self.validate(); n, _ = PLANOS[self.plane]; _, depth = self._depth()
-        vec = gp_Vec(*(c * distance for c in n))
+    def _combinar(self, gerar):
+        """Gera o sólido de cada perfil com `gerar(face)` e combina por aninhamento (profundidade ímpar subtrai)."""
+        self.validate(); _, depth = self._depth()
         solid = None
         for e, d in sorted(zip(self.entities, depth), key=lambda x: x[1]):
-            s = BRepPrimAPI_MakePrism(self._face(e), vec).Shape()
+            s = gerar(self._face(e))
             if solid is None:
                 solid = s
             else:
@@ -266,3 +263,27 @@ class Sketch:
                     raise SketchError("falha ao combinar perfis")
                 solid = alg.Shape()
         return solid
+
+    def extrude(self, distance: float):
+        """Sólido por extrusão ao longo da normal do plano (distance>0 no sentido +normal; <0 no oposto)."""
+        if distance == 0:
+            raise SketchError("distância de extrusão não pode ser 0")
+        n, _ = PLANOS[self.plane]
+        vec = gp_Vec(*(c * distance for c in n))
+        return self._combinar(lambda face: BRepPrimAPI_MakePrism(face, vec).Shape())
+
+    def revolve(self, angle_deg: float, axis: list | tuple):
+        """V4.1b — sólido por REVOLUÇÃO em torno de um eixo DO PLANO do esboço: `axis` = (u0, v0, u1, v1) em coordenadas do esboço.
+        Ângulo em (0, 360]. O eixo não pode cortar o interior de um perfil (o resultado seria inválido; a verificação do sólido recusa)."""
+        if not (0 < abs(angle_deg) <= 360):
+            raise SketchError("ângulo de revolução deve estar em (0, 360] graus")
+        if len(axis) != 4:
+            raise SketchError("eixo = (u0, v0, u1, v1)")
+        u0, v0, u1, v1 = (float(x) for x in axis)
+        if math.hypot(u1 - u0, v1 - v0) < 1e-9:
+            raise SketchError("eixo de revolução degenerado")
+        _, mp = PLANOS[self.plane]
+        p0, p1 = mp(u0, v0, self.offset), mp(u1, v1, self.offset)
+        ax = gp_Ax1(gp_Pnt(*p0), gp_Dir(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]))
+        ang = math.radians(angle_deg)
+        return self._combinar(lambda face: BRepPrimAPI_MakeRevol(face, ax, ang).Shape())

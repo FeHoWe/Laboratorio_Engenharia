@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "Odzyskać teraz? (Nie = odrzuć)",
  "Registrar versão…": "Zapisz wersję…",
  "Versões do projeto…": "Wersje projektu…",
- "Falha ao salvar": "Zapis nie powiódł się"
+ "Falha ao salvar": "Zapis nie powiódł się",
+ "Revolucionar": "Obrót",
+ "revolução [°]": "obrót [°]",
+ "eixo u0 v0 u1 v1": "oś u0 v0 u1 v1",
+ "Nomear face/aresta…": "Nazwij ścianę/krawędź…",
+ "Variável…": "Zmienna…",
+ "Restrição…": "Ograniczenie…"
 }

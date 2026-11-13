@@ -527,5 +527,11 @@
  "Recuperar agora? (Não = descartar)": "现在恢复吗？（否 = 放弃）",
  "Registrar versão…": "记录版本…",
  "Versões do projeto…": "项目版本…",
- "Falha ao salvar": "保存失败"
+ "Falha ao salvar": "保存失败",
+ "Revolucionar": "旋转",
+ "revolução [°]": "旋转角 [°]",
+ "eixo u0 v0 u1 v1": "轴 u0 v0 u1 v1",
+ "Nomear face/aresta…": "命名面/边…",
+ "Variável…": "变量…",
+ "Restrição…": "约束…"
 }

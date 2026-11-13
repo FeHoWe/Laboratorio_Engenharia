@@ -409,5 +409,11 @@
  "Recuperar agora? (Não = descartar)": "Pulihkan sekarang? (Tidak = buang)",
  "Registrar versão…": "Catat versi…",
  "Versões do projeto…": "Versi proyek…",
- "Falha ao salvar": "Gagal menyimpan"
+ "Falha ao salvar": "Gagal menyimpan",
+ "Revolucionar": "Putar",
+ "revolução [°]": "putaran [°]",
+ "eixo u0 v0 u1 v1": "sumbu u0 v0 u1 v1",
+ "Nomear face/aresta…": "Beri nama bidang/tepi…",
+ "Variável…": "Variabel…",
+ "Restrição…": "Batasan…"
 }
