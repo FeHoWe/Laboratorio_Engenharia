@@ -11,6 +11,9 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   pareto    [--carro k=v ...] --grade e_ers=0,2e6,4e6 p_ers=1e5,3e5 [--objetivos tempo_s energia_ers_usada_MJ]
   stint     [--carro k=v ...] --voltas 10 --taxa massa=-1.5 mu=-0.002   (taxas por volta SUAS)
   Todos os comandos de volta aceitam --pista arquivo.csv (comprimento_m, raio_m; raio 0 = reta).
+  validar   [--carro k=v ...] --telemetria arq.csv [--tol rmse_kmh=3 tempo_pct_abs=1 ...] [--normalizar] [--setores 5]   compara com telemetria REAL sua
+  calibrar  [--carro k=v ...] --telemetria arq.csv --param mu=1.2:1.9 cla=2:5 [--treino 0.7]   ajusta parâmetros EFETIVOS à telemetria
+  formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
 Parâmetros do carro (padrão = exemplo ILUSTRATIVO): massa, p_ice (W), cda, cla, mu, crr, p_ers (W), e_ers (J). Classes: SIMULACAO_NUMERICA / ANALITICO.
 Código de saída: 0 ok · 1 erro de uso/entrada · 2 verificar: achado CRITICO.
@@ -112,7 +115,7 @@ def executar(argv=None, out=None) -> int:
     p.add_argument("--json", action="store_true", help="imprime o resultado completo em JSON")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("doctor")
-    for nome in ("volta", "comparar", "tornado", "otimizar", "fatorial", "montecarlo", "pareto", "stint"):
+    for nome in ("volta", "comparar", "tornado", "otimizar", "fatorial", "montecarlo", "pareto", "stint", "validar", "calibrar"):
         s = sub.add_parser(nome)
         s.add_argument("--carro", nargs="*", metavar="k=v")
         s.add_argument("--ds", type=float, default=3.0)
@@ -127,6 +130,15 @@ def executar(argv=None, out=None) -> int:
         if nome == "pareto":
             s.add_argument("--grade", nargs="+", metavar="campo=v1,v2", required=True)
             s.add_argument("--objetivos", nargs=2, default=["tempo_s", "energia_ers_usada_MJ"])
+        if nome == "validar":
+            s.add_argument("--telemetria", required=True, metavar="arq.csv")
+            s.add_argument("--tol", nargs="*", metavar="criterio=limite")
+            s.add_argument("--normalizar", action="store_true")
+            s.add_argument("--setores", type=int, default=5)
+        if nome == "calibrar":
+            s.add_argument("--telemetria", required=True, metavar="arq.csv")
+            s.add_argument("--param", nargs="+", required=True, metavar="campo=lo:hi")
+            s.add_argument("--treino", type=float, default=1.0)
         if nome == "stint":
             s.add_argument("--voltas", type=int, required=True)
             s.add_argument("--taxa", nargs="+", metavar="campo=taxa", required=True)
@@ -140,6 +152,7 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--faixa", nargs="+", metavar="campo=lo:hi", required=True)
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
+    sub.add_parser("formato-telemetria")
     v = sub.add_parser("verificar")
     v.add_argument("arquivo")
     try:
@@ -199,6 +212,19 @@ def executar(argv=None, out=None) -> int:
             r = doe.stint(_carro(a.carro), a.voltas, _kv(a.taxa, "--taxa"), _pista(a), a.ds)
             _exportar(a, "stint", r)
             emit(doe.texto_stint(r), r)
+        elif a.cmd == "validar":
+            from modules import validacao_dados as VD
+            r = VD.validar(_carro(a.carro), VD.ler_telemetria(Path(a.telemetria)), _pista(a), a.ds, _kv(a.tol, "--tol") or None, a.normalizar, a.setores)
+            _exportar(a, "validacao", r)
+            emit(VD.texto(r), {k: x for k, x in r.items() if k != "comparacao"})
+        elif a.cmd == "calibrar":
+            from modules import calibracao as KB, validacao_dados as VD
+            r = KB.calibrar(_carro(a.carro), _faixas(a.param), VD.ler_telemetria(Path(a.telemetria)), _pista(a), a.ds, a.treino)
+            _exportar(a, "calibracao", r)
+            emit(KB.texto(r), r)
+        elif a.cmd == "formato-telemetria":
+            from modules import validacao_dados as VD
+            print(VD.para_csv_exemplo(_carro(None)), file=out, end="")
         elif a.cmd == "verificar":
             from core.cad_engine import CadEngine
             from core.project_manager import ProjectManager

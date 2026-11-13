@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## V40.0 — 2026-11-13 (marco: calibração + identificabilidade; etapas V31–V40)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V31–V39 (agrupadas):** Jacobiano por diferenças centrais em coordenadas normalizadas, SVD/número de condição, matriz de correlação dos parâmetros, incertezas por linearização, validação por trecho da volta.
+- **V40 — `modules/calibracao.py` + CLI `calibrar`:** ajusta (mínimos quadrados com faixas) os parâmetros que você liberar para reproduzir a velocidade medida. Entrega valores iniciais × calibrados, RMSE antes/depois, número de condição, correlação entre parâmetros, incerteza aproximada, e **avisos** de parâmetro na borda da faixa, parâmetros inseparáveis (|ρ| > 0,95), matriz singular e pouca redução do erro. `--treino 0.7` calibra só com os primeiros 70 % da volta e mede o erro no trecho NÃO usado (teste mínimo contra “decorar” a telemetria). Recupera μ conhecido (1,5) a ±0,002 em telemetria sintética de teste.
+- **Honestidade:** os valores calibrados são EFETIVOS do modelo simplificado — absorvem erro de modelo, de medição e de sincronismo; **não** são propriedades físicas medidas. Calibrar ≠ validar (valide em outra volta com `validar`). Incerteza = linearização com resíduos independentes (otimista).
+- Exportação: tipo `calibracao` (CSV/JSON/PDF e consolidado). Testes: `test_calibracao` (7) + CLI/exportação.
+- **Limites:** uma volta; sem GUI/celular nesta etapa (CLI/API); Windows 11/WSL2/instalador não testados; traduções de IA.
+
+## V30.0 — 2026-11-13 (marco: validação com telemetria real do usuário; etapas V21–V30)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). A numeração salta de propósito: só numerei etapas com conteúdo.
+- **V21–V29 (agrupadas, sem números próprios):** leitura de telemetria CSV tolerante (acentos, `;` `,` tab, `_ms`), interpolação, métricas, setores, avisos de escala de odômetro.
+- **V30 — `modules/validacao_dados.py` + CLI `validar` / `formato-telemetria`:** você fornece UMA volta medida (distância × velocidade, tempo opcional); o NEXUS roda o `lapsim` na mesma pista e entrega viés, RMSE, MAE, erro máximo, correlação, erro de tempo (pela coluna `tempo_s` ou pela integral ds/v) e RMSE/viés por setor. **Honestidade:** sem tolerâncias suas só há métricas (modelo NÃO declarado validado). Com tolerâncias suas e todas atendidas a classe vira **VALIDADO — apenas para essa telemetria, essa pista e esses critérios** (não generaliza). Comprimento medido que difere >1 % do simulado gera aviso; `--normalizar` reescala a distância (escolha sua). `formato-telemetria` gera um CSV de exemplo marcado “NÃO é telemetria real”.
+- Exportação: novo tipo `validacao` (CSV/JSON/PDF e relatório consolidado).
+- Testes: `test_validacao_dados` (10) + CLI/exportação.
+- **Limites:** uma volta por vez; o modelo continua simplificado (ponto material, μ constante, sem vento/pneu/temperatura/inclinação); sem GUI nem celular para esta etapa (CLI/API); Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V20.0 — 2026-11-13 (consolidação das etapas V11 → V19)
 Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
 - **V11 — Fatorial 2^k** (`doe.fatorial`, até 6 fatores): efeitos principais e interações de 2 fatores no tempo de volta, ordenados pela magnitude. Só níveis extremos (±x %), sem curvatura. Conferido contra cálculo direto das corridas.

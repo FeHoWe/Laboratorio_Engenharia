@@ -83,3 +83,37 @@ def test_novos_comandos_e_pista(tmp_path):
     for bad in (("fatorial", "--campos", "x"), ("montecarlo", "--inc", "mu=beta:1"), ("montecarlo", "--inc", "mu"), ("pareto", "--grade", "e_ers"), ("pareto", "--grade", "e_ers=1", "--objetivos", "tempo_s", "tempo_s"),
                 ("stint", "--voltas", "0", "--taxa", "massa=1"), ("stint", "--voltas", "2", "--taxa", "massa")):
         assert run(*bad)[0] == 1
+
+
+def test_validar_telemetria_cli(tmp_path):
+    c, csv = run("formato-telemetria")
+    assert c == 0 and "NÃO é telemetria real" in csv
+    f = tmp_path / "t.csv"; f.write_text(csv.replace("(.*)", ""), encoding="utf-8")
+    c, t = run("validar", "--telemetria", str(f), "--ds", "5")
+    assert c == 0 and "SIMULACAO_NUMERICA" in t and "NÃO é declarado validado" in t
+    c, t = run("validar", "--telemetria", str(f), "--tol", "rmse_kmh=5", "tempo_pct_abs=2")
+    assert c == 0 and "VALIDADO" in t and "✔" in t
+    c, j = run("--json", "validar", "--telemetria", str(f), "--carro", "mu=1.3", "--tol", "rmse_kmh=1")
+    d = json.loads(j)
+    assert c == 0 and d["classe"] == "SIMULACAO_NUMERICA" and not d["veredito"][0]["atende"] and "comparacao" not in d
+    for ext in ("csv", "json", "pdf"):
+        o = tmp_path / f"v.{ext}"
+        assert run("validar", "--telemetria", str(f), "--saida", str(o))[0] == 0 and o.stat().st_size > 100
+    assert run("validar", "--telemetria", str(tmp_path / "x.csv"))[0] == 1
+    assert run("validar", "--telemetria", str(f), "--tol", "xx=1")[0] == 1
+
+
+def test_calibrar_cli(tmp_path):
+    from dataclasses import replace
+    from modules import validacao_dados as VD
+    from nexus_cli import EXEMPLO
+    from modules import lapsim
+    f = tmp_path / "t.csv"; f.write_text(VD.para_csv_exemplo(replace(lapsim.Carro(**EXEMPLO), mu=1.5), ds=3.0), encoding="utf-8")
+    c, t = run("calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9", "--treino", "0.7")
+    assert c == 0 and "Calibração" in t and "EFETIVOS" in t
+    c, j = run("--json", "calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9")
+    assert abs(json.loads(j)["parametros_calibrados"]["mu"] - 1.5) < 0.01
+    o = tmp_path / "c.pdf"
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.2:1.9", "--saida", str(o))[0] == 0 and o.stat().st_size > 100
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu")[0] == 1
+    assert run("calibrar", "--telemetria", str(f), "--param", "mu=1.7:1.9")[0] == 1       # inicial fora da faixa

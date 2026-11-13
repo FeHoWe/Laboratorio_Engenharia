@@ -103,3 +103,11 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 - **Relatório consolidado…:** junta num PDF o último resultado de cada tipo de estudo calculado na sessão.
 - **CLI:** `python nexus_cli.py fatorial --campos massa mu`, `montecarlo --inc mu=normal:2 --n 300 --semente 1`, `pareto --grade e_ers=0,2e6,4e6`, `stint --voltas 10 --taxa massa=-1.5`, todos com `--pista arquivo.csv` e `--saida r.pdf|csv|json`.
 - **Celular → Engenharia F1:** Fatorial e Monte Carlo (mesma semente ⇒ mesmo resultado do desktop).
+
+
+## Novidades da V30.0
+- **Validar com telemetria sua:** salve a volta como CSV com `distancia_m` e `v_kmh` (ou `v_ms`; `tempo_s` opcional) e rode `python nexus_cli.py validar --telemetria volta.csv --carro massa=… mu=… [--pista pista.csv] [--tol rmse_kmh=3 tempo_pct_abs=1] [--normalizar]`. Os critérios (`--tol`) são SEUS; sem eles o NEXUS só mostra métricas. `python nexus_cli.py formato-telemetria` mostra o formato esperado.
+
+
+## Novidades da V40.0
+- **Calibrar com telemetria sua:** `python nexus_cli.py calibrar --telemetria volta.csv --carro massa=… --param mu=1.2:1.9 cla=2:5 --treino 0.7`. Leia os avisos: parâmetros correlacionados ou na borda não foram bem determinados; os valores são “efetivos” do modelo, não medidas físicas. Depois valide em OUTRA volta com `validar`.

@@ -1,5 +1,13 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V40.0
+Resultado da suíte completa (principal + `test_v22`): **747 passed, 4 skipped** (706 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Não testado: Windows 11, WSL2, instalador.
+
+## V30.0
+Resultado da suíte completa (principal + `test_v22`): **747 passed, 4 skipped** (706 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Não testado: Windows 11, WSL2, instalador.
+
 ## V20.0 — 2026-11-13
 Resultado da suíte completa (principal + `test_v22`): **726 passed, 4 skipped** (685 + 4 skipped na suíte principal, 41 em test_v22; 0 falhas)
 Novos desde a V10.0: `test_doe`, `test_pista_io`, ampliações em `test_cli`, `test_estudos_export`, `test_comparacao`. `mobile/validate_lab.py`: paridade JS×Python incluindo fatorial e Monte Carlo (≈8,5e‑12). PRNG mulberry32 conferido com Node.
