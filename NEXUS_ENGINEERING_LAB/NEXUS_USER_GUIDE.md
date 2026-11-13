@@ -151,3 +151,8 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V106.0
 - **Diagnóstico técnico:** botão na Home (ou `python nexus_cli.py diagnostico projeto.nexus --estudos e.json`). Mostra, separados, o que foi CALCULADO, a INTERPRETAÇÃO por regras, as HIPÓTESES dos estudos, as RECOMENDAÇÕES (com os dados em que se baseiam) e o que está INDISPONÍVEL. Na Home, rode duas vezes: a segunda compara com a primeira e aponta estudos a refazer.
+
+
+## Novidades da V110.0
+- **Relatório técnico:** botão na Home ou `python nexus_cli.py relatorio projeto.nexus --saida r.pdf --estudos e.json --objetivo "..." --criterio "erro < 5 % contra ensaio X" --imagem vista.png`. As 14 seções aparecem sempre; “Não informado” onde faltar dado. Sem critério de validação, nada é declarado validado.
+- **Windows 11:** siga `docs/WINDOWS_VALIDACAO.md` e marque item a item na sua máquina. Até lá o empacotamento e o instalador continuam NÃO VALIDADOS.

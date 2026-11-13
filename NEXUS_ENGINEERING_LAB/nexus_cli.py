@@ -18,6 +18,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 [--voltas 5]   energia de frenagem e temperatura de disco (propriedades SUAS)
   comparar-veiculos a.json b.json [--saida r.pdf]   compara duas configurações (volta, bicicleta, lateral, freios) com as hipóteses de cada modelo
   diagnostico projeto.nexus [--estudos e.json] [--pergunta "..."]   cinco blocos: calculado, interpretação, hipótese, recomendação, indisponível (sem IA generativa)
+  relatorio projeto.nexus --saida r.pdf [--estudos e.json --objetivo ... --criterio ... --imagem x.png]   relatório técnico de 14 seções (PDF/MD/JSON)
   receita receita.json [--pasta saida]   executa vários estudos em lote (um dossiê por passo + resumo)
   dossie criar espec.json --saida x.dossie.json | dossie verificar x.dossie.json   dossiê reprodutível (entradas+semente+versões+hash; re-executa e confere)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
@@ -162,6 +163,14 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    rt = sub.add_parser("relatorio")
+    rt.add_argument("projeto", metavar="arq.nexus")
+    rt.add_argument("--saida", required=True, metavar="relatorio.{pdf,md,json}")
+    rt.add_argument("--estudos", metavar="estudos.json")
+    rt.add_argument("--objetivo", default="")
+    rt.add_argument("--contorno", default="")
+    rt.add_argument("--criterio", action="append", default=[], help="critério de validação documentado (repetível)")
+    rt.add_argument("--imagem", action="append", default=[], help="PNG/JPG de imagem 3D existente (repetível)")
     dg = sub.add_parser("diagnostico")
     dg.add_argument("projeto", metavar="arq.nexus")
     dg.add_argument("--estudos", metavar="estudos.json", help="lista JSON de estudos já calculados [{nome,classe,valores,premissas,limitacoes,componentes}]")
@@ -402,6 +411,17 @@ def executar(argv=None, out=None) -> int:
                 emit(r_["resposta"], r_)
             else:
                 emit(AE.texto(d_), d_)
+        elif a.cmd == "relatorio":
+            from core.cad_engine import CadEngine
+            from core.project_manager import ProjectManager
+            from modules import relatorio_tecnico as RT
+            try:
+                est_ = json.loads(Path(a.estudos).read_text(encoding="utf-8")) if a.estudos else []
+            except (OSError, ValueError) as exc:
+                raise ValueError(f"estudos ilegíveis: {exc}")
+            rel_ = RT.montar(ProjectManager(CadEngine()).open(a.projeto), a.objetivo, est_, a.criterio, a.imagem, None, a.contorno)
+            p_ = RT.exportar(rel_, a.saida)
+            emit(f"Relatório técnico gravado em {p_} ({len(RT.SECOES)} seções).", {"arquivo": str(p_), "secoes": list(RT.SECOES), "conclusao": rel_["conclusao"]})
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")

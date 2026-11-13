@@ -72,3 +72,14 @@ def test_home_diagnostico_cinco_blocos(janela):
     w.estudos_diagnostico = [{"nome": "X", "classe": "SIMULACAO_NUMERICA", "valores": {"a": 1.0}, "componentes": [folha.id]}]
     t2 = w.home_tab.diagnosticar()
     assert "Refazer os estudos afetados" in t2 and "NÃO validado" in t2
+
+
+def test_home_relatorio_tecnico(janela, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: ("", ""))          # usuário cancela o diálogo
+    w = janela
+    w.open_sample_engine(background=False)
+    msg = w.home_tab.relatorio(str(tmp_path / "r.md"))
+    assert "14 seções" in msg and (tmp_path / "r.md").read_text(encoding="utf-8").count("## ") == 14
+    assert "Não foi possível" in w.home_tab.relatorio(str(tmp_path / "r.xyz"))
+    assert w.home_tab.relatorio("") == ""

@@ -1,7 +1,11 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V110.0
+Resultado da suíte completa (principal + `test_v22`): **841 passed, 4 skipped** (800 principal + 41 test_v22; 0 falhas; 4 skips = ferramentas externas ausentes no sandbox)
+Não testado: Windows 11, WSL2, instalador.
+
 ## V106.0
-Resultado da suíte completa (principal + `test_v22`): **830 passed, 4 skipped** (789 principal + 41 test_v22; 0 falhas; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): __RESULT__
 Não testado: Windows 11, WSL2, instalador.
 
 ## V103.0

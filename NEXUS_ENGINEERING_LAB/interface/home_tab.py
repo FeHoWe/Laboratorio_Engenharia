@@ -40,7 +40,7 @@ class HomeTab(QWidget):
                 b = QPushButton(tr(rot)); b.clicked.connect(lambda _=False, m=metodo: getattr(self.w, m)())
                 lay.addWidget(b); self.botoes[metodo] = b
             grade.addWidget(g, i // 2, i % 2)
-        for rot, fn in (("Verificar consistência do projeto", self.verificar), ("Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)", self.diagnosticar), ("Versões do projeto…", lambda: self.w.mostrar_versoes()),
+        for rot, fn in (("Verificar consistência do projeto", self.verificar), ("Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)", self.diagnosticar), ("Relatório técnico (PDF, Markdown ou JSON)…", self.relatorio), ("Versões do projeto…", lambda: self.w.mostrar_versoes()),
                         ("Registrar versão…", lambda: self.w.registrar_versao())):
             b = QPushButton(tr(rot)); b.clicked.connect(lambda _=False, f=fn: f()); v.addWidget(b)
             if fn == self.verificar:
@@ -91,6 +91,23 @@ class HomeTab(QWidget):
         txt = ai_engenheiro.texto(d)
         self.saida.setPlainText(txt)
         return txt
+
+    def relatorio(self, caminho: str | None = None) -> str:
+        """Relatório técnico de 14 seções do projeto aberto + estudos da sessão (`estudos_diagnostico`). Seções sem dado dizem 'Não informado'."""
+        from PySide6.QtWidgets import QFileDialog
+        from modules import relatorio_tecnico
+        if not caminho:
+            caminho, _ = QFileDialog.getSaveFileName(self, tr("Relatório técnico"), "", "PDF (*.pdf);;Markdown (*.md);;JSON (*.json)")
+        if not caminho:
+            return ""
+        try:
+            rel = relatorio_tecnico.montar(self.w.project, "", getattr(self.w, "estudos_diagnostico", []))
+            p = relatorio_tecnico.exportar(rel, caminho)
+            msg = f"Relatório técnico gravado em {p} ({len(relatorio_tecnico.SECOES)} seções)."
+        except Exception as e:  # noqa: BLE001
+            msg = f"Não foi possível gerar o relatório: {e}"
+        self.saida.setPlainText(msg)
+        return msg
 
     def verificar(self, clashes=None) -> str:
         from modules.intelligence import verificar_projeto
