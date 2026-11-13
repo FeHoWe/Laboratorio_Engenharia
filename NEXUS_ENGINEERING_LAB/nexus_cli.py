@@ -16,6 +16,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
   freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 [--voltas 5]   energia de frenagem e temperatura de disco (propriedades SUAS)
+  dossie criar espec.json --saida x.dossie.json | dossie verificar x.dossie.json   dossiê reprodutível (entradas+semente+versões+hash; re-executa e confere)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
@@ -158,6 +159,10 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    ds_ = sub.add_parser("dossie")
+    ds_.add_argument("acao", choices=["criar", "verificar"])
+    ds_.add_argument("arquivo", help="criar: especificação JSON {tipo, parametros, nota}; verificar: arquivo .dossie.json")
+    ds_.add_argument("--saida", metavar="arq.dossie.json")
     ft = sub.add_parser("freio-termico")
     ft.add_argument("--carro", nargs="*", metavar="k=v")
     ft.add_argument("--disco-diant", nargs="+", metavar="k=v", required=True, help="massa=kg cp=J/kgK area=m2 [h0= h1= emissividade= f_disco= lim_T_C=]")
@@ -332,6 +337,23 @@ def executar(argv=None, out=None) -> int:
             r = FT.termica(_carro(a.carro), _disco(a.disco_diant), _disco(a.disco_tras), a.freio_diant, _pista(a), a.ds, a.voltas, a.t0, a.t_amb)
             _exportar(a, "freio_termico", r)
             emit(FT.texto(r), {k_: x for k_, x in r.items() if k_ != "traco_ultima_volta"})
+        elif a.cmd == "dossie":
+            from modules import dossie as DS
+            if a.acao == "criar":
+                try:
+                    esp = json.loads(open(a.arquivo, encoding="utf-8").read())
+                    d_ = DS.criar(esp["tipo"], esp["parametros"], esp.get("nota", ""))
+                except (OSError, ValueError, KeyError) as exc:
+                    raise ValueError(f"especificação inválida: {exc}")
+                if a.saida:
+                    DS.salvar(d_, a.saida)
+                emit(DS.texto(d_), {k_: x for k_, x in d_.items() if k_ != "resultado"})
+            else:
+                d_ = DS.carregar(a.arquivo)
+                v_ = DS.verificar(d_)
+                emit(DS.texto(d_, v_), v_)
+                if not (v_["integro"] and v_["reproduziu"]):
+                    return 1
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")

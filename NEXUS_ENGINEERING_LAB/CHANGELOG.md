@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## V90.0 — 2026-11-13 (marco: dossiê reprodutível; etapas V81–V90)
+Nada foi reconstruído; `.nexus` NÃO foi alterado (o dossiê é um arquivo JSON à parte, `FORMAT_VERSION` 1 intacto). Numeração salta: só etapas com conteúdo.
+- **V81–V89 (agrupadas):** normalização numérica (9 algarismos significativos) para hash estável, ordenação canônica de chaves, registro de versões (NEXUS, Python, NumPy, SciPy), detecção de arquivo adulterado, tratamento de erros de leitura.
+- **V90 — `modules/dossie.py` + CLI `dossie criar|verificar`:** grava tipo, parâmetros exatos, semente, ambiente, resultado e SHA-256; `verificar` re-executa e informa `integro` (arquivo não adulterado) e `reproduziu` (nova execução == hash). Tipos: volta, tornado, otimizacao, montecarlo, fatorial, stint, freio_termico. Código de saída 1 se falhar.
+- **Honestidade:** o dossiê prova REPRODUTIBILIDADE (mesmas entradas → mesma saída), NÃO que o modelo represente o carro real. Versões diferentes de bibliotecas podem mudar o hash sem ser erro — a verificação informa se o ambiente difere. Não é assinatura digital (quem edita resultado E hash juntos não é detectado).
+- Testes: `test_dossie` (11) cobrindo os 7 tipos, adulteração do resultado e da entrada, semente, CLI.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V80.0 — 2026-11-13 (marco: energia de frenagem e térmica de disco; etapas V71–V80)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V71–V79 (agrupadas):** potência de frenagem a partir do perfil de velocidade do lapsim (desaceleração menos arrasto e rolamento), repartição dianteira/traseira, integração térmica por segmento (RK2), convecção h = h0 + h1·v, radiação, regime ao longo de várias voltas.

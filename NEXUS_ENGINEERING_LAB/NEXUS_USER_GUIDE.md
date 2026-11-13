@@ -127,3 +127,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V80.0
 - **Freios:** `python nexus_cli.py freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 --voltas 5 [--saida f.pdf]`. Todas as propriedades do disco são suas (opcionais: h0, h1, emissividade, f_disco, lim_T_C). O limite de temperatura é o SEU; o NEXUS só marca onde foi ultrapassado. Modelo concentrado, não substitui ensaio.
+
+
+## Novidades da V90.0
+- **Dossiê reprodutível:** escreva `espec.json` com `{"tipo":"tornado","parametros":{"carro":{...},"campos":["massa","mu"],"pct":5},"nota":"..."}`; `python nexus_cli.py dossie criar espec.json --saida x.dossie.json` e depois `dossie verificar x.dossie.json`. Serve para provar a um colega que o número sai das mesmas entradas — não prova que o modelo está certo.
