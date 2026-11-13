@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "Rondetijd optimaliseren",
  "Sensibilidade (tornado)": "Gevoeligheid (tornado)",
  "Variação ± %": "Variatie ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (optioneel)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (optioneel)",
+ "Carregar pista de arquivo…": "Circuit uit bestand laden…",
+ "Executar estudo": "Studie uitvoeren",
+ "Fatorial 2^k": "Factorieel 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Samengesteld rapport…"
 }

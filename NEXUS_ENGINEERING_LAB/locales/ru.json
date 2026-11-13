@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "Оптимизировать время круга",
  "Sensibilidade (tornado)": "Чувствительность (торнадо)",
  "Variação ± %": "Вариация ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (необязательно)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (необязательно)",
+ "Carregar pista de arquivo…": "Загрузить трассу из файла…",
+ "Executar estudo": "Запустить исследование",
+ "Fatorial 2^k": "Факторный план 2^k",
+ "Monte Carlo": "Монте-Карло",
+ "Pareto": "Парето",
+ "Stint": "Стинт",
+ "Relatório consolidado…": "Сводный отчёт…"
 }

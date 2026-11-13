@@ -619,5 +619,12 @@
  "Otimizar tempo de volta": "Optimizar tiempo de vuelta",
  "Sensibilidade (tornado)": "Sensibilidad (tornado)",
  "Variação ± %": "Variación ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opcional)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opcional)",
+ "Carregar pista de arquivo…": "Cargar pista desde archivo…",
+ "Executar estudo": "Ejecutar estudio",
+ "Fatorial 2^k": "Factorial 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Informe consolidado…"
 }

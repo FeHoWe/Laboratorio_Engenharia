@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "랩 타임 최적화",
  "Sensibilidade (tornado)": "민감도 (토네이도)",
  "Variação ± %": "변동 ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (선택)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (선택)",
+ "Carregar pista de arquivo…": "파일에서 트랙 불러오기…",
+ "Executar estudo": "연구 실행",
+ "Fatorial 2^k": "요인 설계 2^k",
+ "Monte Carlo": "몬테카를로",
+ "Pareto": "파레토",
+ "Stint": "스틴트",
+ "Relatório consolidado…": "통합 보고서…"
 }

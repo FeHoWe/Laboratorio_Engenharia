@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "Optymalizuj czas okrążenia",
  "Sensibilidade (tornado)": "Czułość (tornado)",
  "Variação ± %": "Zmiana ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opcjonalnie)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opcjonalnie)",
+ "Carregar pista de arquivo…": "Wczytaj tor z pliku…",
+ "Executar estudo": "Uruchom badanie",
+ "Fatorial 2^k": "Plan czynnikowy 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Raport zbiorczy…"
 }

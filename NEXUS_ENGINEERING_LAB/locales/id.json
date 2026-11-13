@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "Optimalkan waktu putaran",
  "Sensibilidade (tornado)": "Sensitivitas (tornado)",
  "Variação ± %": "Variasi ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opsional)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opsional)",
+ "Carregar pista de arquivo…": "Muat lintasan dari berkas…",
+ "Executar estudo": "Jalankan studi",
+ "Fatorial 2^k": "Faktorial 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Laporan gabungan…"
 }

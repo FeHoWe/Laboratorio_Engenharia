@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "ラップタイムを最適化",
  "Sensibilidade (tornado)": "感度 (トルネード図)",
  "Variação ± %": "変動 ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (任意)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (任意)",
+ "Carregar pista de arquivo…": "ファイルからコースを読み込む…",
+ "Executar estudo": "検討を実行",
+ "Fatorial 2^k": "要因計画 2^k",
+ "Monte Carlo": "モンテカルロ",
+ "Pareto": "パレート",
+ "Stint": "スティント",
+ "Relatório consolidado…": "統合レポート…"
 }

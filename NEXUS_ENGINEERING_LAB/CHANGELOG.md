@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## V20.0 — 2026-11-13 (consolidação das etapas V11 → V19)
+Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
+- **V11 — Fatorial 2^k** (`doe.fatorial`, até 6 fatores): efeitos principais e interações de 2 fatores no tempo de volta, ordenados pela magnitude. Só níveis extremos (±x %), sem curvatura. Conferido contra cálculo direto das corridas.
+- **V12 — Monte Carlo** (`doe.monte_carlo`): propaga incertezas normal/uniforme que VOCÊ declara (independentes, relativas ao valor‑base); devolve média, desvio, P5/P50/P95, mín/máx e correlação de cada entrada com o tempo. Semente fixa (mulberry32) ⇒ repetível; é o MESMO gerador do celular (conferido bit a bit com Node). Correlação ≠ causalidade.
+- **V13 — Pareto** (`doe.pareto`): avalia a grade completa (≤ 2000 pontos) e devolve a frente não‑dominada entre dois objetivos (padrão tempo × energia elétrica usada; velocidades contam como “maior é melhor”). Frente SOBRE A GRADE informada; pontos com objetivos idênticos aparecem uma vez (`equivalentes` conta os demais).
+- **V14 — Stint** (`doe.stint`): várias voltas com taxas lineares por volta que VOCÊ informa (massa, μ…). **Não** é modelo de combustível nem de pneu; sem estado térmico/energético entre voltas.
+- **V15 — CLI e exportação:** `nexus_cli.py fatorial | montecarlo | pareto | stint`, `--pista arquivo.csv` em todos os comandos de volta, `--saida` em CSV/JSON/PDF. A exportação valida o tipo do estudo (um estudo de tipo errado é recusado).
+- **V16 — Interface:** aba *Estudos* das Ferramentas F1 ganhou seletor Fatorial/Monte Carlo/Pareto/Stint com texto de parâmetros (unidades da tela: kW, MJ) e exemplo por estudo; traduzida nos 15 idiomas.
+- **V17 — Pistas de arquivo** (`modules/pista_io.py`): CSV/texto `comprimento_m, raio_m` (`,` `;` ou tab; cabeçalho e `#` opcionais), validação estrutural com mensagem por linha; botão *Carregar pista de arquivo…*. Com pista própria, o resultado diz “pista informada por você” em vez de “pista de exemplo sintética” (correção de rótulo).
+- **V18 — Celular:** fatorial e Monte Carlo na aba *Engenharia F1*; `validate_lab.py` confere JS × Python (erro ≈ 8,5e‑12, mesma ordem de efeitos e correlações) e a aba foi exercitada no Chromium sem erros de script.
+- **V19 — Relatório consolidado** (`estudos_export.relatorio_consolidado`, botão *Relatório consolidado…*): um PDF com índice, aviso geral e uma seção por estudo.
+- Testes novos: `test_doe` (12), `test_pista_io` (13), exportação/CLI/diálogos ampliados.
+- **Não feito / limites (honestos):** Windows 11, WSL2 e instalador nunca foram executados em máquina real; todos os estudos valem para o modelo de ponto material quase‑estacionário, não para o carro real; incertezas e taxas são suas e não validadas; Monte Carlo assume entradas independentes; Pareto só sobre a grade; os textos novos do celular estão só em português; traduções do desktop são de IA sem revisão nativa; sem seleção de face no 3D; `ajustar_multi` do CAD sem botão.
+- Versão do app 20.0.
+
 ## V10.0 — 2026-11-13 (consolidação das etapas V6.1 → V9.0)
 Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
 - **V6.1 — NEXUS em linha de comando** (`nexus_cli.py`): `doctor`, `volta`, `comparar`, `tornado`, `otimizar` e `verificar arquivo.nexus`, texto ou `--json`, código de saída 0/1/2 (2 = achado CRÍTICO na verificação), `--saida arquivo.{csv,json,pdf}` nos estudos. Entrada inválida vira mensagem curta (código 1), sem traceback.

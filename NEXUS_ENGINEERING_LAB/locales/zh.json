@@ -619,5 +619,12 @@
  "Otimizar tempo de volta": "优化单圈时间",
  "Sensibilidade (tornado)": "敏感度 (龙卷风图)",
  "Variação ± %": "变化 ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (可选)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (可选)",
+ "Carregar pista de arquivo…": "从文件加载赛道…",
+ "Executar estudo": "运行研究",
+ "Fatorial 2^k": "因子设计 2^k",
+ "Monte Carlo": "蒙特卡罗",
+ "Pareto": "帕累托",
+ "Stint": "连续多圈 (stint)",
+ "Relatório consolidado…": "综合报告…"
 }

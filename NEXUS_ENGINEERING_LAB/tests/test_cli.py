@@ -57,3 +57,29 @@ def test_saida_exporta_arquivo(tmp_path):
             f = tmp_path / f"{cmd}.{ext}"
             assert run(cmd, *extra, "--saida", str(f))[0] == 0 and f.stat().st_size > 50
     assert run("tornado", "--saida", str(tmp_path / "x.txt"))[0] == 1
+
+
+def test_novos_comandos_e_pista(tmp_path):
+    pista = tmp_path / "p.csv"
+    pista.write_text("comprimento_m,raio_m\n800,0\n100,40\n500,0\n120,30\n", encoding="utf-8")
+    c, t = run("volta", "--pista", str(pista))
+    c2, t0 = run("volta")
+    assert c == 0 and " 152" in t and "Pista informada por você" in t and "SINTÉTICA" not in t
+    assert t != t0 and "SINTÉTICA" in t0
+    assert run("volta", "--pista", str(tmp_path / "nao.csv"))[0] == 1
+    c, t = run("fatorial", "--campos", "massa", "mu", "--pct", "5")
+    assert c == 0 and "Fatorial 2^2" in t
+    c, j = run("--json", "montecarlo", "--inc", "mu=normal:2", "massa=uniforme:1", "--n", "30", "--semente", "4")
+    d = json.loads(j)
+    assert c == 0 and d["n"] == 30 and d["p05_s"] <= d["p95_s"]
+    c, t = run("pareto", "--grade", "e_ers=0,2e6,4e6")
+    assert c == 0 and "Pareto" in t
+    c, t = run("stint", "--voltas", "3", "--taxa", "massa=-2")
+    assert c == 0 and "Stint" in t
+    for ext in ("csv", "json", "pdf"):
+        for cmd in (("fatorial", "--campos", "massa"), ("montecarlo", "--inc", "mu=normal:1", "--n", "10"), ("pareto", "--grade", "e_ers=0,4e6"), ("stint", "--voltas", "2", "--taxa", "massa=-1")):
+            f = tmp_path / f"{cmd[0]}.{ext}"
+            assert run(*cmd, "--saida", str(f))[0] == 0 and f.stat().st_size > 50
+    for bad in (("fatorial", "--campos", "x"), ("montecarlo", "--inc", "mu=beta:1"), ("montecarlo", "--inc", "mu"), ("pareto", "--grade", "e_ers"), ("pareto", "--grade", "e_ers=1", "--objetivos", "tempo_s", "tempo_s"),
+                ("stint", "--voltas", "0", "--taxa", "massa=1"), ("stint", "--voltas", "2", "--taxa", "massa")):
+        assert run(*bad)[0] == 1

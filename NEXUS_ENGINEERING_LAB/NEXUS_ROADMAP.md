@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V20.0 (V11–V19)
+- Fatorial 2^k, Monte Carlo, Pareto, stint, pistas de arquivo, relatório consolidado, celular com fatorial/Monte Carlo.
+- Pendente: Windows 11 real, correlação entre incertezas, superfície de resposta, pista a partir de dados reais (GPS) com validação, interface para `ajustar_multi`, seleção de face no 3D, tradução nativa revisada, i18n do celular para os textos novos.
+
 ## Feito na V10.0 (V6.1–V9.0)
 - CLI headless, ajuste multivariável no CAD (API), sensibilidade + otimização da volta, exportação de estudos CSV/JSON/PDF, tornado/otimização 1‑D no celular.
 - Pendente: Windows 11 real, interface para `ajustar_multi`, seleção de face no 3D, otimização multi‑parâmetro no celular, interações na sensibilidade (DOE), tradução nativa revisada.

@@ -12,8 +12,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 
-TIPOS = ("comparacao", "tornado", "otimizacao")
-_TITULO = {"comparacao": "Comparação A/B de volta", "tornado": "Sensibilidade (tornado)", "otimizacao": "Otimização de parâmetros"}
+TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint")
+_TITULO = {"comparacao": "Comparação A/B de volta", "tornado": "Sensibilidade (tornado)", "otimizacao": "Otimização de parâmetros",
+           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)"}
+_CHAVE = {"comparacao": ("campos",), "tornado": ("linhas", "variacao_pct"), "otimizacao": ("parametros", "tempo_otimo_s"), "fatorial": ("ordenados", "execucoes"),
+          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta")}
 
 
 def _limpo(o):
@@ -30,9 +33,9 @@ def _limpo(o):
 def _checar(tipo, estudo):
     if tipo not in TIPOS:
         raise ValueError(f"tipo desconhecido: {tipo} (use {', '.join(TIPOS)})")
-    chave = {"comparacao": "campos", "tornado": "linhas", "otimizacao": "parametros"}[tipo]
-    if not isinstance(estudo, dict) or chave not in estudo:
-        raise ValueError(f"o estudo não parece ser do tipo '{tipo}' (falta '{chave}')")
+    faltam = [k for k in _CHAVE[tipo] if not isinstance(estudo, dict) or k not in estudo]
+    if faltam:
+        raise ValueError(f"o estudo não parece ser do tipo '{tipo}' (falta '{faltam[0]}')")
 
 
 def linhas_tabela(tipo: str, e: dict) -> tuple[list[str], list[list]]:
@@ -43,6 +46,19 @@ def linhas_tabela(tipo: str, e: dict) -> tuple[list[str], list[list]]:
     if tipo == "tornado":
         return (["parametro", "valor", "tempo(-x%) [s]", "tempo(+x%) [s]", "delta(-) [s]", "delta(+) [s]", "amplitude [s]"],
                 [[r["campo"], r["valor"], r["t_menos_s"], r["t_mais_s"], r["d_menos_s"], r["d_mais_s"], r["amplitude_s"]] for r in e["linhas"]])
+    if tipo == "fatorial":
+        return (["fatores", "efeito_s"], [[" x ".join(r["fatores"]), r["efeito_s"]] for r in e["ordenados"]])
+    if tipo == "monte_carlo":
+        return (["estatistica", "valor"], [["n", e["n"]], ["semente", e["semente"]], ["tempo_base_s", e["tempo_base_s"]], ["media_s", e["media_s"]], ["desvio_s", e["desvio_s"]],
+                                           ["p05_s", e["p05_s"]], ["p50_s", e["p50_s"]], ["p95_s", e["p95_s"]], ["min_s", e["min_s"]], ["max_s", e["max_s"]]]
+                + [["correlacao_" + r["campo"], r["correlacao"]] for r in e["correlacoes"]])
+    if tipo == "pareto":
+        a, b = e["objetivos"]
+        ks = list(e["frente"][0]["parametros"]) if e["frente"] else []
+        return ([a, b, *ks, "equivalentes"], [[*p["objetivos"], *[p["parametros"][k] for k in ks], p.get("equivalentes", 0)] for p in e["frente"]])
+    if tipo == "stint":
+        ks = list(e["taxas_por_volta"])
+        return (["volta", "tempo_s", "acumulado_s", *ks], [[r["volta"], r["tempo_s"], r["acumulado_s"], *[r["parametros"][k] for k in ks]] for r in e["linhas"]])
     return (["parametro", "valor_otimo", "na_borda"], [[k, v, k in e["na_borda"]] for k, v in e["parametros"].items()])
 
 
@@ -64,7 +80,8 @@ def para_csv(tipo: str, estudo: dict) -> str:
     return buf.getvalue()
 
 
-def para_pdf(tipo: str, estudo: dict, caminho) -> Path:
+def _elementos(tipo: str, estudo: dict) -> list:
+    """Flowables de um estudo (título, resumo, tabela, limitações) — usados no PDF individual e no consolidado."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
@@ -76,13 +93,15 @@ def para_pdf(tipo: str, estudo: dict, caminho) -> Path:
     for n in ("Title", "Heading2", "BodyText"):
         st[n].fontName = FONT_B if n != "BodyText" else FONT
     fmt = lambda x: "—" if x is None else (f"{x:.5g}" if isinstance(x, float) else str(x))  # noqa: E731
-    caminho = Path(caminho)
-    doc = SimpleDocTemplate(str(caminho), pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm, bottomMargin=15 * mm, title=_TITULO[tipo])
     el = [Paragraph(_txt(_TITULO[tipo]), st["Title"]),
           Paragraph(_txt(f"Classe: {estudo.get('classe', '—')} · Solver: {estudo.get('solver', '—')} · Gerado em {datetime.now():%Y-%m-%d %H:%M}"), st["BodyText"]), Spacer(1, 4 * mm)]
     if tipo == "otimizacao":
         el += [Paragraph(_txt(f"Tempo base {estudo['tempo_base_s']:.3f} s → melhor encontrado {estudo['tempo_otimo_s']:.3f} s "
                                f"(ganho {estudo['ganho_s']:+.3f} s; {estudo['avaliacoes']} avaliações)"), st["BodyText"]), Spacer(1, 3 * mm)]
+    if tipo == "stint":
+        el += [Paragraph(_txt(f"{estudo['voltas']} voltas · total {estudo['total_s']:.3f} s · taxas por volta (SUAS): " + ", ".join(f"{k} {v:+g}" for k, v in estudo["taxas_por_volta"].items())), st["BodyText"]), Spacer(1, 3 * mm)]
+    if tipo == "monte_carlo":
+        el += [Paragraph(_txt("Incertezas declaradas (SUAS): " + "; ".join(f"{k}: {d} {p:g} %" for k, (d, p) in estudo["incertezas"].items())), st["BodyText"]), Spacer(1, 3 * mm)]
     if tipo == "tornado":
         el += [Paragraph(_txt(f"Tempo base {estudo['tempo_base_s']:.3f} s · variação ±{estudo['variacao_pct']:g} %"), st["BodyText"]), Spacer(1, 3 * mm)]
     t = Table([cab] + [[fmt(c) for c in ln] for ln in linhas], repeatRows=1)
@@ -90,8 +109,51 @@ def para_pdf(tipo: str, estudo: dict, caminho) -> Path:
                            ("GRID", (0, 0), (-1, -1), 0.3, colors.grey), ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8eef3"))]))
     el += [t, Spacer(1, 5 * mm), Paragraph("Limitações", st["Heading2"])]
     el += [Paragraph(_txt("• " + x), st["BodyText"]) for x in estudo.get("limitacoes", [])]
-    doc.build(el)
+    return el
+
+
+def _doc(caminho, titulo):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate
+    return SimpleDocTemplate(str(caminho), pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm, bottomMargin=15 * mm, title=titulo)
+
+
+def para_pdf(tipo: str, estudo: dict, caminho) -> Path:
+    caminho = Path(caminho)
+    _doc(caminho, _TITULO[tipo]).build(_elementos(tipo, estudo))
     return caminho
+
+
+def relatorio_consolidado(estudos, caminho, titulo: str = "Relatório de estudos NEXUS", contexto: str = "") -> Path:
+    """Um PDF com vários estudos [(tipo, resultado), …]: capa com índice, aviso geral e uma seção por estudo. `contexto` é texto livre SEU (ex.: carro/pista usados)."""
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import PageBreak, Paragraph, Spacer
+    from modules.report import FONT, FONT_B, _txt
+    if not estudos:
+        raise ValueError("informe ao menos um estudo")
+    for tipo, e in estudos:
+        _checar(tipo, e)
+    st = getSampleStyleSheet()
+    for n in ("Title", "Heading2"):
+        st[n].fontName = FONT_B
+    st["BodyText"].fontName = FONT
+    el = [Paragraph(_txt(titulo), st["Title"]), Paragraph(_txt(f"Gerado em {datetime.now():%Y-%m-%d %H:%M} · {len(estudos)} estudo(s)"), st["BodyText"])]
+    if contexto.strip():
+        el.append(Paragraph(_txt("Contexto informado: " + contexto.strip()), st["BodyText"]))
+    el += [Spacer(1, 4 * mm), Paragraph("Índice", st["Heading2"])]
+    el += [Paragraph(_txt(f"{i}. {_TITULO[t]} — classe {e.get('classe', '—')}"), st["BodyText"]) for i, (t, e) in enumerate(estudos, 1)]
+    el += [Spacer(1, 4 * mm), Paragraph("Aviso", st["Heading2"]),
+           Paragraph(_txt("Todos os resultados vêm do simulador quase-estacionário simplificado do NEXUS (ponto material, μ constante); parâmetros, incertezas, taxas e pistas são "
+                          "os informados por quem executou o estudo. Não representam o carro real nem foram validados contra dados de equipe."), st["BodyText"])]
+    for t, e in estudos:
+        el += [PageBreak()] + _elementos(t, e)
+    caminho = Path(caminho)
+    _doc(caminho, titulo).build(el)
+    return caminho
+
+
 
 
 def exportar(tipo: str, estudo: dict, caminho) -> Path:

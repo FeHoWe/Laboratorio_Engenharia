@@ -450,5 +450,12 @@
  "Otimizar tempo de volta": "लैप समय अनुकूलित करें",
  "Sensibilidade (tornado)": "संवेदनशीलता (टोर्नेडो)",
  "Variação ± %": "विचलन ± %",
- "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (वैकल्पिक)"
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (वैकल्पिक)",
+ "Carregar pista de arquivo…": "फ़ाइल से ट्रैक लोड करें…",
+ "Executar estudo": "अध्ययन चलाएँ",
+ "Fatorial 2^k": "फैक्टोरियल 2^k",
+ "Monte Carlo": "मोंटे कार्लो",
+ "Pareto": "पैरेटो",
+ "Stint": "स्टिंट",
+ "Relatório consolidado…": "समेकित रिपोर्ट…"
 }
