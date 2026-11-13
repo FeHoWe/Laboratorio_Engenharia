@@ -123,3 +123,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V70.0
 - **Dinâmica lateral:** `python nexus_cli.py dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 --u 20 40 60 --delta 0.02 --t 3 [--saida d.pdf]`. Cf e Cr (N/rad, por eixo) são seus; sem eles o comando não roda. Veja o tipo (sub/sobreesterçante), as velocidades característica/crítica e se o modelo é estável. Só vale perto do regime linear (longe do limite de aderência).
+
+
+## Novidades da V80.0
+- **Freios:** `python nexus_cli.py freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 --voltas 5 [--saida f.pdf]`. Todas as propriedades do disco são suas (opcionais: h0, h1, emissividade, f_disco, lim_T_C). O limite de temperatura é o SEU; o NEXUS só marca onde foi ultrapassado. Modelo concentrado, não substitui ensaio.

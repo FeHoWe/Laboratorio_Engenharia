@@ -2,7 +2,7 @@
 import json
 import pytest
 from dataclasses import replace
-from modules import comparacao, lapsim, doe, validacao_dados as VD, dinamica_lateral as DL, calibracao as KB, otimizacao as O, estudos_export as X
+from modules import comparacao, freio_termico as FT, lapsim, doe, validacao_dados as VD, dinamica_lateral as DL, calibracao as KB, otimizacao as O, estudos_export as X
 
 A = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
 
@@ -15,6 +15,7 @@ def estudos():
             "stint": doe.stint(A, 3, {"massa": -2.0}),
             "dinamica_lateral": {"classe": "ANALITICO", "solver": "linear", "varredura": DL.varredura_velocidade(DL.ParamsLat(800, 1.6, 1.7, 900, 120e3, 140e3), [20, 40]),
                                  "limitacoes": ["modelo linear"]},
+            "freio_termico": FT.termica(A, FT.Disco(1.4, 800.0, 0.045), FT.Disco(1.1, 800.0, 0.04), 0.6, voltas=3),
             "calibracao": KB.calibrar(A, {"mu": (1.2, 1.9)}, VD.ler_telemetria(VD.para_csv_exemplo(replace(A, mu=1.5))), frac_treino=0.7),
             "validacao": VD.validar(A, VD.ler_telemetria(VD.para_csv_exemplo(A)), tolerancias={"rmse_kmh": 5})}
 

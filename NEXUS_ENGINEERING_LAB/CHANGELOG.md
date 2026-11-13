@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## V80.0 — 2026-11-13 (marco: energia de frenagem e térmica de disco; etapas V71–V80)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V71–V79 (agrupadas):** potência de frenagem a partir do perfil de velocidade do lapsim (desaceleração menos arrasto e rolamento), repartição dianteira/traseira, integração térmica por segmento (RK2), convecção h = h0 + h1·v, radiação, regime ao longo de várias voltas.
+- **V80 — `modules/freio_termico.py` + CLI `freio-termico`:** energia de frenagem por volta (MJ) e temperatura de pico/média/fim por eixo. Conferido: sem troca de calor ΔT = E/(m·cp) (0,5 %), repartição conserva energia, mais massa ou mais ventilação → menos pico.
+- **Honestidade:** massa, cp, área, h0, h1, emissividade e limite de temperatura são SEUS (o exemplo é ilustrativo, não um freio real; com discos pequenos o modelo pode dar temperaturas fisicamente absurdas — é sinal de dado de entrada irreal, não de resultado). Modelo concentrado (1 nó/eixo): sem gradiente no disco, pastilha/pinça/fluido, desgaste, fade nem regeneração. Classe SIMULACAO_NUMERICA; não validado contra bancada.
+- Exportação: tipo `freio_termico` (CSV/JSON/PDF e consolidado). Testes: `test_freio_termico` (8) + exportação.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V70.0 — 2026-11-13 (marco: dinâmica lateral linear; etapas V61–V70)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V61–V69 (agrupadas):** matrizes de estado do modelo de bicicleta linear (β, r), gradiente de subesterço, velocidades característica/crítica, autovalores (ωn, ζ), exponencial de matriz, métricas do degrau (t63, sobressinal, acomodação, pico), varredura de velocidade.

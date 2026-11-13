@@ -15,6 +15,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   calibrar  [--carro k=v ...] --telemetria arq.csv --param mu=1.2:1.9 cla=2:5 [--treino 0.7]   ajusta parâmetros EFETIVOS à telemetria
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
+  freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 [--voltas 5]   energia de frenagem e temperatura de disco (propriedades SUAS)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
@@ -157,6 +158,17 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    ft = sub.add_parser("freio-termico")
+    ft.add_argument("--carro", nargs="*", metavar="k=v")
+    ft.add_argument("--disco-diant", nargs="+", metavar="k=v", required=True, help="massa=kg cp=J/kgK area=m2 [h0= h1= emissividade= f_disco= lim_T_C=]")
+    ft.add_argument("--disco-tras", nargs="+", metavar="k=v", required=True)
+    ft.add_argument("--freio-diant", type=float, default=0.6)
+    ft.add_argument("--voltas", type=int, default=5)
+    ft.add_argument("--t0", type=float, default=25.0)
+    ft.add_argument("--t-amb", type=float, default=25.0)
+    ft.add_argument("--pista", metavar="arquivo.csv")
+    ft.add_argument("--ds", type=float, default=3.0)
+    ft.add_argument("--saida", metavar="arquivo.{csv,json,pdf}")
     dl = sub.add_parser("dinamica-lateral")
     for k_ in ("massa", "a", "b", "iz", "cf", "cr"):
         dl.add_argument("--" + k_, type=float)
@@ -309,6 +321,17 @@ def executar(argv=None, out=None) -> int:
                    "limitacoes": var[0]["limitacoes"]}
             _exportar(a, "dinamica_lateral", est)
             emit("\n".join(DL.texto(g) for g in var[1:]) + ("\n" if len(var) > 1 else "") + DL.texto(deg), est)
+        elif a.cmd == "freio-termico":
+            from modules import freio_termico as FT
+            def _disco(itens):
+                d = _kv(itens, "--disco")
+                try:
+                    return FT.Disco(**d)
+                except TypeError as exc:
+                    raise ValueError(f"disco: parâmetro desconhecido ou faltando ({exc})")
+            r = FT.termica(_carro(a.carro), _disco(a.disco_diant), _disco(a.disco_tras), a.freio_diant, _pista(a), a.ds, a.voltas, a.t0, a.t_amb)
+            _exportar(a, "freio_termico", r)
+            emit(FT.texto(r), {k_: x for k_, x in r.items() if k_ != "traco_ultima_volta"})
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")
