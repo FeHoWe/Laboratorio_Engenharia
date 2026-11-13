@@ -115,3 +115,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V50.0
 - **Projeto → carro:** `python nexus_cli.py projeto-carro meu.nexus --eixos -300 2700 --extra Piloto=75@0,1200,350 Combustivel=40@0,1800,200 --volta --carro p_ice=500000 cda=1.0 cla=3.0 mu=1.6`. Escolha antes os materiais no projeto: peças sem material ficam de fora (o total é um piso) e o aviso as lista.
+
+
+## Novidades da V60.0
+- **Modelo de bicicleta:** `python nexus_cli.py volta-bicicleta --carro massa=800 a=1.6 b=1.7 h=0.3 mu_f=1.6 mu_r=1.6 bal_aero=0.45 k_carga=0.1 --tracao traseira --freio-diant 0.62`. Mostra quantos pontos de curva saturam no eixo dianteiro (subesterço) ou traseiro (sobreesterço). Cuidado: sem transferência lateral, o modelo não deve ser usado para otimizar a altura do CG. Com projeto: `projeto-carro meu.nexus --eixos … --bicicleta`.

@@ -22,7 +22,7 @@ def test_mesmo_carro_erro_quase_zero_e_validado_com_tolerancia_do_usuario():
     m = r["metricas"]
     assert m["rmse_kmh"] < 1e-6 and abs(m["vies_kmh"]) < 1e-6 and m["correlacao"] > 0.99999 and abs(m["tempo_pct"]) < 1.0
     assert r["classe"] == "VALIDADO" and all(v["atende"] for v in r["veredito"])
-    assert any("não generaliza" in x for x in r["limitacoes"])
+    assert any("não generaliza" in x for x in r["limitacoes"]) and "telemetria do usuário" in r["validacao_ref"] and "rmse_kmh <= 1" in r["validacao_ref"]
 
 
 def test_telemetria_amostrada_diferente_do_solver_tem_erro_de_interpolacao_pequeno():
@@ -32,7 +32,7 @@ def test_telemetria_amostrada_diferente_do_solver_tem_erro_de_interpolacao_peque
 
 def test_sem_tolerancias_nunca_declara_validado():
     r = V.validar(C, telemetria_de(C))
-    assert r["classe"] == "SIMULACAO_NUMERICA" and r["veredito"] == [] and any("NÃO é declarado validado" in x for x in r["limitacoes"])
+    assert r["classe"] == "SIMULACAO_NUMERICA" and r["veredito"] == [] and r["validacao_ref"] == "" and any("NÃO é declarado validado" in x for x in r["limitacoes"])
 
 
 def test_medicao_mais_rapida_gera_vies_negativo_e_reprova():

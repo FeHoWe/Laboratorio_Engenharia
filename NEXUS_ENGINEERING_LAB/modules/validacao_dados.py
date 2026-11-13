@@ -151,7 +151,8 @@ def validar(carro: lapsim.Carro, telemetria: dict, pista=None, ds: float = 3.0, 
         lim.append("Sem tolerâncias suas, o resultado são apenas métricas: o modelo NÃO é declarado validado.")
     else:
         lim.append("Pelo menos um critério seu NÃO foi atendido: o modelo NÃO é validado para esta telemetria.")
-    return {"classe": classe, "solver": "NEXUS-LapSim 1.0", "metricas": met, "setores": setor, "veredito": veredito, "avisos": avisos, "limitacoes": lim,
+    ref = (f"telemetria do usuário ({n} pontos comparados); critérios do usuário: " + "; ".join(f"{v['criterio']} <= {v['limite_seu']:g}" for v in veredito)) if classe == "VALIDADO" else ""
+    return {"classe": classe, "solver": "NEXUS-LapSim 1.0", "validacao_ref": ref, "metricas": met, "setores": setor, "veredito": veredito, "avisos": avisos, "limitacoes": lim,
             "comparacao": {"s_m": [p[0] for p in pts], "v_sim_kmh": [p[1] for p in pts], "v_med_kmh": [p[2] for p in pts]}}
 
 

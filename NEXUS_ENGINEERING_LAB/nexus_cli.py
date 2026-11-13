@@ -14,6 +14,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   validar   [--carro k=v ...] --telemetria arq.csv [--tol rmse_kmh=3 tempo_pct_abs=1 ...] [--normalizar] [--setores 5]   compara com telemetria REAL sua
   calibrar  [--carro k=v ...] --telemetria arq.csv --param mu=1.2:1.9 cla=2:5 [--treino 0.7]   ajusta parâmetros EFETIVOS à telemetria
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
+  volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
 Parâmetros do carro (padrão = exemplo ILUSTRATIVO): massa, p_ice (W), cda, cla, mu, crr, p_ers (W), e_ers (J). Classes: SIMULACAO_NUMERICA / ANALITICO.
@@ -27,6 +28,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
+EXEMPLO_B = dict(massa=800.0, a=1.6, b=1.7, h=0.30, p_ice=500e3, cda=1.0, cla=3.0, mu_f=1.6, mu_r=1.6, bal_aero=0.45, p_ers=300e3, e_ers=4e6)   # ILUSTRATIVO
 EXEMPLO = dict(massa=800.0, p_ice=500e3, cda=1.0, cla=3.0, mu=1.6, p_ers=300e3, e_ers=4e6)
 
 
@@ -154,6 +156,12 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    vb = sub.add_parser("volta-bicicleta")
+    vb.add_argument("--carro", nargs="*", metavar="k=v")
+    vb.add_argument("--tracao", default="traseira", choices=["traseira", "integral"])
+    vb.add_argument("--freio-diant", type=float, default=None)
+    vb.add_argument("--pista", metavar="arquivo.csv")
+    vb.add_argument("--ds", type=float, default=3.0)
     pc = sub.add_parser("projeto-carro")
     pc.add_argument("arquivo")
     pc.add_argument("--eixos", nargs=2, type=float, required=True, metavar=("Y_DIANT", "Y_TRAS"))
@@ -161,6 +169,7 @@ def executar(argv=None, out=None) -> int:
     pc.add_argument("--volta", action="store_true", help="roda a volta com a massa do projeto (demais parâmetros de --carro)")
     pc.add_argument("--carro", nargs="*", metavar="k=v")
     pc.add_argument("--ds", type=float, default=3.0)
+    pc.add_argument("--bicicleta", action="store_true", help="roda o modelo de bicicleta com massa, a, b e h DO PROJETO (demais parâmetros de --carro)")
     v = sub.add_parser("verificar")
     v.add_argument("arquivo")
     try:
@@ -249,7 +258,25 @@ def executar(argv=None, out=None) -> int:
                 v = lapsim.volta(c, None, a.ds).valores
                 lev["volta"] = {k: x for k, x in v.items() if not isinstance(x, list)}
                 txt += f"\nVolta com a massa do projeto ({c.massa:.1f} kg; demais parâmetros SEUS/exemplo): {v['tempo_s']:.3f} s"
+            if a.bicicleta:
+                from modules import lapsim_bicicleta as LB
+                d = dict(EXEMPLO_B)
+                d.update(_kv(a.carro, "--carro"))
+                d.update(massa=lev["massa_kg"], a=lev["a_m"], b=lev["b_m"], h=lev["altura_cg_m"])
+                rb = LB.volta(LB.CarroB(**d), None, a.ds)
+                lev["volta_bicicleta"] = {k: x for k, x in rb.valores.items() if not isinstance(x, list)}
+                txt += "\n" + LB.texto(rb)
             emit(txt, lev)
+        elif a.cmd == "volta-bicicleta":
+            from modules import lapsim_bicicleta as LB
+            d = dict(EXEMPLO_B)
+            d.update(_kv(a.carro, "--carro"))
+            try:
+                c = LB.CarroB(tracao=a.tracao, freio_diant=a.freio_diant, **d)
+            except TypeError as exc:
+                raise ValueError(f"--carro: parâmetro desconhecido ({exc})")
+            r = LB.volta(c, _pista(a), a.ds)
+            emit(LB.texto(r), {"classe": r.classe, "valores": {k: x for k, x in r.valores.items() if not isinstance(x, list)}, "limitacoes": r.limitacoes})
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")

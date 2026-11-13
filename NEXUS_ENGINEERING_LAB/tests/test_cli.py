@@ -131,3 +131,18 @@ def test_projeto_carro_cli(engine, motor_project, tmp_path):
     d = json.loads(j)
     assert c == 0 and d["massa_kg"] > 700 and d["volta"]["tempo_s"] > 0
     assert run("projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "x")[0] == 1
+
+
+def test_volta_bicicleta_cli(engine, motor_project, tmp_path):
+    c, t = run("volta-bicicleta")
+    assert c == 0 and "bicicleta" in t and "balanço no limite" in t
+    c2, t2 = run("volta-bicicleta", "--tracao", "integral", "--carro", "h=0.1")
+    assert c2 == 0 and t2 != t
+    c, j = run("--json", "volta-bicicleta", "--freio-diant", "0.6")
+    assert c == 0 and json.loads(j)["classe"] == "SIMULACAO_NUMERICA"
+    assert run("volta-bicicleta", "--carro", "foo=1")[0] == 1 and run("volta-bicicleta", "--freio-diant", "1.5")[0] == 1
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = ProjectManager(engine).save(motor_project, tmp_path / "m.nexus")
+    c, j = run("--json", "projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Lastro=700@0,50,10", "--bicicleta")
+    d = json.loads(j)
+    assert c == 0 and d["volta_bicicleta"]["tempo_s"] > 0

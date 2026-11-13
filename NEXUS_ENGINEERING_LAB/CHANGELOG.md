@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## V60.0 — 2026-11-13 (marco: modelo de bicicleta com transferência de carga; etapas V51–V60)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V51–V59 (agrupadas):** cargas por eixo (estática + downforce com balanço + transferência longitudinal), limite de curva por eixo com bisseção, tração traseira/integral por ponto fixo, limite de empinamento, frenagem com divisão fixa ou ideal, indicador sub/sobre-esterço no limite.
+- **V60 — `modules/lapsim_bicicleta.py` + CLI `volta-bicicleta` e `projeto-carro --bicicleta`:** volta quase-estacionária de bicicleta (a, b, h, μ por eixo, balanço aerodinâmico, `k_carga` opcional de sensibilidade de carga, freio ideal ou com divisão fixa). Com h = 0, μ iguais, tração integral e balanço 50/50 reduz ao `lapsim` de ponto material (tempo e vmax dentro de 2–3 %, testado); a força de tração traseira bate a forma fechada F = μ·N_r0/(1 − μ·h/L) (testado). `projeto-carro --bicicleta` usa massa, a, b e h DO PROJETO (V50).
+- Rótulo de honestidade novo na saída: **sem transferência LATERAL, subir o CG só ajuda a tração traseira e não penaliza curvas — o modelo NÃO serve para otimizar a altura do CG** (artefato medido nos testes: h 0,5 m deu volta mais rápida que h 0,2 m).
+- Refinamento da V30: o resultado `VALIDADO` agora carrega `validacao_ref` (telemetria + critérios do usuário), como exige o rastreamento de resultados.
+- Testes: `test_lapsim_bicicleta` (8) + CLI.
+- **Limites:** sem transferência lateral entre rodas, sem cinemática, sem curva de pneu real; μ por eixo e k_carga são SEUS; fator elíptico aproximado; sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V50.0 — 2026-11-13 (marco: ponte projeto CAD → carro; etapas V41–V50)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V41–V49 (agrupadas):** reaproveitamento do levantamento de massa (V2.8) com lista de peças fora, extras com posição, verificação de CG dentro do entre-eixos, a/b e Izz para o modelo de bicicleta.
