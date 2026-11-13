@@ -119,3 +119,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V60.0
 - **Modelo de bicicleta:** `python nexus_cli.py volta-bicicleta --carro massa=800 a=1.6 b=1.7 h=0.3 mu_f=1.6 mu_r=1.6 bal_aero=0.45 k_carga=0.1 --tracao traseira --freio-diant 0.62`. Mostra quantos pontos de curva saturam no eixo dianteiro (subesterço) ou traseiro (sobreesterço). Cuidado: sem transferência lateral, o modelo não deve ser usado para otimizar a altura do CG. Com projeto: `projeto-carro meu.nexus --eixos … --bicicleta`.
+
+
+## Novidades da V70.0
+- **Dinâmica lateral:** `python nexus_cli.py dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 --u 20 40 60 --delta 0.02 --t 3 [--saida d.pdf]`. Cf e Cr (N/rad, por eixo) são seus; sem eles o comando não roda. Veja o tipo (sub/sobreesterçante), as velocidades característica/crítica e se o modelo é estável. Só vale perto do regime linear (longe do limite de aderência).

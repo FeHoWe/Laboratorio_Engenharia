@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## V70.0 — 2026-11-13 (marco: dinâmica lateral linear; etapas V61–V70)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V61–V69 (agrupadas):** matrizes de estado do modelo de bicicleta linear (β, r), gradiente de subesterço, velocidades característica/crítica, autovalores (ωn, ζ), exponencial de matriz, métricas do degrau (t63, sobressinal, acomodação, pico), varredura de velocidade.
+- **V70 — `modules/dinamica_lateral.py` + CLI `dinamica-lateral`:** resposta de guinada/deriva/ay ao degrau de esterço (solução EXATA por exponencial de matriz, conferida contra integração Euler independente a 1e‑3), ganhos de regime (r/δ = U/(L + K·U²), conferido contra a forma fechada), tipo (sub/sobre/neutro), velocidade característica (subesterçante) ou CRÍTICA (sobreesterçante; acima dela o modelo diverge e o NEXUS marca “INSTÁVEL”). `--projeto arq.nexus --eixos …` toma massa, a, b e Iz do projeto (V50). Classe: ANALITICO.
+- **Honestidade:** Cf e Cr (rigidez de curva por EIXO, N/rad) são SEUS — o comando recusa rodar sem eles e o NEXUS não os estima; modelo LINEAR (ângulos pequenos, pneus lineares, velocidade constante, sem transferência de carga nem aerodinâmica): não vale perto do limite de aderência. Resposta que não acomoda na janela é sinalizada (sem sobressinal inventado).
+- Exportação: tipo `dinamica_lateral` (CSV/JSON/PDF e consolidado). Testes: `test_dinamica_lateral` (8) + CLI/exportação.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V60.0 — 2026-11-13 (marco: modelo de bicicleta com transferência de carga; etapas V51–V60)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V51–V59 (agrupadas):** cargas por eixo (estática + downforce com balanço + transferência longitudinal), limite de curva por eixo com bisseção, tração traseira/integral por ponto fixo, limite de empinamento, frenagem com divisão fixa ou ideal, indicador sub/sobre-esterço no limite.

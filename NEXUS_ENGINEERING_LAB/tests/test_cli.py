@@ -146,3 +146,22 @@ def test_volta_bicicleta_cli(engine, motor_project, tmp_path):
     c, j = run("--json", "projeto-carro", str(f), "--eixos", "-50", "150", "--extra", "Lastro=700@0,50,10", "--bicicleta")
     d = json.loads(j)
     assert c == 0 and d["volta_bicicleta"]["tempo_s"] > 0
+
+
+def test_dinamica_lateral_cli(engine, motor_project, tmp_path):
+    base = ["dinamica-lateral", "--massa", "800", "--a", "1.6", "--b", "1.7", "--iz", "900", "--cf", "120000", "--cr", "140000"]
+    c, t = run(*base, "--u", "20", "40", "--delta", "0.02")
+    assert c == 0 and "ANALITICO" in t and "sobressinal" in t and t.count("U = ") == 2
+    c, j = run("--json", *base, "--u", "30")
+    d = json.loads(j)
+    assert c == 0 and d["varredura"][0]["estavel"] and d["degrau"]["r_regime_rad_s"] > 0
+    for ext in ("csv", "json", "pdf"):
+        o = tmp_path / f"d.{ext}"
+        assert run(*base, "--saida", str(o))[0] == 0 and o.stat().st_size > 50
+    assert run("dinamica-lateral", "--massa", "800")[0] == 1                    # faltam parâmetros: não inventa rigidez
+    assert run(*base, "--u", "0.1")[0] == 1
+    motor_project.components.set_material(motor_project.components.root.id, "Aço carbono", recursive=True)
+    f = ProjectManager(engine).save(motor_project, tmp_path / "m.nexus")
+    c, t = run("dinamica-lateral", "--projeto", str(f), "--eixos", "-50", "150", "--iz", "5", "--cf", "1000", "--cr", "1200")
+    assert c == 0 and "K =" in t
+    assert run("dinamica-lateral", "--projeto", str(f), "--iz", "5", "--cf", "1", "--cr", "1")[0] == 1

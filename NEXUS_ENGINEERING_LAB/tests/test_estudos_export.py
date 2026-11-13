@@ -2,7 +2,7 @@
 import json
 import pytest
 from dataclasses import replace
-from modules import comparacao, lapsim, doe, validacao_dados as VD, calibracao as KB, otimizacao as O, estudos_export as X
+from modules import comparacao, lapsim, doe, validacao_dados as VD, dinamica_lateral as DL, calibracao as KB, otimizacao as O, estudos_export as X
 
 A = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
 
@@ -13,6 +13,8 @@ def estudos():
             "otimizacao": O.otimizar(A, {"mu": (1.5, 1.7)}, max_iter=4), "fatorial": doe.fatorial(A, ["massa", "mu"]),
             "monte_carlo": doe.monte_carlo(A, {"mu": ("normal", 1)}, 12, 2), "pareto": doe.pareto(A, {"e_ers": [0, 2e6, 4e6]}),
             "stint": doe.stint(A, 3, {"massa": -2.0}),
+            "dinamica_lateral": {"classe": "ANALITICO", "solver": "linear", "varredura": DL.varredura_velocidade(DL.ParamsLat(800, 1.6, 1.7, 900, 120e3, 140e3), [20, 40]),
+                                 "limitacoes": ["modelo linear"]},
             "calibracao": KB.calibrar(A, {"mu": (1.2, 1.9)}, VD.ler_telemetria(VD.para_csv_exemplo(replace(A, mu=1.5))), frac_treino=0.7),
             "validacao": VD.validar(A, VD.ler_telemetria(VD.para_csv_exemplo(A)), tolerancias={"rmse_kmh": 5})}
 
@@ -21,7 +23,7 @@ def estudos():
 def test_json_csv_pdf(tipo, estudos, tmp_path):
     e = estudos[tipo]
     j = json.loads(X.para_json(tipo, e))
-    assert j["tipo"] == tipo and j["estudo"]["classe"] in ("SIMULACAO_NUMERICA", "VALIDADO") and not any(k.startswith("resultado_") for k in j["estudo"])
+    assert j["tipo"] == tipo and j["estudo"]["classe"] in ("SIMULACAO_NUMERICA", "VALIDADO", "ANALITICO") and not any(k.startswith("resultado_") for k in j["estudo"])
     csv = X.para_csv(tipo, e)
     assert csv.splitlines()[0].startswith("# ") and "# limitacao:" in csv
     for ext in ("csv", "json", "pdf"):

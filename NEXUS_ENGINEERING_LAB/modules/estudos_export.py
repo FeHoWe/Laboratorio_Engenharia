@@ -12,11 +12,11 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 
-TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint", "validacao", "calibracao")
+TIPOS = ("comparacao", "tornado", "otimizacao", "fatorial", "monte_carlo", "pareto", "stint", "validacao", "calibracao", "dinamica_lateral")
 _TITULO = {"comparacao": "Comparação A/B de volta", "tornado": "Sensibilidade (tornado)", "otimizacao": "Otimização de parâmetros",
-           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)", "validacao": "Validação com telemetria do usuário", "calibracao": "Calibração de parâmetros"}
+           "fatorial": "Fatorial 2^k (efeitos e interações)", "monte_carlo": "Monte Carlo (propagação de incerteza)", "pareto": "Frente de Pareto", "stint": "Stint (várias voltas)", "validacao": "Validação com telemetria do usuário", "calibracao": "Calibração de parâmetros", "dinamica_lateral": "Dinâmica lateral linear (2 GDL)"}
 _CHAVE = {"comparacao": ("campos",), "tornado": ("linhas", "variacao_pct"), "otimizacao": ("parametros", "tempo_otimo_s"), "fatorial": ("ordenados", "execucoes"),
-          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta"), "validacao": ("metricas", "veredito"), "calibracao": ("parametros_calibrados", "numero_condicao")}
+          "monte_carlo": ("correlacoes", "p95_s"), "pareto": ("frente", "objetivos"), "stint": ("linhas", "taxas_por_volta"), "validacao": ("metricas", "veredito"), "calibracao": ("parametros_calibrados", "numero_condicao"), "dinamica_lateral": ("varredura", "limitacoes")}
 
 
 def _limpo(o):
@@ -56,6 +56,10 @@ def linhas_tabela(tipo: str, e: dict) -> tuple[list[str], list[list]]:
         a, b = e["objetivos"]
         ks = list(e["frente"][0]["parametros"]) if e["frente"] else []
         return ([a, b, *ks, "equivalentes"], [[*p["objetivos"], *[p["parametros"][k] for k in ks], p.get("equivalentes", 0)] for p in e["frente"]])
+    if tipo == "dinamica_lateral":
+        return (["U_ms", "tipo", "K_graus_por_g", "ganho_guinada_1_s", "estavel", "wn_rad_s", "zeta", "v_caracteristica_ms", "v_critica_ms"],
+                [[g["velocidade_ms"], g["tipo"], g["gradiente_subesterco_graus_por_g"], g["ganho_guinada_1_por_s"], g["estavel"], g["wn_rad_s"], g["zeta"],
+                  g["velocidade_caracteristica_ms"], g["velocidade_critica_ms"]] for g in e["varredura"]])
     if tipo == "calibracao":
         return (["parametro", "inicial", "calibrado", "incerteza_aprox"],
                 [[k, e["valores_iniciais"][k], v, e["incerteza_aprox"].get(k)] for k, v in e["parametros_calibrados"].items()]

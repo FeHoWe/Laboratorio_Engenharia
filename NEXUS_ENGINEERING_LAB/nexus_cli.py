@@ -15,6 +15,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   calibrar  [--carro k=v ...] --telemetria arq.csv --param mu=1.2:1.9 cla=2:5 [--treino 0.7]   ajusta parâmetros EFETIVOS à telemetria
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
+  dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
   verificar arquivo.nexus                  consistência do projeto (regras; nada estimado)
 Parâmetros do carro (padrão = exemplo ILUSTRATIVO): massa, p_ice (W), cda, cla, mu, crr, p_ers (W), e_ers (J). Classes: SIMULACAO_NUMERICA / ANALITICO.
@@ -156,6 +157,15 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    dl = sub.add_parser("dinamica-lateral")
+    for k_ in ("massa", "a", "b", "iz", "cf", "cr"):
+        dl.add_argument("--" + k_, type=float)
+    dl.add_argument("--u", nargs="+", type=float, default=[30.0])
+    dl.add_argument("--delta", type=float, default=0.02)
+    dl.add_argument("--t", type=float, default=3.0)
+    dl.add_argument("--projeto", metavar="arq.nexus")
+    dl.add_argument("--eixos", nargs=2, type=float, metavar=("Y_DIANT", "Y_TRAS"))
+    dl.add_argument("--saida", metavar="arquivo.{csv,json,pdf}")
     vb = sub.add_parser("volta-bicicleta")
     vb.add_argument("--carro", nargs="*", metavar="k=v")
     vb.add_argument("--tracao", default="traseira", choices=["traseira", "integral"])
@@ -277,6 +287,28 @@ def executar(argv=None, out=None) -> int:
                 raise ValueError(f"--carro: parâmetro desconhecido ({exc})")
             r = LB.volta(c, _pista(a), a.ds)
             emit(LB.texto(r), {"classe": r.classe, "valores": {k: x for k, x in r.valores.items() if not isinstance(x, list)}, "limitacoes": r.limitacoes})
+        elif a.cmd == "dinamica-lateral":
+            from modules import dinamica_lateral as DL
+            vals = {k_: getattr(a, k_) for k_ in ("massa", "a", "b", "iz", "cf", "cr")}
+            if a.projeto:
+                from core.cad_engine import CadEngine
+                from core.project_manager import ProjectManager
+                from modules import carro_do_projeto as CP
+                if not a.eixos:
+                    raise ValueError("--projeto exige --eixos y_diant y_tras")
+                lev = CP.levantar(ProjectManager(CadEngine()).open(a.projeto), a.eixos[0], a.eixos[1])
+                for k_, v_ in (("massa", lev["massa_kg"]), ("a", lev["a_m"]), ("b", lev["b_m"]), ("iz", lev["inercia_z_kgm2"])):
+                    vals[k_] = vals[k_] if vals[k_] is not None else v_
+            faltam = [k_ for k_, v_ in vals.items() if v_ is None]
+            if faltam:
+                raise ValueError("informe " + ", ".join("--" + k_ for k_ in faltam) + " (Cf e Cr são rigidezes de curva por EIXO, em N/rad: o NEXUS não as estima)")
+            p_ = DL.ParamsLat(**vals)
+            var = DL.varredura_velocidade(p_, a.u)
+            deg = DL.degrau(p_, a.u[0], a.delta, a.t)
+            est = {"classe": "ANALITICO", "solver": "modelo linear 2 GDL (exponencial de matriz)", "parametros": vals, "varredura": var, "degrau": {k_: x for k_, x in deg.items() if not isinstance(x, list)},
+                   "limitacoes": var[0]["limitacoes"]}
+            _exportar(a, "dinamica_lateral", est)
+            emit("\n".join(DL.texto(g) for g in var[1:]) + ("\n" if len(var) > 1 else "") + DL.texto(deg), est)
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")
