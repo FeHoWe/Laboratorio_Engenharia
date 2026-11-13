@@ -124,7 +124,7 @@ def run_case(part_key: str = "", part_params: dict | None = None, stl_path: str 
         lg = pasta / "log.simpleFoam"
         while not stop.wait(1.0):
             try:
-                n = sum(1 for ln in lg.read_text(errors="replace").splitlines() if ln.startswith("Time = "))
+                n = sum(1 for ln in lg.read_text(errors="replace", encoding="utf-8").splitlines() if ln.startswith("Time = "))
                 _p(10 + 85 * min(n / max(iteracoes, 1), 1.0))
             except OSError:
                 pass                                                # malhando ainda: log não existe

@@ -82,3 +82,9 @@ Níveis 1–2 (analíticos) estão no Laboratório. O nível 3 gera um caso Open
 
 ## Celular
 Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em regime. CalculiX/OpenFOAM/STEP só no desktop.
+
+
+## Novidades da V6.0
+- **Ajustar variável (CAD):** no histórico, *Ajustar…* — escolha a variável, a métrica (ex.: volume), o alvo e o intervalo; o NEXUS busca o valor por bisseção. Só funciona se a métrica crescer ou decrescer de forma monótona no intervalo; caso contrário avisa.
+- **Relatório PDF:** inclui a consistência do projeto.
+- **Celular → Engenharia F1 → Comparar A/B:** preencha só os campos de B que mudam; campo vazio = igual a A. Resultado vale para o modelo simplificado, não para o carro real.

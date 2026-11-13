@@ -57,7 +57,7 @@ blocks ( hex (0 1 2 3 4 5 6 7) ({celulas[0]} {celulas[1]} {celulas[2]}) simpleGr
 boundary ( inlet {{type patch; faces ((0 4 7 3));}} outlet {{type patch; faces ((1 2 6 5));}}
  ground {{type {"symmetryPlane" if ar_livre else "wall"}; faces ((0 3 2 1));}} top {{type symmetryPlane; faces ((4 5 6 7));}}
  sideL {{type symmetryPlane; faces ((0 1 5 4));}} sideR {{type symmetryPlane; faces ((3 7 6 2));}} );
-""")
+""", encoding="utf-8", newline="\n")
     (p/"system/controlDict").write_text(H % ("dictionary", "controlDict") + f"""application simpleFoam; startFrom startTime; startTime 0; stopAt endTime;
 endTime {iteracoes}; deltaT 1; writeControl timeStep; writeInterval {iteracoes};
 functions {{ forces {{ type forces; libs (forces); writeControl timeStep; writeInterval 10; patches (body);
@@ -65,15 +65,15 @@ functions {{ forces {{ type forces; libs (forces); writeControl timeStep; writeI
  forceCoeffs {{ type forceCoeffs; libs (forceCoeffs); writeControl timeStep; writeInterval 10; patches (body);
  rho rhoInf; rhoInf {rho}; liftDir (0 0 1); dragDir (1 0 0); CofR (0 0 0); pitchAxis (0 1 0);
  magUInf {v_inf}; lRef {comprimento_ref}; Aref {area_ref}; }} }}
-""")
+""", encoding="utf-8", newline="\n")
     (p/"system/fvSchemes").write_text(H % ("dictionary", "fvSchemes") + """ddtSchemes {default steadyState;} gradSchemes {default Gauss linear;}
 divSchemes {default none; div(phi,U) bounded Gauss linearUpwind grad(U); div(phi,k) bounded Gauss upwind; div(phi,omega) bounded Gauss upwind; div((nuEff*dev2(T(grad(U))))) Gauss linear;}
 laplacianSchemes {default Gauss linear corrected;} interpolationSchemes {default linear;} snGradSchemes {default corrected;} wallDist {method meshWave;}
-""")
+""", encoding="utf-8", newline="\n")
     (p/"system/fvSolution").write_text(H % ("dictionary", "fvSolution") + """solvers { p {solver GAMG; smoother GaussSeidel; tolerance 1e-7; relTol 0.01;} "(U|k|omega)" {solver smoothSolver; smoother symGaussSeidel; tolerance 1e-8; relTol 0.1;} }
 SIMPLE { nNonOrthogonalCorrectors 0; consistent yes; residualControl { p 1e-4; U 1e-5; "(k|omega)" 1e-5; } }
 relaxationFactors { equations { U 0.9; ".*" 0.9; } }
-""")
+""", encoding="utf-8", newline="\n")
     (p/"system/snappyHexMeshDict").write_text(H % ("dictionary", "snappyHexMeshDict") + f"""castellatedMesh true; snap true; addLayers {"true" if camadas > 0 else "false"};
 geometry {{ {stl_nome} {{ type triSurfaceMesh; name body; }} }}
 castellatedMeshControls {{ maxLocalCells 2000000; maxGlobalCells 4000000; minRefinementCells 10; nCellsBetweenLevels 3; resolveFeatureAngle 30;
@@ -82,16 +82,16 @@ snapControls {{ nSmoothPatch 3; tolerance 2.0; nSolveIter 30; nRelaxIter 5; nFea
 addLayersControls {{ layers {{ {("body { nSurfaceLayers %d; }" % camadas) if camadas > 0 else ""} }} relativeSizes {"false" if (camadas > 0 and y_mais_alvo > 0) else "true"}; expansionRatio 1.2; {("firstLayerThickness %.6g;" % (2 * y_mais_alvo * nu / (0.036 * v_inf))) if (camadas > 0 and y_mais_alvo > 0) else ("finalLayerThickness %s;" % camada_final)} minThickness {("%.6g" % (0.2 * 2 * y_mais_alvo * nu / (0.036 * v_inf))) if (camadas > 0 and y_mais_alvo > 0) else "0.05"}; nGrow 0; featureAngle 60; nRelaxIter 3; nSmoothSurfaceNormals 1; nSmoothNormals 3; nSmoothThickness 10; maxFaceThicknessRatio 0.5; maxThicknessToMedialRatio 0.3; minMedialAxisAngle 90; nBufferCellsNoExtrude 0; nLayerIter 50; }}
 meshQualityControls {{ maxNonOrtho 65; maxBoundarySkewness 20; maxInternalSkewness 4; maxConcave 80; minVol 1e-13; minTetQuality 1e-15; minArea -1; minTwist 0.02; minDeterminant 0.001; minFaceWeight 0.05; minVolRatio 0.01; minTriangleTwist -1; nSmoothScale 4; errorReduction 0.75; }}
 mergeTolerance 1e-6;
-""")
-    (p/"constant/transportProperties").write_text(H % ("dictionary", "transportProperties") + f"transportModel Newtonian; nu [0 2 -1 0 0 0 0] {nu};\n")
+""", encoding="utf-8", newline="\n")
+    (p/"constant/transportProperties").write_text(H % ("dictionary", "transportProperties") + f"transportModel Newtonian; nu [0 2 -1 0 0 0 0] {nu};\n", encoding="utf-8", newline="\n")
     # v2012+/Foundation leem momentumTransport (chave `model`); ESI v1912 e anteriores leem turbulenceProperties (chave `RASModel`)
     for nome, chave in (("momentumTransport", "model"), ("turbulenceProperties", "RASModel")):
-        (p/f"constant/{nome}").write_text(H % ("dictionary", nome) + f"simulationType RAS; RAS {{ {chave} kOmegaSST; turbulence on; printCoeffs on; }}\n")
+        (p/f"constant/{nome}").write_text(H % ("dictionary", nome) + f"simulationType RAS; RAS {{ {chave} kOmegaSST; turbulence on; printCoeffs on; }}\n", encoding="utf-8", newline="\n")
     I = 0.01; k = 1.5 * (v_inf * I) ** 2; om = k ** 0.5 / (0.09 ** 0.25 * comprimento_ref * 0.1)
     def field(cls, name, dims, internal, bc):
         if ar_livre:
             bc = re.sub(r"ground \{[^}]*\}", "ground {type symmetryPlane;}", bc)
-        (p/f"0/{name}").write_text(H % (cls, name) + f"dimensions {dims}; internalField {internal};\nboundaryField {{ {bc} }}\n")
+        (p/f"0/{name}").write_text(H % (cls, name) + f"dimensions {dims}; internalField {internal};\nboundaryField {{ {bc} }}\n", encoding="utf-8", newline="\n")
     field("volVectorField", "U", "[0 1 -1 0 0 0 0]", f"uniform ({v_inf} 0 0)",
           f"inlet {{type fixedValue; value uniform ({v_inf} 0 0);}} outlet {{type zeroGradient;}} ground {{type noSlip;}} body {{type noSlip;}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "p", "[0 2 -2 0 0 0 0]", "uniform 0",
@@ -102,7 +102,7 @@ mergeTolerance 1e-6;
           f"inlet {{type fixedValue; value uniform {om:.6g};}} outlet {{type zeroGradient;}} ground {{type omegaWallFunction; value uniform {om:.6g};}} body {{type omegaWallFunction; value uniform {om:.6g};}} top {{type symmetryPlane;}} sideL {{type symmetryPlane;}} sideR {{type symmetryPlane;}}")
     field("volScalarField", "nut", "[0 2 -1 0 0 0 0]", "uniform 0",
           "inlet {type calculated; value uniform 0;} outlet {type calculated; value uniform 0;} ground {type nutkWallFunction; value uniform 0;} body {type nutkWallFunction; value uniform 0;} top {type symmetryPlane;} sideL {type symmetryPlane;} sideR {type symmetryPlane;}")
-    (p/"Allrun").write_text("#!/bin/sh\nblockMesh && surfaceFeatureExtract 2>/dev/null; snappyHexMesh -overwrite > log.snappyHexMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1\n")
+    (p/"Allrun").write_text("#!/bin/sh\nblockMesh && surfaceFeatureExtract 2>/dev/null; snappyHexMesh -overwrite > log.snappyHexMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1\n", encoding="utf-8", newline="\n")
     return p
 
 def _ler_coeficientes(pasta: Path):
@@ -111,7 +111,7 @@ def _ler_coeficientes(pasta: Path):
     if not arqs:
         return None
     cab, ult = None, None
-    for ln in arqs[-1].read_text().splitlines():
+    for ln in arqs[-1].read_text(encoding="utf-8").splitlines():
         if ln.startswith("#"):
             if "Cd" in ln and "Cl" in ln:
                 cab = ln.lstrip("# ").split()
@@ -182,7 +182,7 @@ def _blocos_lista(texto: str):
 
 def _ler_patch_boundary(pasta: Path, patch: str):
     import re
-    t = (Path(pasta) / "constant/polyMesh/boundary").read_text()
+    t = (Path(pasta) / "constant/polyMesh/boundary").read_text(encoding="utf-8")
     m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\}}", t, flags=re.S)
     if not m:
         raise KeyError(f"patch '{patch}' não existe na malha")
@@ -203,9 +203,9 @@ def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float 
     pasta = Path(pasta)
     sf, nf = _ler_patch_boundary(pasta, patch)
     pm = pasta / "constant/polyMesh"
-    n_pts, corpo = _blocos_lista((pm / "points").read_text())
+    n_pts, corpo = _blocos_lista((pm / "points").read_text(encoding="utf-8"))
     pts = np.array([[float(x) for x in ln.split()] for ln in re.findall(r"^\(([^)]*)\)", corpo, flags=re.M)][:n_pts], float)
-    n_f, corpo = _blocos_lista((pm / "faces").read_text())
+    n_f, corpo = _blocos_lista((pm / "faces").read_text(encoding="utf-8"))
     faces = [[int(x) for x in m.split()] for m in re.findall(r"^\d+\(([^)]*)\)", corpo, flags=re.M)]
     if len(pts) != n_pts or len(faces) != n_f:
         raise ValueError("malha ilegível (formato não é ASCII?)")
@@ -214,7 +214,7 @@ def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float 
         if not tempos:
             raise FileNotFoundError("nenhum passo de tempo escrito (o solver não gravou resultado)")
         tempo = tempos[-1][1]
-    ptxt = (pasta / tempo / "p").read_text()
+    ptxt = (pasta / tempo / "p").read_text(encoding="utf-8")
     m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\n\s*\}}", ptxt, flags=re.S)
     if not m:
         raise KeyError(f"campo p sem patch '{patch}'")
@@ -224,7 +224,7 @@ def forcas_pressao(pasta, patch: str = "body", rho: float = 1.225, v_inf: float 
         pv = np.full(nf, float(mu.group(1)))
     elif "nonuniform" not in bloco:
         # zeroGradient não grava valor na parede: p_parede = p da célula dona da face (definição de zeroGradient)
-        n_o, corpo_o = _blocos_lista((pm / "owner").read_text())
+        n_o, corpo_o = _blocos_lista((pm / "owner").read_text(encoding="utf-8"))
         owner = np.array(corpo_o.split(")")[0].split(), int)[:n_o]
         mi = re.search(r"internalField\s+(uniform\s+([-0-9.eE+]+)|nonuniform\s+List<scalar>\s*\n?\s*(\d+)\s*\(([^)]*)\))", ptxt, flags=re.S)
         if mi.group(2) is not None:
@@ -265,13 +265,13 @@ def _ler_malha(pasta: Path):
     import re
     import numpy as np
     pm = Path(pasta) / "constant/polyMesh"
-    n_pts, corpo = _blocos_lista((pm / "points").read_text())
+    n_pts, corpo = _blocos_lista((pm / "points").read_text(encoding="utf-8"))
     pts = np.array([[float(x) for x in ln.split()] for ln in re.findall(r"^\(([^)]*)\)", corpo, flags=re.M)][:n_pts], float)
-    n_f, corpo = _blocos_lista((pm / "faces").read_text())
+    n_f, corpo = _blocos_lista((pm / "faces").read_text(encoding="utf-8"))
     faces = [[int(x) for x in m.split()] for m in re.findall(r"^\d+\(([^)]*)\)", corpo, flags=re.M)]
-    n_o, co = _blocos_lista((pm / "owner").read_text())
+    n_o, co = _blocos_lista((pm / "owner").read_text(encoding="utf-8"))
     owner = np.array(co.split(")")[0].split(), int)[:n_o]
-    n_n, cn = _blocos_lista((pm / "neighbour").read_text())
+    n_n, cn = _blocos_lista((pm / "neighbour").read_text(encoding="utf-8"))
     neigh = np.array(cn.split(")")[0].split(), int)[:n_n]
     return pts, faces, owner, neigh
 
@@ -310,10 +310,10 @@ def forcas_viscosas(pasta, patch: str = "body", rho: float = 1.225, nu: float = 
         if not tempos:
             raise FileNotFoundError("nenhum passo de tempo escrito")
         tempo = tempos[-1][1]
-    U = _lista_campo((pasta / tempo / "U").read_text(), True)
+    U = _lista_campo((pasta / tempo / "U").read_text(encoding="utf-8"), True)
     if U is None:
         raise ValueError("U com internalField uniforme/ilegível")
-    nut_txt = (pasta / tempo / "nut").read_text()
+    nut_txt = (pasta / tempo / "nut").read_text(encoding="utf-8")
     m = re.search(rf"\b{re.escape(patch)}\s*\{{(.*?)\n\s*\}}", nut_txt, flags=re.S)
     nutw = _lista_campo(m.group(1), False) if m else None
     if nutw is None or len(nutw) != nf:
@@ -365,24 +365,24 @@ def forcas_viscosas(pasta, patch: str = "body", rho: float = 1.225, nu: float = 
 
 def _ler_rho(pasta) -> float:
     import re
-    m = re.search(r"rhoInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text())
+    m = re.search(r"rhoInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text(encoding="utf-8"))
     return float(m.group(1))
 
 
 def _ler_nu(pasta) -> float:
     import re
-    t = (Path(pasta) / "constant/transportProperties").read_text()
+    t = (Path(pasta) / "constant/transportProperties").read_text(encoding="utf-8")
     return float(re.search(r"\bnu\s+(?:\[[^\]]*\]\s+)?([-0-9.eE+]+)", t).group(1))
 
 
 def _ler_vinf(pasta) -> float:
     import re
-    return float(re.search(r"magUInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text()).group(1))
+    return float(re.search(r"magUInf\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text(encoding="utf-8")).group(1))
 
 
 def _ler_aref(pasta) -> float:
     import re
-    return float(re.search(r"Aref\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text()).group(1))
+    return float(re.search(r"Aref\s+([-0-9.eE+]+)", (Path(pasta) / "system/controlDict.com_funcoes").read_text(encoding="utf-8")).group(1))
 
 
 def executar_openfoam(pasta, timeout=3600, cd_ref: float | None = None, cd_tol_pct: float = 10.0, ref_texto: str = "") -> TracedResult:
@@ -400,19 +400,19 @@ def executar_openfoam(pasta, timeout=3600, cd_ref: float | None = None, cd_tol_p
     except subprocess.TimeoutExpired:
         return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST", limitacoes=[f"tempo limite de {timeout} s excedido"])
     logp = Path(pasta) / "log.simpleFoam"
-    log = logp.read_text(errors="replace") if logp.exists() else ""
+    log = logp.read_text(errors="replace", encoding="utf-8") if logp.exists() else ""
     sem_funcoes = False
     if "FOAM FATAL" in log and 'IOstream "sha1"' in log:
         # defeito conhecido de certos pacotes/compilações do OpenFOAM (v1912 Debian): QUALQUER função-objeto aborta ao iniciar.
         # O solver em si funciona: refaz sem `functions` (malha já existe) e declara que Cd/Cl NÃO estão disponíveis.
         cd = Path(pasta) / "system" / "controlDict"
-        txt = cd.read_text()
+        txt = cd.read_text(encoding="utf-8")
         i = txt.find("functions")
         if i >= 0:
-            cd.with_name("controlDict.com_funcoes").write_text(txt)
-            cd.write_text(txt[:i])
+            cd.with_name("controlDict.com_funcoes").write_text(txt, encoding="utf-8", newline="\n")
+            cd.write_text(txt[:i], encoding="utf-8", newline="\n")
             r = subprocess.run(sr.openfoam_shell("simpleFoam > log.simpleFoam 2>&1"), cwd=pasta, capture_output=True, text=True, timeout=timeout)
-            log = logp.read_text(errors="replace") if logp.exists() else ""
+            log = logp.read_text(errors="replace", encoding="utf-8") if logp.exists() else ""
             sem_funcoes = True
     if r.returncode != 0 or not log or "FOAM FATAL" in log:
         return TracedResult("CFD OpenFOAM", "NAO_EXECUTADO", "simpleFoam k-ω SST",

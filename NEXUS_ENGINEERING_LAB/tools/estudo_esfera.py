@@ -17,8 +17,8 @@ for tag,cel,it in (("grossa",(48,24,24),1500),("media",(72,36,36),1500),("fina",
     x=r["result"]; v=x["valores"]
     res.append({"malha":tag,"celulas":cel,"h_rel":1.0/cel[0],"iter":v.get("iteracoes"),"classe":x["classe"],"conv":v.get("convergiu"),"cd_p":v.get("cd_pressao"),"cd_f":v.get("cd_atrito_estimado"),
       "cd_tot":v.get("cd_total_estimado"),"cl":v.get("cl_total_estimado"),"bloq":r["info"]["bloqueio_pct"],"a_ref":r["info"]["a_ref_m2"],"s":time.time()-t})
-    json.dump(res,open(f"{OUT}/res.json","w"),ensure_ascii=False,indent=1)
+    json.dump(res,open(f"{OUT}/res.json","w", encoding="utf-8", newline="\n"),ensure_ascii=False,indent=1)
 if len(res)==3 and all(r["cd_tot"] is not None for r in res):
     from modules.cfd_gci import gci3
     g=gci3(tuple(r["h_rel"] for r in reversed(res)),tuple(r["cd_tot"] for r in reversed(res)))
-    json.dump(g,open(f"{OUT}/gci.json","w"),ensure_ascii=False,indent=1); print("GCI",g)
+    json.dump(g,open(f"{OUT}/gci.json","w", encoding="utf-8", newline="\n"),ensure_ascii=False,indent=1); print("GCI",g)

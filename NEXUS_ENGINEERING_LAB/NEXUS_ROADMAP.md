@@ -23,6 +23,10 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V6.0 (V5.1–V5.5)
+- Portabilidade Windows (código), seção de consistência no PDF, `ajustar` de uma variável no CAD, diálogos do CAD em 5 idiomas, A/B no celular.
+- Pendente: verificação em Windows 11 real, seleção de face no 3D, solver de restrições multivariável, tradução nativa revisada, consistência no celular.
+
 ## Feito na V5.0
 CAD (varredura, loft, filete variável), comparação A/B + varredura de parâmetro, verificação de consistência do projeto e NEXUS HOME.
 **Depois da 5.0 (nada disso foi feito):** validação real no Windows 11 + instalador; redesenho completo em ambientes com barras próprias; seleção de entidades CAD clicando no 3D; solver paramétrico de restrições; A/B e verificação no celular; relatório PDF do projeto incluindo o parecer de consistência; tradução completa das caixas de entrada simples.

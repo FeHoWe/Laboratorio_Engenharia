@@ -153,3 +153,20 @@ def test_pdf_chines_usa_fonte_cid(win, tmp_path):
         i18n.definir_idioma(antes, salvar=False)
     b = out.read_bytes()
     assert out and b.startswith(b"%PDF") and (b"STSong-Light" in b or b"WenQuanYi" in b or b"NexusCJK" in b or b"/FontFile2" in b)
+
+
+@pytest.mark.parametrize("lang,titulo", [("pt", "Verificação de consistência do projeto"), ("en", "Project consistency check"), ("de", "Prüfung der Projektkonsistenz")])
+def test_pdf_inclui_verificacao_de_consistencia(win, tmp_path, lang, titulo):
+    """V5.2 — o PDF do projeto traz o parecer de consistência (regras), com níveis e a ressalva 'não é IA generativa'."""
+    import subprocess
+    from core import i18n
+    antes = i18n.idioma()
+    i18n.definir_idioma(lang, salvar=False)
+    try:
+        out = win.export_report(str(tmp_path / f"c_{lang}.pdf"), detail_parts=False)
+    finally:
+        i18n.definir_idioma(antes, salvar=False)
+    t = subprocess.run(["pdftotext", str(out), "-"], capture_output=True, text=True).stdout
+    if t:
+        assert titulo in t and ("[ATENCAO]" in t or "[INFO]" in t)
+        assert "NAO_EXECUTADO" in t

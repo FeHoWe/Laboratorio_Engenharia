@@ -1,5 +1,6 @@
 """Editor de sketch 2D: perfis (retângulo, círculo, polígono) → extrusão (adicionar/cortar) no histórico paramétrico."""
 from __future__ import annotations
+from core.i18n import tr
 
 from PySide6.QtWidgets import (QLineEdit, QComboBox, QDialog, QDoubleSpinBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox, QPushButton, QVBoxLayout)
 
@@ -68,7 +69,7 @@ class SketchDialog(QDialog):
         try:
             self.sk.add(**e)
         except SketchError as ex:
-            QMessageBox.warning(self, "Sketch", str(ex))
+            QMessageBox.warning(self, tr("Sketch"), str(ex))
         self.refresh()
 
     def add_rect(self) -> None:
@@ -82,14 +83,14 @@ class SketchDialog(QDialog):
             self._try(t="circle", cx=v[0], cy=v[1], r=v[2])
 
     def add_poly(self) -> None:
-        txt, ok = QInputDialog.getText(self, "Polígono", "Pontos x,y separados por ';' (ex.: 0,0; 10,0; 10,5):")
+        txt, ok = QInputDialog.getText(self, tr("Polígono"), tr("Pontos x,y separados por ';' (ex.: 0,0; 10,0; 10,5):"))
         if not ok:
             return
         try:
             pts = [[float(a) for a in p.split(",")] for p in txt.split(";") if p.strip()]
             assert all(len(p) == 2 for p in pts)
         except (ValueError, AssertionError):
-            QMessageBox.warning(self, "Sketch", "Formato inválido. Use: x,y; x,y; x,y"); return
+            QMessageBox.warning(self, tr("Sketch"), tr("Formato inválido. Use: x,y; x,y; x,y")); return
         self._try(t="poly", pts=pts)
 
     def edit_dim(self) -> None:
@@ -99,16 +100,16 @@ class SketchDialog(QDialog):
         e = self.sk.entities[i]
         keys = [k for k, x in e.items() if isinstance(x, (int, float))]
         if not keys:
-            QMessageBox.information(self, "Sketch", "Polígono: exclua e recrie com os novos pontos."); return
-        k, ok = QInputDialog.getItem(self, "Parâmetro", "Qual:", keys, 0, False)
+            QMessageBox.information(self, tr("Sketch"), tr("Polígono: exclua e recrie com os novos pontos.")); return
+        k, ok = QInputDialog.getItem(self, tr("Parâmetro"), tr("Qual:"), keys, 0, False)
         if not ok:
             return
-        x, ok = QInputDialog.getDouble(self, k, "Novo valor:", float(e[k]), -1e6, 1e6, 4)
+        x, ok = QInputDialog.getDouble(self, k, tr("Novo valor:"), float(e[k]), -1e6, 1e6, 4)
         if ok:
             try:
                 self.sk.modify(i, **{k: x})
             except SketchError as ex:
-                QMessageBox.warning(self, "Sketch", str(ex))
+                QMessageBox.warning(self, tr("Sketch"), str(ex))
         self.refresh()
 
     def remove(self) -> None:
@@ -128,13 +129,13 @@ class SketchDialog(QDialog):
             self.sk.validate()
             caminho = [[float(c) for c in p.split(",")] for p in self.caminho.text().split(";") if p.strip()]
         except (SketchError, ValueError) as ex:
-            QMessageBox.warning(self, "Sketch", str(ex)); return
+            QMessageBox.warning(self, tr("Sketch"), str(ex)); return
         if self.history is None:
-            QMessageBox.information(self, "Sketch", "Abra uma peça no histórico paramétrico primeiro."); return
+            QMessageBox.information(self, tr("Sketch"), tr("Abra uma peça no histórico paramétrico primeiro.")); return
         try:
             self.history.add("sketch_sweep", sketch=self.sk.to_dict(), path=caminho, mode=self.mode.currentText())
         except Exception as ex:
-            QMessageBox.warning(self, "Varredura", str(ex)); return
+            QMessageBox.warning(self, tr("Varredura"), str(ex)); return
         self.accept()
 
     def apply_revolve(self) -> None:
@@ -142,13 +143,13 @@ class SketchDialog(QDialog):
         try:
             self.sk.validate()
         except SketchError as ex:
-            QMessageBox.warning(self, "Sketch", str(ex)); return
+            QMessageBox.warning(self, tr("Sketch"), str(ex)); return
         if self.history is None:
-            QMessageBox.information(self, "Sketch", "Abra uma peça no histórico paramétrico primeiro."); return
+            QMessageBox.information(self, tr("Sketch"), tr("Abra uma peça no histórico paramétrico primeiro.")); return
         try:
             self.history.add("sketch_revolve", sketch=self.sk.to_dict(), angle_deg=self.ang.value(), axis=[w.value() for w in self.eixo], mode=self.mode.currentText())
         except Exception as ex:
-            QMessageBox.warning(self, "Revolução", str(ex)); return
+            QMessageBox.warning(self, tr("Revolução"), str(ex)); return
         self.accept()
 
     def apply(self) -> None:
@@ -156,11 +157,11 @@ class SketchDialog(QDialog):
         try:
             self.sk.validate()
         except SketchError as ex:
-            QMessageBox.warning(self, "Sketch", str(ex)); return
+            QMessageBox.warning(self, tr("Sketch"), str(ex)); return
         if self.history is None:
-            QMessageBox.information(self, "Sketch", "Abra uma peça no histórico paramétrico primeiro."); return
+            QMessageBox.information(self, tr("Sketch"), tr("Abra uma peça no histórico paramétrico primeiro.")); return
         try:
             self.history.add("sketch_extrude", sketch=self.sk.to_dict(), distance=self.dist.value(), mode=self.mode.currentText())
         except Exception as ex:
-            QMessageBox.warning(self, "Extrusão", str(ex)); return
+            QMessageBox.warning(self, tr("Extrusão"), str(ex)); return
         self.accept()

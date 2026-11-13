@@ -97,6 +97,7 @@ class JobManager:
         root = str(Path(__file__).resolve().parent.parent)
         env = dict(os.environ)
         env["PYTHONPATH"] = root + os.pathsep + env.get("PYTHONPATH", "")
+        env.setdefault("PYTHONUTF8", "1"); env.setdefault("PYTHONIOENCODING", "utf-8")     # filho em UTF-8 também no Windows
         env.update(kw.pop("env", None) or {})
         cmd = [sys.executable, "-m", "core.job_worker", module, func, json.dumps(args or {})]
         return self.submit(Job(name=name, cmd=cmd, cwd=kw.pop("cwd", root), env=env, **kw))
@@ -185,7 +186,7 @@ class JobManager:
         self._notify(j)
         timer = None
         try:
-            kw = dict(stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, cwd=j.cwd, env=j.env)
+            kw = dict(stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", bufsize=1, cwd=j.cwd, env=j.env)
             if os.name == "posix":
                 kw["start_new_session"] = True
             try:

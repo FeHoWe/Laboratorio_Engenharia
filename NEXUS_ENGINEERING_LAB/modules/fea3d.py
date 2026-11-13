@@ -175,7 +175,7 @@ def write_calculix_inp(mesh: Mesh, E, nu, fixed, loads, path):
         for c in range(3):
             if f[c]: L.append(f"{nd+1}, {c+1}, {f[c]:.9g}")
     L += ["*NODE FILE", "U", "*EL FILE", "S", "*END STEP"]
-    open(path, "w").write("\n".join(L) + "\n")
+    open(path, "w", encoding="utf-8", newline="\n").write("\n".join(L) + "\n")
 
 
 def modal(mesh: Mesh, E: float, nu: float, rho: float, fixed: dict, n_modes: int = 6):
@@ -218,4 +218,4 @@ def export_vtk(path, mesh: Mesh, u=None, vm=None, title="NEXUS-Tet4"):
         L += [f"POINT_DATA {n}", "VECTORS deslocamento_mm double"] + [f"{a:.9g} {b:.9g} {c:.9g}" for a, b, c in u]
     if vm is not None:
         L += [f"CELL_DATA {m}", "SCALARS von_mises_MPa double 1", "LOOKUP_TABLE default"] + [f"{x:.9g}" for x in vm]
-    open(path, "w").write("\n".join(L) + "\n")
+    open(path, "w", encoding="utf-8", newline="\n").write("\n".join(L) + "\n")

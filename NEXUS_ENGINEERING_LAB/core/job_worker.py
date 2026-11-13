@@ -19,7 +19,8 @@ def main(argv: list[str]) -> int:
     mod, fn, raw = argv
     f = getattr(importlib.import_module(mod), fn)
     out = f(**json.loads(raw))
-    print(RESULT_MARK + json.dumps(out, ensure_ascii=False, default=str), flush=True)
+    # ASCII puro: o console do Windows (cp1252) não quebra com μ, ⚠, CJK
+    print(RESULT_MARK + json.dumps(out, ensure_ascii=True, default=str), flush=True)
     return 0
 
 

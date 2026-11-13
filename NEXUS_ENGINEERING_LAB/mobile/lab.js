@@ -421,7 +421,15 @@ function ayLimiteFx(v,vel,fxF,fxR){v=latDefaults(v);latCheck(v);const G=9.80665,
  for(let i=0;i<80;i++){const ay=0.5*(lo+hi),mf=fyMaxEixoFx(v,'f',vel,ay,fxF||0),mr=fyMaxEixoFx(v,'r',vel,ay,fxR||0);const ok=mf!==null&&mr!==null&&v.m*ay*v.b/L<=mf&&v.m*ay*v.a/L<=mr;if(ok)lo=ay;else hi=ay;}
  return{ay:lo,viavel:true};}
 function diagramaGG(v,vel,n,fTras){const G=9.80665,out=[];for(let i=0;i<n;i++){const axg=-1.5+3.0*i/(n-1),F=v.m*axg*G;let fr,ff;if(F>=0){fr=F;ff=0;}else{fr=F*fTras;ff=F*(1-fTras);}const r=ayLimiteFx(v,vel,ff,fr);out.push([axg,r.viavel?r.ay/G:null]);}return out;}
-const LAB={ayLimiteFx,diagramaGG,forcaCombinada,suspResolver,SUSP_EX,lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+function compararVoltas(a,b,pista,ds){ds=ds||2;const ra=lapSim(a,pista,ds),rb=lapSim(b,pista,ds);
+ const S={tempo:[true,'tempo de volta [s]'],vMedia:[false,'v média [km/h]'],vMax:[null,'v máx [km/h]'],vMin:[false,'v mín [km/h]'],eMJ:[null,'energia elétrica usada [MJ]'],comp:[null,'comprimento [m]']};
+ const campos={};for(const k in S){const x=ra[k],y=rb[k],d=y-x;let m=null;if(S[k][0]!==null&&Math.abs(d)>1e-12)m=S[k][0]?(d<0?'B':'A'):(d>0?'B':'A');campos[k]={nome:S[k][1],A:x,B:y,delta:d,deltaPct:x?d/x*100:null,melhor:m};}
+ const acum=v=>{let t=0;const o=[],n=v.length;for(let i=0;i<n;i++){o.push(t);t+=2*ds/(v[i]+v[(i+1)%n]);}return o;};
+ const ta=acum(ra.v),tb=acum(rb.v),dt=ta.map((x,i)=>tb[i]-x);let ig=0,ip=0;dt.forEach((d,i)=>{if(d<dt[ig])ig=i;if(d>dt[ip])ip=i;});
+ const iguais={m:'massa',pIce:'potência de combustão',cda:'Cd·A',cla:'Cl·A',mu:'μ',crr:'Crr',pErs:'implantação elétrica',eErs:'energia elétrica'};
+ const dif=Object.keys(iguais).filter(k=>(a[k]||0)!==(b[k]||0));
+ return{campos,dt,ds,ganho:{s:ig*ds,d:dt[ig]},perda:{s:ip*ds,d:dt[ip]},diferentes:dif.map(k=>iguais[k]+': '+a[k]+' → '+b[k])};}
+const LAB={compararVoltas,ayLimiteFx,diagramaGG,forcaCombinada,suspResolver,SUSP_EX,lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
 LAB.nivelFS=fs=>fs<1?'CRITICO':(fs<1.5?'ATENCAO':'INFO');
 LAB.interpFS=(vm,sy)=>{if(!(vm>0)||!(sy>0))throw new Error('vm e sy devem ser positivos');const fs=sy/vm;return {fs,nivel:LAB.nivelFS(fs)};};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;
