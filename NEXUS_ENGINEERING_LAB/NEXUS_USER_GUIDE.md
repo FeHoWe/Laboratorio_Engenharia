@@ -88,3 +88,10 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 - **Ajustar variável (CAD):** no histórico, *Ajustar…* — escolha a variável, a métrica (ex.: volume), o alvo e o intervalo; o NEXUS busca o valor por bisseção. Só funciona se a métrica crescer ou decrescer de forma monótona no intervalo; caso contrário avisa.
 - **Relatório PDF:** inclui a consistência do projeto.
 - **Celular → Engenharia F1 → Comparar A/B:** preencha só os campos de B que mudam; campo vazio = igual a A. Resultado vale para o modelo simplificado, não para o carro real.
+
+
+## Novidades da V10.0
+- **Linha de comando:** `python nexus_cli.py volta`, `comparar --b cla=3.4`, `tornado --pct 5`, `otimizar --faixa mu=1.5:1.7 massa=760:800`, `verificar projeto.nexus`, `doctor`; acrescente `--json` (antes do comando) para saída completa e `--saida arquivo.pdf|csv|json` para exportar. Os valores do carro são exemplos ILUSTRATIVOS até você informar os seus (`--carro massa=780 mu=1.7 …`; potências em W, energia em J).
+- **Ferramentas F1 → Estudos:** *Sensibilidade (tornado)* mostra quanto cada parâmetro muda o tempo de volta (±%). *Otimizar tempo de volta* busca o melhor ponto nas faixas que você informar; se o resultado cair na borda, o modelo é monótono nesse parâmetro — isso não é recomendação de projeto. Para incluir o custo de arrasto do Cl·A, informe SEU fator k (Cd·A por Cl·A). *Exportar estudo…* grava PDF, CSV ou JSON com classe, solver e limitações.
+- **CAD (API):** `CadHistory.ajustar_multi({"L": (1, 60), "W": (1, 40)}, [("dx", 70), ("volume", alvo)])` ajusta várias variáveis; recusa e não altera nada se os alvos forem incompatíveis com as faixas.
+- **Celular → Engenharia F1:** tornado e *Otimizar (seção áurea)* de um parâmetro, no mesmo modelo.

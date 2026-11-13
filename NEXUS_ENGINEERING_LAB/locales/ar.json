@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "أدوات F1",
  "Parecer de resultados": "رأي في النتائج",
- "Verificar consistência do projeto": "التحقق من اتساق المشروع"
+ "Verificar consistência do projeto": "التحقق من اتساق المشروع",
+ "Estudos": "دراسات",
+ "Exportar estudo…": "تصدير الدراسة…",
+ "Faixas (campo=min:max, vírgula)": "النطاقات (الحقل=أدنى:أقصى، فاصلة)",
+ "Otimizar tempo de volta": "تحسين زمن اللفة",
+ "Sensibilidade (tornado)": "الحساسية (إعصار)",
+ "Variação ± %": "التغيّر ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (اختياري)"
 }

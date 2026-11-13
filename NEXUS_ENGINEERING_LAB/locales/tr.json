@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1 araçları",
  "Parecer de resultados": "Sonuç görüşü",
- "Verificar consistência do projeto": "Proje tutarlılığını denetle"
+ "Verificar consistência do projeto": "Proje tutarlılığını denetle",
+ "Estudos": "Çalışmalar",
+ "Exportar estudo…": "Çalışmayı dışa aktar…",
+ "Faixas (campo=min:max, vírgula)": "Aralıklar (alan=min:maks, virgül)",
+ "Otimizar tempo de volta": "Tur süresini optimize et",
+ "Sensibilidade (tornado)": "Duyarlılık (tornado)",
+ "Variação ± %": "Değişim ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (isteğe bağlı)"
 }

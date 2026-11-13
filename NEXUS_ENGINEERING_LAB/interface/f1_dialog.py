@@ -97,6 +97,7 @@ class F1Dialog(QDialog):
         tabs.addTab(self._lap_tab(), "Volta")
         tabs.addTab(self._tel_tab(), "Telemetria")
         tabs.addTab(self._ab_tab(), "Comparar A/B")
+        tabs.addTab(self._estudos_tab(), "Estudos")
 
     # ------------------------------------------------------------------ regulamento
     def _regs_tab(self):
@@ -253,6 +254,70 @@ class F1Dialog(QDialog):
         v.addLayout(h)
         self.ab_out = QPlainTextEdit(); self.ab_out.setReadOnly(True); v.addWidget(self.ab_out)
         return w
+
+    # ------------------------------------------------------------------ V7.0/V8.0: sensibilidade, otimização, exportação
+    def _estudos_tab(self):
+        w = QWidget(); v = QVBoxLayout(w)
+        v.addWidget(self._warn("Usa os valores da aba Volta e a pista dela. Resultado do MESMO solver simplificado: não prevê o carro real; a otimização acha o melhor ponto "
+                               "ENCONTRADO nas faixas que você informar (não prova ótimo global) e cai na borda quando o modelo é monótono."))
+        h = QHBoxLayout()
+        self.st_pct = QLineEdit("5"); h.addWidget(QLabel("Variação ± %")); h.addWidget(self.st_pct)
+        b = QPushButton("Sensibilidade (tornado)"); b.clicked.connect(self.run_tornado); h.addWidget(b)
+        v.addLayout(h)
+        h2 = QHBoxLayout()
+        self.st_faixas = QLineEdit("mu=1.5:1.7, massa=760:800"); h2.addWidget(QLabel("Faixas (campo=min:max, vírgula)")); h2.addWidget(self.st_faixas)
+        self.st_k = QLineEdit(""); self.st_k.setPlaceholderText("k Cd·A/Cl·A (opcional)"); h2.addWidget(self.st_k)
+        c = QPushButton("Otimizar tempo de volta"); c.clicked.connect(self.run_otim); h2.addWidget(c)
+        v.addLayout(h2)
+        self.st_out = QPlainTextEdit(); self.st_out.setReadOnly(True); v.addWidget(self.st_out)
+        e = QPushButton("Exportar estudo…"); e.clicked.connect(self.exportar_estudo); v.addWidget(e)
+        self.last_estudo = None                                    # (tipo, dict)
+        return w
+
+    def _carro_si(self):
+        """Carro em unidades SI e pista da aba Volta."""
+        return self._car_and_track()
+
+    def run_tornado(self):
+        from modules import otimizacao
+        try:
+            car, pista = self._carro_si()
+            t = otimizacao.tornado(car, None, _num(self.st_pct), pista)
+            self.last_estudo = ("tornado", t)
+            self.st_out.setPlainText(otimizacao.texto_tornado(t))
+        except Exception as e:  # noqa: BLE001
+            self.st_out.setPlainText(f"Não foi possível calcular: {e}")
+
+    def run_otim(self):
+        from modules import otimizacao
+        try:
+            car, pista = self._carro_si()
+            escala = {"p_ice": 1e3, "p_ers": 1e3, "e_ers": 1e6}                 # interface em kW/MJ, solver em W/J
+            lim = {}
+            for item in self.st_faixas.text().split(","):
+                if item.strip():
+                    k, r = item.split("=", 1); lo, hi = r.split(":", 1); f = escala.get(k.strip(), 1.0)
+                    lim[k.strip()] = (float(lo) * f, float(hi) * f)
+            k = self.st_k.text().strip()
+            o = otimizacao.otimizar(car, lim, pista, k_cda_por_cla=float(k) if k else None)
+            self.last_estudo = ("otimizacao", o)
+            self.st_out.setPlainText(otimizacao.texto_otimizacao(o))
+        except Exception as e:  # noqa: BLE001
+            self.st_out.setPlainText(f"Não foi possível otimizar: {e}")
+
+    def exportar_estudo(self):
+        from modules import estudos_export
+        est = self.last_estudo or (("comparacao", self.last_ab) if getattr(self, "last_ab", None) else None)
+        if not est:
+            self.st_out.setPlainText("Calcule um estudo (tornado, otimização ou A/B) antes de exportar.")
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Exportar estudo", "", "PDF (*.pdf);;CSV (*.csv);;JSON (*.json)")
+        if path:
+            try:
+                estudos_export.exportar(est[0], est[1], path)
+                self.st_out.appendPlainText(f"\nExportado: {path}")
+            except Exception as e:  # noqa: BLE001
+                self.st_out.appendPlainText(f"\nFalha ao exportar: {e}")
 
     @staticmethod
     def _carro(d):

@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1 도구",
  "Parecer de resultados": "결과 소견",
- "Verificar consistência do projeto": "프로젝트 일관성 검사"
+ "Verificar consistência do projeto": "프로젝트 일관성 검사",
+ "Estudos": "연구",
+ "Exportar estudo…": "연구 내보내기…",
+ "Faixas (campo=min:max, vírgula)": "범위 (항목=최소:최대, 쉼표)",
+ "Otimizar tempo de volta": "랩 타임 최적화",
+ "Sensibilidade (tornado)": "민감도 (토네이도)",
+ "Variação ± %": "변동 ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (선택)"
 }

@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "Инструменты F1",
  "Parecer de resultados": "Заключение по результатам",
- "Verificar consistência do projeto": "Проверить согласованность проекта"
+ "Verificar consistência do projeto": "Проверить согласованность проекта",
+ "Estudos": "Исследования",
+ "Exportar estudo…": "Экспорт исследования…",
+ "Faixas (campo=min:max, vírgula)": "Диапазоны (поле=мин:макс, запятая)",
+ "Otimizar tempo de volta": "Оптимизировать время круга",
+ "Sensibilidade (tornado)": "Чувствительность (торнадо)",
+ "Variação ± %": "Вариация ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (необязательно)"
 }

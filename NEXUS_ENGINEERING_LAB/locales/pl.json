@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "Narzędzia F1",
  "Parecer de resultados": "Opinia o wynikach",
- "Verificar consistência do projeto": "Sprawdź spójność projektu"
+ "Verificar consistência do projeto": "Sprawdź spójność projektu",
+ "Estudos": "Badania",
+ "Exportar estudo…": "Eksportuj badanie…",
+ "Faixas (campo=min:max, vírgula)": "Zakresy (pole=min:maks, przecinek)",
+ "Otimizar tempo de volta": "Optymalizuj czas okrążenia",
+ "Sensibilidade (tornado)": "Czułość (tornado)",
+ "Variação ± %": "Zmiana ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opcjonalnie)"
 }

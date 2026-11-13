@@ -612,5 +612,12 @@
  "Métrica:": "Messgröße:",
  "Valor desejado da métrica:": "Gewünschter Wert der Messgröße:",
  "Mínimo da variável:": "Minimum der Variablen:",
- "Máximo da variável:": "Maximum der Variablen:"
+ "Máximo da variável:": "Maximum der Variablen:",
+ "Estudos": "Studien",
+ "Exportar estudo…": "Studie exportieren…",
+ "Faixas (campo=min:max, vírgula)": "Bereiche (Feld=min:max, Komma)",
+ "Otimizar tempo de volta": "Rundenzeit optimieren",
+ "Sensibilidade (tornado)": "Sensitivität (Tornado)",
+ "Variação ± %": "Variation ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (optional)"
 }

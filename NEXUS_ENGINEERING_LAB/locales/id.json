@@ -443,5 +443,12 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "Alat F1",
  "Parecer de resultados": "Pendapat hasil",
- "Verificar consistência do projeto": "Periksa konsistensi proyek"
+ "Verificar consistência do projeto": "Periksa konsistensi proyek",
+ "Estudos": "Studi",
+ "Exportar estudo…": "Ekspor studi…",
+ "Faixas (campo=min:max, vírgula)": "Rentang (bidang=min:maks, koma)",
+ "Otimizar tempo de volta": "Optimalkan waktu putaran",
+ "Sensibilidade (tornado)": "Sensitivitas (tornado)",
+ "Variação ± %": "Variasi ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (opsional)"
 }

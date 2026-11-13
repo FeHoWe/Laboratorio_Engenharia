@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## V10.0 — 2026-11-13 (consolidação das etapas V6.1 → V9.0)
+Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
+- **V6.1 — NEXUS em linha de comando** (`nexus_cli.py`): `doctor`, `volta`, `comparar`, `tornado`, `otimizar` e `verificar arquivo.nexus`, texto ou `--json`, código de saída 0/1/2 (2 = achado CRÍTICO na verificação), `--saida arquivo.{csv,json,pdf}` nos estudos. Entrada inválida vira mensagem curta (código 1), sem traceback.
+- **V6.2 — CAD: ajuste multivariável** (`CadHistory.ajustar_multi`): várias variáveis × vários alvos (volume, dx, dy, dz) por mínimos quadrados com faixas. Só aplica se TODOS os resíduos relativos ficarem dentro da tolerância; caso contrário recusa e nada muda (testado, incluindo restrição violada). Informa se o problema é sub‑, sobre‑ ou exatamente determinado; **não prova unicidade**. Sem botão no diálogo (API/receita).
+- **V7.0 — Sensibilidade e otimização da volta** (`modules/otimizacao.py`): `tornado` (±x % por parâmetro, ordenado pela amplitude), `otimizar` (evolução diferencial, semente fixa → repetível; Cd·A↔Cl·A só se VOCÊ informar `k_cda_por_cla`, senão o texto avisa que Cl·A saiu “de graça”) e `otimizar_1d` (seção áurea determinística). Resultado: melhor ponto ENCONTRADO, não prova de ótimo global; parâmetros na borda são sinalizados (modelo monótono ≠ recomendação de projeto).
+- **V8.0 — Estudos exportáveis** (`modules/estudos_export.py`): A/B, tornado e otimização em CSV, JSON e PDF, sempre com classe, solver e limitações. Nova aba **Estudos** em *Ferramentas F1* (tornado, otimização por faixas, exportar), traduzida nos 15 idiomas.
+- **V9.0 — Celular:** aba *Engenharia F1* ganhou **Sensibilidade (tornado)** e **Otimizar 1 parâmetro (seção áurea)**; `validate_lab.py` confere JS × Python (erro ≈ 1,9e‑13, mesma ordem e mesmo nº de avaliações). Conferido também carregando a aba no Chromium sem erros de script. Textos novos do celular estão só em português (o seletor de idioma do celular cai no original).
+- Testes novos: `test_otimizacao` (11), `test_cli` (12), `test_cad_multi` (4), `test_estudos_export` (5), aba Estudos no diálogo (1).
+- **Não feito / limites (honestos):** Windows 11, WSL2 e instalador nunca foram executados em máquina real; todos os estudos valem para o modelo de ponto material quase‑estacionário com pista sintética, não para o carro real; sensibilidade é local (sem interações); a tornado do celular usa passo de 3 m (a volta principal usa 2 m, daí diferença na 3ª casa); sem seleção de face clicando no 3D; Home é tela de partida; traduções são de IA sem revisão nativa; ajuste multivariável do CAD não tem botão na interface.
+- Versão do app 10.0.
+
 ## V6.0 — 2026-11-12 (consolidação das etapas V5.1 → V5.5)
 Nada foi reconstruído; `.nexus`, Arsenal, materiais e resultados seguem compatíveis (`FORMAT_VERSION` continua 1).
 - **V5.1 — Portabilidade (preparação para Windows):** checagem de processo vivo no Windows sem `os.kill(pid,0)` (que lá encerra o processo) — `core/project_safety._pid_vivo`; saída do worker de jobs em JSON ASCII e ambiente UTF‑8 nos subprocessos (evita erro de cp1252); `encoding="utf-8"` explícito em 44 aberturas de arquivo; fins de linha LF nos arquivos do OpenFOAM/Allrun. Testes em `test_portabilidade`. **Continua NÃO testado em Windows real.**

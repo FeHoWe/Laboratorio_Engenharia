@@ -60,3 +60,28 @@ def test_aba_ab_no_dialogo_f1():
     assert "Varredura de p_ice" in d.ab_out.toPlainText() and "400" in d.ab_out.toPlainText()
     d.sw_campo.setText("xyz"); d.run_sweep(); assert "Não foi possível" in d.ab_out.toPlainText()
     w.project.dirty = False; w.close()
+
+
+def test_dialogo_f1_aba_estudos(tmp_path, monkeypatch):
+    from interface.main_window import MainWindow
+    from core.cad_engine import CadEngine
+    from interface.f1_dialog import F1Dialog
+    from PySide6.QtWidgets import QFileDialog
+    w = MainWindow(config={}, engine=CadEngine())
+    d = F1Dialog(w)
+    d.exportar_estudo()
+    assert "antes de exportar" in d.st_out.toPlainText()
+    d.run_tornado()
+    assert "amplitude" in d.st_out.toPlainText() and d.last_estudo[0] == "tornado"
+    d.st_faixas.setText("mu=1.5:1.7, p_ice=450:550"); d.run_otim()
+    t = d.st_out.toPlainText()
+    assert "melhor encontrado" in t and d.last_estudo[0] == "otimizacao"
+    # p_ice está em kW na interface: a faixa 450–550 kW deve virar 450e3–550e3 W
+    assert 450e3 <= d.last_estudo[1]["parametros"]["p_ice"] <= 550e3
+    d.st_faixas.setText("lixo"); d.run_otim(); assert "Não foi possível otimizar" in d.st_out.toPlainText()
+    d.st_faixas.setText("mu=1.5:1.7"); d.run_otim()
+    alvo = tmp_path / "e.csv"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(alvo), "")))
+    d.exportar_estudo()
+    assert alvo.exists() and "Exportado" in d.st_out.toPlainText()
+    w.project.dirty = False; w.close()

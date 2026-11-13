@@ -429,7 +429,18 @@ function compararVoltas(a,b,pista,ds){ds=ds||2;const ra=lapSim(a,pista,ds),rb=la
  const iguais={m:'massa',pIce:'potência de combustão',cda:'Cd·A',cla:'Cl·A',mu:'μ',crr:'Crr',pErs:'implantação elétrica',eErs:'energia elétrica'};
  const dif=Object.keys(iguais).filter(k=>(a[k]||0)!==(b[k]||0));
  return{campos,dt,ds,ganho:{s:ig*ds,d:dt[ig]},perda:{s:ip*ds,d:dt[ip]},diferentes:dif.map(k=>iguais[k]+': '+a[k]+' → '+b[k])};}
-const LAB={compararVoltas,ayLimiteFx,diagramaGG,forcaCombinada,suspResolver,SUSP_EX,lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
+function tornado(c,campos,pct,pista,ds){c=Object.assign({crr:0.012,pErs:0,eErs:0},c);ds=ds||3;pct=pct==null?5:pct;if(!(pct>0&&pct<=50))throw new Error('variação deve estar em (0, 50]');
+ const ok=['m','pIce','cda','cla','mu','crr','pErs','eErs'];campos=campos||ok.filter(k=>(c[k]||0)!==0);campos.forEach(k=>{if(ok.indexOf(k)<0)throw new Error('parâmetro desconhecido: '+k);});
+ const t0=lapSim(c,pista,ds).tempo,f=pct/100,linhas=[];
+ campos.forEach(k=>{const v0=c[k]||0;if(v0===0)return;const tm=lapSim(Object.assign({},c,{[k]:v0*(1-f)}),pista,ds).tempo,tp=lapSim(Object.assign({},c,{[k]:v0*(1+f)}),pista,ds).tempo;
+  linhas.push({campo:k,valor:v0,tMenos:tm,tMais:tp,dMenos:tm-t0,dMais:tp-t0,amplitude:Math.abs(tp-tm)});});
+ linhas.sort((a,b)=>b.amplitude-a.amplitude);return{t0,pct,linhas};}
+function otimizar1d(c,campo,lo,hi,pista,ds){ds=ds||3;const ok=['m','pIce','cda','cla','mu','crr','pErs','eErs'];if(ok.indexOf(campo)<0)throw new Error('parâmetro desconhecido: '+campo);if(!(lo<hi))throw new Error('faixa inválida: mínimo deve ser menor que máximo');
+ const g=(Math.sqrt(5)-1)/2,f=x=>lapSim(Object.assign({},c,{[campo]:x}),pista,ds).tempo;let a=lo,b=hi,x1=b-g*(b-a),x2=a+g*(b-a),f1=f(x1),f2=f(x2),n=2;
+ for(let i=0;i<80;i++){if((b-a)<=1e-6*(hi-lo))break;if(f1<f2){b=x2;x2=x1;f2=f1;x1=b-g*(b-a);f1=f(x1);}else{a=x1;x1=x2;f1=f2;x2=a+g*(b-a);f2=f(x2);}n++;}
+ let x=0.5*(a+b),t=f(x);const tlo=f(lo),thi=f(hi);if(tlo<=t){x=lo;t=tlo;}if(thi<t){x=hi;t=thi;}const t0=lapSim(c,pista,ds).tempo;
+ return{campo,valor:x,t0,tempo:t,ganho:t0-t,avaliacoes:n+3,borda:Math.abs(x-lo)<1e-3*(hi-lo)||Math.abs(x-hi)<1e-3*(hi-lo)};}
+const LAB={compararVoltas,tornado,otimizar1d,ayLimiteFx,diagramaGG,forcaCombinada,suspResolver,SUSP_EX,lapSim,regimeCurva,ayLimite,skidpad,pneuFy,latCargas,telemetry,telemetryCsv,f1Balance,f1Check,LAP_TRACK,feaCant10,feaCant,vehDyn,bucklingFrame,unitsConvert,modalFrame,parseFrame,solveFrame,frameMoment,frameShear,frameExample,solveLin,isa,dynQ,force,reynolds,cfTurb,Vehicle,naca4AlphaL0,liftingLine,wingForces,secRect,secCircle,secTubeRound,secTubeRect,secI,beam,column,BOLT_AT,boltJoint,shaftTorsion,thinVessel,springMassFn,cantileverFn,parseTruss,solveTruss,warrenExample,SURF,REL,KC,endurance,fatigueAnalyze,safetyFactors,eqReversed,buildSN,miner,springAnalysis,secProps};
 LAB.nivelFS=fs=>fs<1?'CRITICO':(fs<1.5?'ATENCAO':'INFO');
 LAB.interpFS=(vm,sy)=>{if(!(vm>0)||!(sy>0))throw new Error('vm e sy devem ser positivos');const fs=sy/vm;return {fs,nivel:LAB.nivelFS(fs)};};
 root.LAB=LAB;if(typeof module!=='undefined')module.exports=LAB;
