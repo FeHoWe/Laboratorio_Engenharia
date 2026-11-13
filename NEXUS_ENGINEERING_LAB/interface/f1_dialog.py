@@ -286,10 +286,25 @@ class F1Dialog(QDialog):
         pb = QPushButton("Carregar pista de arquivo…"); pb.clicked.connect(self.carregar_pista); v.addWidget(pb)
         self.st_out = QPlainTextEdit(); self.st_out.setReadOnly(True); v.addWidget(self.st_out)
         e = QPushButton("Exportar estudo…"); e.clicked.connect(self.exportar_estudo); v.addWidget(e)
+        rr = QPushButton("Executar receita…"); rr.clicked.connect(self.executar_receita); v.addWidget(rr)
         rc = QPushButton("Relatório consolidado…"); rc.clicked.connect(self.relatorio_consolidado); v.addWidget(rc)
         self.last_estudo = None                                    # (tipo, dict)
         self.estudos_sessao: dict = {}                             # último resultado de cada tipo, para o relatório consolidado
         return w
+
+    def executar_receita(self):
+        """Executa uma receita JSON (vários estudos) e grava um dossiê reprodutível por passo na pasta escolhida."""
+        from modules import receita
+        arq, _ = QFileDialog.getOpenFileName(self, "Executar receita", "", "Receita JSON (*.json)")
+        if not arq:
+            return
+        pasta = QFileDialog.getExistingDirectory(self, "Pasta de saída da receita")
+        if not pasta:
+            return
+        try:
+            self.st_out.setPlainText(receita.texto(receita.executar(receita.ler(arq), pasta)))
+        except Exception as e:  # noqa: BLE001
+            self.st_out.setPlainText(f"Não foi possível executar a receita: {e}")
 
     def _carro_si(self):
         """Carro em unidades SI e pista da aba Volta."""

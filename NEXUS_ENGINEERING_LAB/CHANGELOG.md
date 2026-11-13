@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## V100.0 — 2026-11-13 (marco: receitas em lote e consolidação; etapas V91–V100)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V91–V99 (agrupadas):** validação estrita do JSON da receita, nomes de passo saneados (não escapam da pasta), isolamento de falhas por passo, resumo em JSON e texto, integração com o dossiê reprodutível.
+- **V100 — `modules/receita.py`, CLI `receita arquivo.json --pasta saida` e diálogo F1 → Estudos → “Executar receita…”:** roda vários estudos (volta, tornado, otimização, Monte Carlo, fatorial, stint, freios) em lote e grava UM dossiê reprodutível por passo + `resumo.json/.txt`. Passo com erro não derruba os demais; código de saída 1 se algum falhar.
+- **Consolidação 30→100:** validação com telemetria (30), calibração (40), massa/inércia a partir do projeto (50), lapsim bicicleta (60), dinâmica lateral (70), freios/térmica (80), dossiê (90), receitas (100) — todos acessíveis pela CLI e exportáveis (CSV/JSON/PDF); a GUI ganhou só a aba Estudos e o diálogo de receita.
+- **Honestidade:** nada aqui é validação do carro real; cada resultado mantém sua classe (ANALITICO/SIMULACAO_NUMERICA/VALIDADO só com tolerâncias SUAS). Etiqueta “VALIDADO” nunca é automática. Textos novos da GUI traduzidos por IA, sem revisão nativa; celular só ganhou a atualização de versão nesta etapa (sem novos módulos 30–100).
+- Testes: `test_receita` (5, incluindo o diálogo) + i18n atualizado nas 15 línguas.
+- **Limites:** Windows 11/WSL2/instalador NÃO testados em máquina real; GitHub e Drive não enviados; CFD/FEA externos não foram executados nesta sessão.
+
+## V90.0 — 2026-11-13 (marco: dossiê reprodutível; etapas V81–V90)
+Nada foi reconstruído; `.nexus` NÃO foi alterado (o dossiê é um arquivo JSON à parte, `FORMAT_VERSION` 1 intacto). Numeração salta: só etapas com conteúdo.
+- **V81–V89 (agrupadas):** normalização numérica (9 algarismos significativos) para hash estável, ordenação canônica de chaves, registro de versões (NEXUS, Python, NumPy, SciPy), detecção de arquivo adulterado, tratamento de erros de leitura.
+- **V90 — `modules/dossie.py` + CLI `dossie criar|verificar`:** grava tipo, parâmetros exatos, semente, ambiente, resultado e SHA-256; `verificar` re-executa e informa `integro` (arquivo não adulterado) e `reproduziu` (nova execução == hash). Tipos: volta, tornado, otimizacao, montecarlo, fatorial, stint, freio_termico. Código de saída 1 se falhar.
+- **Honestidade:** o dossiê prova REPRODUTIBILIDADE (mesmas entradas → mesma saída), NÃO que o modelo represente o carro real. Versões diferentes de bibliotecas podem mudar o hash sem ser erro — a verificação informa se o ambiente difere. Não é assinatura digital (quem edita resultado E hash juntos não é detectado).
+- Testes: `test_dossie` (11) cobrindo os 7 tipos, adulteração do resultado e da entrada, semente, CLI.
+- **Limites:** sem GUI/celular nesta etapa; Windows 11/WSL2/instalador não testados; traduções de IA.
+
 ## V80.0 — 2026-11-13 (marco: energia de frenagem e térmica de disco; etapas V71–V80)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
 - **V71–V79 (agrupadas):** potência de frenagem a partir do perfil de velocidade do lapsim (desaceleração menos arrasto e rolamento), repartição dianteira/traseira, integração térmica por segmento (RK2), convecção h = h0 + h1·v, radiação, regime ao longo de várias voltas.
