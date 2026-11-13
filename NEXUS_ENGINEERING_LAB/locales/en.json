@@ -612,5 +612,19 @@
  "Métrica:": "Metric:",
  "Valor desejado da métrica:": "Desired metric value:",
  "Mínimo da variável:": "Variable minimum:",
- "Máximo da variável:": "Variable maximum:"
+ "Máximo da variável:": "Variable maximum:",
+ "Estudos": "Studies",
+ "Exportar estudo…": "Export study…",
+ "Faixas (campo=min:max, vírgula)": "Ranges (field=min:max, comma)",
+ "Otimizar tempo de volta": "Optimize lap time",
+ "Sensibilidade (tornado)": "Sensitivity (tornado)",
+ "Variação ± %": "Variation ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (optional)",
+ "Carregar pista de arquivo…": "Load track from file…",
+ "Executar estudo": "Run study",
+ "Fatorial 2^k": "Factorial 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Consolidated report…"
 }

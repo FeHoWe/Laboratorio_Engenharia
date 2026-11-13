@@ -443,5 +443,19 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1 उपकरण",
  "Parecer de resultados": "परिणाम पर राय",
- "Verificar consistência do projeto": "प्रोजेक्ट की संगति जाँचें"
+ "Verificar consistência do projeto": "प्रोजेक्ट की संगति जाँचें",
+ "Estudos": "अध्ययन",
+ "Exportar estudo…": "अध्ययन निर्यात करें…",
+ "Faixas (campo=min:max, vírgula)": "सीमाएँ (फ़ील्ड=न्यूनतम:अधिकतम, अल्पविराम)",
+ "Otimizar tempo de volta": "लैप समय अनुकूलित करें",
+ "Sensibilidade (tornado)": "संवेदनशीलता (टोर्नेडो)",
+ "Variação ± %": "विचलन ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (वैकल्पिक)",
+ "Carregar pista de arquivo…": "फ़ाइल से ट्रैक लोड करें…",
+ "Executar estudo": "अध्ययन चलाएँ",
+ "Fatorial 2^k": "फैक्टोरियल 2^k",
+ "Monte Carlo": "मोंटे कार्लो",
+ "Pareto": "पैरेटो",
+ "Stint": "स्टिंट",
+ "Relatório consolidado…": "समेकित रिपोर्ट…"
 }

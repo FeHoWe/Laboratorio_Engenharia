@@ -71,6 +71,7 @@ def _a_acel(c, v, r, p):
 
 
 def volta(c: Carro, pista=None, ds: float = 2.0) -> TracedResult:
+    propria = bool(pista)                                    # pista informada por você (V17) × pista de exemplo sintética
     pista = pista or PISTA_EXEMPLO
     if min(c.massa, c.p_ice, c.mu, ds) <= 0 or c.cda < 0 or c.cla < 0:
         raise ValueError("massa, potência, μ e ds devem ser positivos; CdA/ClA ≥ 0")
@@ -108,4 +109,4 @@ def volta(c: Carro, pista=None, ds: float = 2.0) -> TracedResult:
                   "crr": c.crr, "rho": c.rho, "ds_m": ds, "segmentos": len(pista)},
         premissas=["Pista plana; μ constante; sem transferência de carga nem pneus reais", "Aderência com elipse de atrito e downforce ½ρClA v²",
                    "ERS: potência e energia por volta informadas por você"],
-        limitacoes=["Não valida contra dados de equipe", "Pista de exemplo é SINTÉTICA (não é circuito real)", "Sem consumo de combustível, degradação, DRS/modo de reta"])
+        limitacoes=["Não valida contra dados de equipe", ("Pista informada por você (dados seus; o NEXUS não a valida nem a identifica com um circuito real)" if propria else "Pista de exemplo é SINTÉTICA (não é circuito real)"), "Sem consumo de combustível, degradação, DRS/modo de reta"])

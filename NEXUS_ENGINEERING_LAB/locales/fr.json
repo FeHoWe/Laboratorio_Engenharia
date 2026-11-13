@@ -612,5 +612,19 @@
  "Métrica:": "Métrique :",
  "Valor desejado da métrica:": "Valeur souhaitée de la métrique :",
  "Mínimo da variável:": "Minimum de la variable :",
- "Máximo da variável:": "Maximum de la variable :"
+ "Máximo da variável:": "Maximum de la variable :",
+ "Estudos": "Études",
+ "Exportar estudo…": "Exporter l'étude…",
+ "Faixas (campo=min:max, vírgula)": "Plages (champ=min:max, virgule)",
+ "Otimizar tempo de volta": "Optimiser le temps au tour",
+ "Sensibilidade (tornado)": "Sensibilité (tornade)",
+ "Variação ± %": "Variation ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (facultatif)",
+ "Carregar pista de arquivo…": "Charger le circuit depuis un fichier…",
+ "Executar estudo": "Lancer l'étude",
+ "Fatorial 2^k": "Factoriel 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Relais (stint)",
+ "Relatório consolidado…": "Rapport consolidé…"
 }

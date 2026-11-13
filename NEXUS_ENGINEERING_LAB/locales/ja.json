@@ -443,5 +443,19 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1ツール",
  "Parecer de resultados": "結果の所見",
- "Verificar consistência do projeto": "プロジェクトの整合性を確認"
+ "Verificar consistência do projeto": "プロジェクトの整合性を確認",
+ "Estudos": "検討",
+ "Exportar estudo…": "検討を書き出す…",
+ "Faixas (campo=min:max, vírgula)": "範囲 (項目=最小:最大, カンマ)",
+ "Otimizar tempo de volta": "ラップタイムを最適化",
+ "Sensibilidade (tornado)": "感度 (トルネード図)",
+ "Variação ± %": "変動 ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (任意)",
+ "Carregar pista de arquivo…": "ファイルからコースを読み込む…",
+ "Executar estudo": "検討を実行",
+ "Fatorial 2^k": "要因計画 2^k",
+ "Monte Carlo": "モンテカルロ",
+ "Pareto": "パレート",
+ "Stint": "スティント",
+ "Relatório consolidado…": "統合レポート…"
 }

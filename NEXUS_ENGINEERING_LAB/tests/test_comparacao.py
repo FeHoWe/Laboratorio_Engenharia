@@ -60,3 +60,68 @@ def test_aba_ab_no_dialogo_f1():
     assert "Varredura de p_ice" in d.ab_out.toPlainText() and "400" in d.ab_out.toPlainText()
     d.sw_campo.setText("xyz"); d.run_sweep(); assert "Não foi possível" in d.ab_out.toPlainText()
     w.project.dirty = False; w.close()
+
+
+def test_dialogo_f1_aba_estudos(tmp_path, monkeypatch):
+    from interface.main_window import MainWindow
+    from core.cad_engine import CadEngine
+    from interface.f1_dialog import F1Dialog
+    from PySide6.QtWidgets import QFileDialog
+    w = MainWindow(config={}, engine=CadEngine())
+    d = F1Dialog(w)
+    d.exportar_estudo()
+    assert "antes de exportar" in d.st_out.toPlainText()
+    d.run_tornado()
+    assert "amplitude" in d.st_out.toPlainText() and d.last_estudo[0] == "tornado"
+    d.st_faixas.setText("mu=1.5:1.7, p_ice=450:550"); d.run_otim()
+    t = d.st_out.toPlainText()
+    assert "melhor encontrado" in t and d.last_estudo[0] == "otimizacao"
+    # p_ice está em kW na interface: a faixa 450–550 kW deve virar 450e3–550e3 W
+    assert 450e3 <= d.last_estudo[1]["parametros"]["p_ice"] <= 550e3
+    d.st_faixas.setText("lixo"); d.run_otim(); assert "Não foi possível otimizar" in d.st_out.toPlainText()
+    d.st_faixas.setText("mu=1.5:1.7"); d.run_otim()
+    alvo = tmp_path / "e.csv"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(alvo), "")))
+    d.exportar_estudo()
+    assert alvo.exists() and "Exportado" in d.st_out.toPlainText()
+    w.project.dirty = False; w.close()
+
+
+def test_dialogo_f1_estudos_avancados_e_pista(tmp_path):
+    from interface.main_window import MainWindow
+    from core.cad_engine import CadEngine
+    from interface.f1_dialog import F1Dialog
+    w = MainWindow(config={}, engine=CadEngine())
+    d = F1Dialog(w)
+    assert [d.es_tipo.itemData(i) for i in range(d.es_tipo.count())] == ["fatorial", "monte_carlo", "pareto", "stint"]
+    for i, (chave, marca) in enumerate([("fatorial", "Fatorial 2^"), ("monte_carlo", "Monte Carlo"), ("pareto", "Pareto"), ("stint", "Stint")]):
+        d.es_tipo.setCurrentIndex(i)
+        assert d.es_spec.text()                                    # exemplo do estudo aparece ao trocar
+        if chave == "monte_carlo": d.es_spec.setText("mu=normal:2 ; n=15")
+        d.run_estudo_av()
+        assert marca in d.st_out.toPlainText() and d.last_estudo[0] == chave
+    d.es_spec.setText("lixo"); d.run_estudo_av(); assert "Não foi possível executar" in d.st_out.toPlainText()
+    f = tmp_path / "p.csv"; f.write_text("comprimento_m,raio_m\n500,0\n80,40\n", encoding="utf-8")
+    d.carregar_pista(str(f))
+    assert "2 segmentos" in d.st_out.toPlainText() and d.track.toPlainText().splitlines() == ["500, 0", "80, 40"]
+    d.es_tipo.setCurrentIndex(0); d.es_spec.setText("massa ; 5"); d.run_estudo_av()
+    assert "Fatorial 2^1" in d.st_out.toPlainText()            # usa a pista carregada
+    f.write_text("100,-1", encoding="utf-8"); d.carregar_pista(str(f)); assert "Não foi possível carregar a pista" in d.st_out.toPlainText()
+    w.project.dirty = False; w.close()
+
+
+def test_dialogo_f1_relatorio_consolidado(tmp_path, monkeypatch):
+    from interface.main_window import MainWindow
+    from core.cad_engine import CadEngine
+    from interface.f1_dialog import F1Dialog
+    from PySide6.QtWidgets import QFileDialog
+    w = MainWindow(config={}, engine=CadEngine())
+    d = F1Dialog(w)
+    d.relatorio_consolidado()
+    assert "ao menos um estudo" in d.st_out.toPlainText()
+    d.run_tornado(); d.es_tipo.setCurrentIndex(3); d.run_estudo_av(); d.run_ab()
+    alvo = tmp_path / "r.pdf"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(alvo), "")))
+    d.relatorio_consolidado()
+    assert alvo.read_bytes()[:5] == b"%PDF-" and "3 estudo(s)" in d.st_out.toPlainText()
+    w.project.dirty = False; w.close()

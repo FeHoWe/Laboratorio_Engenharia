@@ -113,6 +113,37 @@ def ab_check():
     return err, js[9] == c["tempo_s"]["melhor"] and js[10] == len(py["parametros_diferentes"])
 
 
+def opt_check():
+    from modules import lapsim, otimizacao
+    a = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
+    t = otimizacao.tornado(a, None, 5, None, 3.0)
+    o = otimizacao.otimizar_1d(a, "massa", 700, 900)
+    o2 = otimizacao.otimizar_1d(a, "crr", 0.008, 0.016)
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const c={m:800,pIce:500e3,cda:1,cla:3,mu:1.6,pErs:300e3,eErs:4e6};const t=L.tornado(c);const o=L.otimizar1d(c,"m",700,900);const o2=L.otimizar1d(c,"crr",0.008,0.016);console.log(JSON.stringify([t.t0,t.linhas.map(r=>r.campo),t.linhas.map(r=>r.amplitude),t.linhas.map(r=>r.dMais),o.valor,o.tempo,o.avaliacoes,o2.valor,o2.tempo]));', str(ROOT / 'mobile' / 'lab.js')], text=True))
+    nome = {"massa": "m", "p_ice": "pIce", "cda": "cda", "cla": "cla", "mu": "mu", "crr": "crr", "p_ers": "pErs", "e_ers": "eErs"}
+    same_order = [nome[r["campo"]] for r in t["linhas"]] == js[1]
+    pv = [t["tempo_base_s"], *[r["amplitude_s"] for r in t["linhas"]], *[r["d_mais_s"] for r in t["linhas"]], o["valor_otimo"], o["tempo_otimo_s"], o2["valor_otimo"], o2["tempo_otimo_s"]]
+    jv = [js[0], *js[2], *js[3], js[4], js[5], js[7], js[8]]
+    return max(abs(x - y) / max(abs(x), 1.0) for x, y in zip(pv, jv)), same_order and o["avaliacoes"] == js[6]
+
+
+def doe_check():
+    from modules import lapsim, doe
+    a = lapsim.Carro(800, 500e3, 1.0, 3.0, 1.6, p_ers=300e3, e_ers=4e6)
+    nome = {"massa": "m", "p_ice": "pIce", "mu": "mu", "cla": "cla", "cda": "cda"}
+    f = doe.fatorial(a, ["massa", "mu", "cla"], 5, None, 3.0)
+    mc = doe.monte_carlo(a, {"mu": ("normal", 2), "massa": ("uniforme", 1), "cla": ("normal", 3)}, 120, 7, None, 3.0)
+    js = json.loads(subprocess.check_output(['node', '-e', 'const L=require(process.argv[1]);const c={m:800,pIce:500e3,cda:1,cla:3,mu:1.6,pErs:300e3,eErs:4e6};const f=L.fatorial(c,["m","mu","cla"],5);const r=L.monteCarlo(c,{mu:["normal",2],m:["uniforme",1],cla:["normal",3]},120,7);console.log(JSON.stringify({f:[f.media,f.min,f.max,f.ordenados.map(o=>o.fatores.join("*")),f.ordenados.map(o=>o.efeito)],m:[r.t0,r.media,r.desvio,r.min,r.max,r.p05,r.p50,r.p95],c:r.correlacoes.map(o=>o.campo),cv:r.correlacoes.map(o=>o.correlacao)}));', str(ROOT / 'mobile' / 'lab.js')], text=True))
+    ordem_f = [" * ".join(nome[x] for x in o["fatores"]).replace(" * ", "*") for o in f["ordenados"]] == js["f"][3]
+    pf = [f["tempo_medio_s"], f["tempo_min_s"], f["tempo_max_s"], *[o["efeito_s"] for o in f["ordenados"]]]
+    jf = [*js["f"][:3], *js["f"][4]]
+    pm = [mc["tempo_base_s"], mc["media_s"], mc["desvio_s"], mc["min_s"], mc["max_s"], mc["p05_s"], mc["p50_s"], mc["p95_s"], *[o["correlacao"] for o in mc["correlacoes"]]]
+    jm = [*js["m"], *js["cv"]]
+    ordem_c = [nome[o["campo"]] for o in mc["correlacoes"]] == js["c"]
+    err = max(abs(x - y) / max(abs(x), 1e-3) for x, y in zip(pf + pm, jf + jm))
+    return err, ordem_f and ordem_c
+
+
 def fea_check():
     import numpy as np
     from modules import fea3d as F
@@ -238,13 +269,17 @@ def main():
     print(f"F1 volta + massa/CG/inércia: erro relativo máx JS×Python {le:.2e}")
     ae2, same_ab = ab_check()
     print(f"F1 comparação A/B: erro máx JS×Python {ae2:.2e}, mesmo 'melhor' e mesmos parâmetros diferentes: {same_ab}")
+    oe, same_opt = opt_check()
+    print(f"F1 sensibilidade (tornado) + seção áurea: erro máx JS×Python {oe:.2e}, mesma ordem e nº de avaliações: {same_opt}")
+    de, same_doe = doe_check()
+    print(f"F1 fatorial 2^k + Monte Carlo (mulberry32): erro relativo máx JS×Python {de:.2e}, mesma ordem dos efeitos/correlações: {same_doe}")
     fe, same = fea_check()
     print(f"FEA Tet4 (viga): erro relativo JS×Python {fe:.2e}, mesmo nº de elementos: {same}")
     f10, same10 = fea10_check()
     print(f"FEA Tet10 (viga): erro relativo JS×Python {f10:.2e}, mesmo nº de elementos: {same10}")
     ib, n_i = intel_check()
     print(f"NEXUS INTELLIGENCE (fator de segurança): {n_i - ib}/{n_i} casos idênticos JS×Python")
-    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or te > 1e-9 or le > 1e-9 or ae2 > 1e-9 or not same_ab or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
+    sys.exit(1 if ib or bad or ue > 1e-12 or ve > 1e-9 or ae > 1e-9 or te > 1e-9 or le > 1e-9 or ae2 > 1e-9 or oe > 1e-9 or de > 1e-9 or not same_doe or not same_opt or not same_ab or fe > 1e-8 or not same or f10 > 1e-8 or not same10 else 0)
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,15 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V20.0 — 2026-11-13
+Resultado da suíte completa (principal + `test_v22`): **726 passed, 4 skipped** (685 + 4 skipped na suíte principal, 41 em test_v22; 0 falhas)
+Novos desde a V10.0: `test_doe`, `test_pista_io`, ampliações em `test_cli`, `test_estudos_export`, `test_comparacao`. `mobile/validate_lab.py`: paridade JS×Python incluindo fatorial e Monte Carlo (≈8,5e‑12). PRNG mulberry32 conferido com Node.
+Não testado: Windows 11, WSL2, instalador.
+
+## V10.0 — 2026-11-13
+Resultado da suíte completa (principal + `test_v22`): **693 passed, 4 skipped** (652 + 4 skipped na suíte principal, 41 em test_v22; 0 falhas)
+Novos desde a V6.0: `test_otimizacao`, `test_cli`, `test_cad_multi`, `test_estudos_export`, aba Estudos (`test_comparacao`). `mobile/validate_lab.py`: paridade JS×Python incluindo tornado e seção áurea (≈1,9e‑13). Aba F1 do celular carregada no Chromium (A/B, tornado e otimização) sem erros de script.
+Não testado: Windows 11, WSL2, instalador.
+
 ## V6.0 — 2026-11-12
 Resultado da suíte completa (principal + `test_v22`): **660 passed, 4 skipped** (619 + 4 skipped na suíte principal, 41 em test_v22; 0 falhas)
 Novos desde a V5.0: `test_portabilidade`, consistência no PDF (`test_scenes`), `ajustar` e traduções do CAD (`test_cad_nomes_restricoes`). `mobile/validate_lab.py`: paridade JS×Python incluindo A/B (≈2,6e‑13).

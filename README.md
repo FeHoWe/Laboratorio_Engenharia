@@ -14,7 +14,9 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 
 | Versão | Data | Destaques | Ver | Baixar |
 |---|---|---|---|---|
-| **V6.0** | 13/11/2026 | Portabilidade para Windows, consistência no PDF, ajuste de variável no CAD, A/B no celular; inclui V5.1 a V5.5 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/1c52182e6f25c7bfc342e854660f4bc07ac3e360/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/1c52182e6f25c7bfc342e854660f4bc07ac3e360.zip) |
+| **V20.0** | 13/11/2026 | Fatorial 2^k, Monte Carlo, Pareto, stint, pistas de arquivo, relatório consolidado; inclui V11 a V19 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/96cfda9ab8cfd911617342f8d6dddc4ad99a149a/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/96cfda9ab8cfd911617342f8d6dddc4ad99a149a.zip) |
+| V10.0 | 13/11/2026 | Linha de comando, ajuste multivariável no CAD, tornado e otimização da volta, estudos exportáveis; inclui V6.1 a V9.0 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/c8ca3cfa6e7ebcf8a7989db00448a57a356a70be/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/c8ca3cfa6e7ebcf8a7989db00448a57a356a70be.zip) |
+| V6.0 | 13/11/2026 | Portabilidade para Windows, consistência no PDF, ajuste de variável no CAD, A/B no celular; inclui V5.1 a V5.5 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/1c52182e6f25c7bfc342e854660f4bc07ac3e360/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/1c52182e6f25c7bfc342e854660f4bc07ac3e360.zip) |
 | V5.0 | 13/11/2026 | NEXUS HOME, comparação A/B, verificação de consistência, varredura/loft/filete variável; inclui V4.2 a V4.4 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/0984ef8729655f78056787fea8115668d68a0806/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/0984ef8729655f78056787fea8115668d68a0806.zip) |
 | V4.1b | 13/11/2026 | Nomes persistentes de faces/arestas, revolução de esboço, variáveis e restrições | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/1e31e3d66cc1a66056c3ea9802af75c91fb42f0f/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/1e31e3d66cc1a66056c3ea9802af75c91fb42f0f.zip) |
 | V4.1 | 12/11/2026 | Furo escareado, padrões, espelho, casca; volta do veículo em processo isolado | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/806773600bf32a0cb291f50897be2ed365eb220b/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/806773600bf32a0cb291f50897be2ed365eb220b.zip) |
@@ -36,8 +38,8 @@ zip daquela versão. Os links abaixo abrem ou baixam o projeto como estava em ca
 | V2.4 | 05/11/2026 | Treliça (MEF de barras), relatórios rastreáveis; inclui a V2.3 | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/347a2610ca08e27dd9efcdfd04110b1ac6223651/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/347a2610ca08e27dd9efcdfd04110b1ac6223651.zip) |
 | V2.2 | 05/11/2026 | Projetos predefinidos, biblioteca de peças, laboratório de testes | [código](https://github.com/FeHoWe/Laboratorio_Engenharia/tree/152263c8a843b0a3cf061333c3e85e4958dcfba6/NEXUS_ENGINEERING_LAB) | [zip](https://github.com/FeHoWe/Laboratorio_Engenharia/archive/152263c8a843b0a3cf061333c3e85e4958dcfba6.zip) |
 
-As V2.3, V3.2, V4.2 a V4.4 e V5.1 a V5.5 não tinham zip próprio. As mudanças delas já estão nas
-versões seguintes (V2.4, V3.3, V5.0 e V6.0). O histórico completo está no `README.md` e no `CHANGELOG.md` do projeto.
+As V2.3, V3.2, V4.2 a V4.4, V5.1 a V5.5, V6.1 a V9.0 e V11 a V19 não tinham zip próprio. As
+mudanças delas já estão nas versões seguintes (V2.4, V3.3, V5.0, V6.0, V10.0 e V20.0). O histórico completo está no `README.md` e no `CHANGELOG.md` do projeto.
 
 ## Como pegar uma versão antiga
 

@@ -443,5 +443,19 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1 도구",
  "Parecer de resultados": "결과 소견",
- "Verificar consistência do projeto": "프로젝트 일관성 검사"
+ "Verificar consistência do projeto": "프로젝트 일관성 검사",
+ "Estudos": "연구",
+ "Exportar estudo…": "연구 내보내기…",
+ "Faixas (campo=min:max, vírgula)": "범위 (항목=최소:최대, 쉼표)",
+ "Otimizar tempo de volta": "랩 타임 최적화",
+ "Sensibilidade (tornado)": "민감도 (토네이도)",
+ "Variação ± %": "변동 ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (선택)",
+ "Carregar pista de arquivo…": "파일에서 트랙 불러오기…",
+ "Executar estudo": "연구 실행",
+ "Fatorial 2^k": "요인 설계 2^k",
+ "Monte Carlo": "몬테카를로",
+ "Pareto": "파레토",
+ "Stint": "스틴트",
+ "Relatório consolidado…": "통합 보고서…"
 }

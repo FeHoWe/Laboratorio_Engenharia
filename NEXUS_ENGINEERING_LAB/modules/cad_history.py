@@ -570,6 +570,63 @@ class CadHistory:
         self.definir(variavel, x)                                   # aplica e verifica restrições; reverte sozinho se violar
         return {"variavel": variavel, "valor": x, "metrica": metrica, "obtido": obtido, "alvo": alvo}
 
+    def ajustar_multi(self, variaveis, alvos, tol=1e-5, max_nfev=60):
+        """V6.2 — ajuste de VÁRIAS variáveis a VÁRIOS alvos por mínimos quadrados (scipy.least_squares, região de confiança, derivadas por diferenças finitas).
+        `variaveis`: {nome: (lo, hi)}; `alvos`: lista de (metrica, valor) com metrica em volume/dx/dy/dz. Resíduos normalizados pelo alvo (|alvo|, ou 1 se 0).
+        NÃO prova unicidade: com menos alvos que variáveis há infinitas soluções (devolve a mais próxima do ponto inicial que o solver achou); com mais, é ajuste.
+        Devolve `convergiu` e o resíduo relativo máximo por alvo; só aplica se TODOS os resíduos ficarem <= `tol` — senão levanta e nada muda.
+        Restrições ficam suspensas durante a busca e são verificadas ao aplicar."""
+        from scipy.optimize import least_squares
+        if not variaveis or not alvos:
+            raise CadHistoryError("informe ao menos uma variável e um alvo")
+        for v in variaveis:
+            if v not in self.vars:
+                raise CadHistoryError(f"variável '{v}' não existe")
+        for m, _ in alvos:
+            if m not in ("volume", "dx", "dy", "dz"):
+                raise CadHistoryError("métrica deve ser 'volume', 'dx', 'dy' ou 'dz'")
+        nomes = list(variaveis)
+        for v in nomes:
+            lo, hi = variaveis[v]
+            if not lo < hi:
+                raise CadHistoryError(f"faixa inválida para {v}")
+        originais, restr = dict(self.vars), self.restricoes
+
+        def medir(forma, m):
+            if m == "volume":
+                return exact_volume(forma)
+            b = _bbox(forma); i = "xyz".index(m[1])
+            return b[3 + i] - b[i]
+
+        def res(x):
+            for v, xv in zip(nomes, x):
+                self.vars[v] = float(xv)
+            try:
+                forma = self.rebuild_sem_restricoes()
+            except CadHistoryError as exc:
+                raise CadHistoryError("a geometria falha com " + ", ".join(f"{v} = {xv:g}" for v, xv in zip(nomes, x)) + f": {exc}")
+            return [(medir(forma, m) - a) / (abs(a) or 1.0) for m, a in alvos]
+
+        try:
+            self.restricoes = []
+            x0 = [min(max(originais[v], variaveis[v][0]), variaveis[v][1]) for v in nomes]
+            r = least_squares(res, x0, bounds=([variaveis[v][0] for v in nomes], [variaveis[v][1] for v in nomes]), xtol=1e-12, ftol=1e-12, gtol=1e-12, max_nfev=max_nfev, diff_step=1e-6)
+            resid = [abs(q) for q in res(r.x)]
+        except Exception:
+            self.vars = originais; self.restricoes = restr; raise
+        self.restricoes = restr
+        self.vars = dict(originais)
+        if max(resid) > tol:
+            raise CadHistoryError(f"o ajuste não atingiu a tolerância (resíduo relativo máx {max(resid):.2e} > {tol:g}); alvos possivelmente incompatíveis com as faixas — nada foi alterado")
+        for v, xv in zip(nomes, r.x):
+            self.vars[v] = float(xv)
+        try:
+            self.rebuild()
+        except Exception:
+            self.vars = dict(originais); raise
+        return {"valores": {v: float(xv) for v, xv in zip(nomes, r.x)}, "residuos_relativos": resid, "convergiu": True, "avaliacoes": int(r.nfev),
+                "determinacao": ("sub-determinado" if len(alvos) < len(nomes) else "sobre-determinado" if len(alvos) > len(nomes) else "determinado")}
+
     def rebuild_sem_restricoes(self):
         s, _ = self._rastrear()
         if not BRepCheck_Analyzer(s).IsValid(): raise CadHistoryError("sólido resultante inválido")

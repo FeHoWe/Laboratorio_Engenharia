@@ -612,5 +612,19 @@
  "Métrica:": "指标：",
  "Valor desejado da métrica:": "指标目标值：",
  "Mínimo da variável:": "变量最小值：",
- "Máximo da variável:": "变量最大值："
+ "Máximo da variável:": "变量最大值：",
+ "Estudos": "研究",
+ "Exportar estudo…": "导出研究…",
+ "Faixas (campo=min:max, vírgula)": "范围 (字段=最小:最大, 逗号)",
+ "Otimizar tempo de volta": "优化单圈时间",
+ "Sensibilidade (tornado)": "敏感度 (龙卷风图)",
+ "Variação ± %": "变化 ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (可选)",
+ "Carregar pista de arquivo…": "从文件加载赛道…",
+ "Executar estudo": "运行研究",
+ "Fatorial 2^k": "因子设计 2^k",
+ "Monte Carlo": "蒙特卡罗",
+ "Pareto": "帕累托",
+ "Stint": "连续多圈 (stint)",
+ "Relatório consolidado…": "综合报告…"
 }

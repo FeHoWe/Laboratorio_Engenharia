@@ -443,5 +443,19 @@
  "NEXUS VEHICLE": "NEXUS VEHICLE",
  "Ferramentas F1": "F1-hulpmiddelen",
  "Parecer de resultados": "Resultaatbeoordeling",
- "Verificar consistência do projeto": "Projectconsistentie controleren"
+ "Verificar consistência do projeto": "Projectconsistentie controleren",
+ "Estudos": "Studies",
+ "Exportar estudo…": "Studie exporteren…",
+ "Faixas (campo=min:max, vírgula)": "Bereiken (veld=min:max, komma)",
+ "Otimizar tempo de volta": "Rondetijd optimaliseren",
+ "Sensibilidade (tornado)": "Gevoeligheid (tornado)",
+ "Variação ± %": "Variatie ± %",
+ "k Cd·A/Cl·A (opcional)": "k Cd·A/Cl·A (optioneel)",
+ "Carregar pista de arquivo…": "Circuit uit bestand laden…",
+ "Executar estudo": "Studie uitvoeren",
+ "Fatorial 2^k": "Factorieel 2^k",
+ "Monte Carlo": "Monte Carlo",
+ "Pareto": "Pareto",
+ "Stint": "Stint",
+ "Relatório consolidado…": "Samengesteld rapport…"
 }
