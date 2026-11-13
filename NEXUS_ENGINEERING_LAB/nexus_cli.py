@@ -16,6 +16,7 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   projeto-carro arq.nexus --eixos y_diant_mm y_tras_mm [--extra Piloto=75@0,80,20 ...] [--volta] [--carro k=v ...]   massa/CG do projeto (só peças COM material) → carro
   volta-bicicleta [--carro k=v ...] [--tracao traseira|integral] [--freio-diant 0.6]   modelo de bicicleta (a, b, h, mu_f, mu_r, bal_aero, k_carga…)
   freio-termico --disco-diant massa=1.4 cp=800 area=0.045 --disco-tras massa=1.1 cp=800 area=0.04 [--voltas 5]   energia de frenagem e temperatura de disco (propriedades SUAS)
+  receita receita.json [--pasta saida]   executa vários estudos em lote (um dossiê por passo + resumo)
   dossie criar espec.json --saida x.dossie.json | dossie verificar x.dossie.json   dossiê reprodutível (entradas+semente+versões+hash; re-executa e confere)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
   formato-telemetria                        imprime um CSV de exemplo do formato (gerado pelo simulador; NÃO é telemetria real)
@@ -159,6 +160,9 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    rc_ = sub.add_parser("receita")
+    rc_.add_argument("arquivo", help="receita JSON {titulo, passos:[{nome,tipo,parametros,nota}]}")
+    rc_.add_argument("--pasta", default="saida_receita", help="pasta onde gravar um dossiê por passo + resumo")
     ds_ = sub.add_parser("dossie")
     ds_.add_argument("acao", choices=["criar", "verificar"])
     ds_.add_argument("arquivo", help="criar: especificação JSON {tipo, parametros, nota}; verificar: arquivo .dossie.json")
@@ -354,6 +358,12 @@ def executar(argv=None, out=None) -> int:
                 emit(DS.texto(d_, v_), v_)
                 if not (v_["integro"] and v_["reproduziu"]):
                     return 1
+        elif a.cmd == "receita":
+            from modules import receita as RC
+            rs_ = RC.executar(RC.ler(a.arquivo), a.pasta)
+            emit(RC.texto(rs_), rs_)
+            if not rs_["ok"]:
+                return 1
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")

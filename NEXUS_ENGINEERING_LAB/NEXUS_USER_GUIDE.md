@@ -131,3 +131,7 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 
 ## Novidades da V90.0
 - **Dossiê reprodutível:** escreva `espec.json` com `{"tipo":"tornado","parametros":{"carro":{...},"campos":["massa","mu"],"pct":5},"nota":"..."}`; `python nexus_cli.py dossie criar espec.json --saida x.dossie.json` e depois `dossie verificar x.dossie.json`. Serve para provar a um colega que o número sai das mesmas entradas — não prova que o modelo está certo.
+
+
+## Novidades da V100.0
+- **Receitas:** crie `receita.json` com `{"titulo":"...","passos":[{"nome":"base","tipo":"volta","parametros":{"carro":{...}}},{"nome":"sens","tipo":"tornado","parametros":{...}}]}` e rode `python nexus_cli.py receita receita.json --pasta saida`, ou use F1 → Estudos → “Executar receita…”. Cada passo vira um `.dossie.json` verificável com `dossie verificar`.

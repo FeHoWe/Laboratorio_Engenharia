@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## V100.0 — 2026-11-13 (marco: receitas em lote e consolidação; etapas V91–V100)
+Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Numeração salta: só etapas com conteúdo.
+- **V91–V99 (agrupadas):** validação estrita do JSON da receita, nomes de passo saneados (não escapam da pasta), isolamento de falhas por passo, resumo em JSON e texto, integração com o dossiê reprodutível.
+- **V100 — `modules/receita.py`, CLI `receita arquivo.json --pasta saida` e diálogo F1 → Estudos → “Executar receita…”:** roda vários estudos (volta, tornado, otimização, Monte Carlo, fatorial, stint, freios) em lote e grava UM dossiê reprodutível por passo + `resumo.json/.txt`. Passo com erro não derruba os demais; código de saída 1 se algum falhar.
+- **Consolidação 30→100:** validação com telemetria (30), calibração (40), massa/inércia a partir do projeto (50), lapsim bicicleta (60), dinâmica lateral (70), freios/térmica (80), dossiê (90), receitas (100) — todos acessíveis pela CLI e exportáveis (CSV/JSON/PDF); a GUI ganhou só a aba Estudos e o diálogo de receita.
+- **Honestidade:** nada aqui é validação do carro real; cada resultado mantém sua classe (ANALITICO/SIMULACAO_NUMERICA/VALIDADO só com tolerâncias SUAS). Etiqueta “VALIDADO” nunca é automática. Textos novos da GUI traduzidos por IA, sem revisão nativa; celular só ganhou a atualização de versão nesta etapa (sem novos módulos 30–100).
+- Testes: `test_receita` (5, incluindo o diálogo) + i18n atualizado nas 15 línguas.
+- **Limites:** Windows 11/WSL2/instalador NÃO testados em máquina real; GitHub e Drive não enviados; CFD/FEA externos não foram executados nesta sessão.
+
 ## V90.0 — 2026-11-13 (marco: dossiê reprodutível; etapas V81–V90)
 Nada foi reconstruído; `.nexus` NÃO foi alterado (o dossiê é um arquivo JSON à parte, `FORMAT_VERSION` 1 intacto). Numeração salta: só etapas com conteúdo.
 - **V81–V89 (agrupadas):** normalização numérica (9 algarismos significativos) para hash estável, ordenação canônica de chaves, registro de versões (NEXUS, Python, NumPy, SciPy), detecção de arquivo adulterado, tratamento de erros de leitura.

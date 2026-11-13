@@ -1,31 +1,35 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V100.0
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Não testado: Windows 11, WSL2, instalador.
+
 ## V90.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V80.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V70.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V60.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V50.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V40.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V30.0
-Resultado da suíte completa (principal + `test_v22`): **793 passed, 4 skipped** (752 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): **798 passed, 4 skipped** (757 principal + 41 test_v22; 4 skips = ferramentas externas ausentes no sandbox)
 Não testado: Windows 11, WSL2, instalador.
 
 ## V20.0 — 2026-11-13
