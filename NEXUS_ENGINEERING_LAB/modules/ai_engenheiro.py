@@ -103,3 +103,32 @@ def responder(pergunta: str, d: dict) -> dict:
     for b, x in blocos:
         sub[b].append(x)
     return {"reconhecida": True, "resposta": texto({**sub, "mudancas": d["mudancas"], "aviso": d["aviso"]}), "blocos": [b for b, _ in blocos]}
+
+
+_ROTAS_GEMEO = (("obsol", "desatualiz", "nova simula", "refazer", "precisa", "estudos"), ("peça", "peca", "modific", "mudou", "alterad", "material"))
+
+
+def responder_gemeo(pergunta: str, project) -> dict:
+    """V120 — perguntas sobre o ESTADO do projeto (quais estudos estão obsoletos, quais peças mudaram, o que está sem material), respondidas com os registros do gêmeo digital
+    (`gemeo_registro`), sem IA generativa. Cinco blocos; o que não está registrado vai para NAO_DISPONIVEL em vez de ser suposto."""
+    from . import gemeo_registro as GR
+    q = pergunta.lower()
+    est, pn = GR.estado_estudos(project), GR.painel(project)
+    B = {"CALCULADO": [], "INTERPRETADO": [], "HIPOTESE": [], "RECOMENDACAO": [], "NAO_DISPONIVEL": []}
+    if not est:
+        B["NAO_DISPONIVEL"].append("nenhum estudo foi registrado neste projeto (use registrar_estudo): não há como dizer o que está obsoleto")
+    for e in est:
+        B["CALCULADO"].append(f"estudo '{e['nome']}' (#{e['id']}): {e['estado']} — {e.get('motivo', '')}")
+    obs = [e for e in est if e["estado"] == "OBSOLETO"]
+    if obs:
+        B["RECOMENDACAO"].append("Refazer: " + ", ".join(sorted({e["nome"] for e in obs})))
+        B["INTERPRETADO"].append("Peças/material/geometria mudaram desde o registro desses estudos; os números antigos descrevem a versão anterior.")
+    perg_peca = any(k in q for k in _ROTAS_GEMEO[1])
+    if perg_peca or not any(k in q for k in _ROTAS_GEMEO[0]):
+        for p in pn:
+            B["CALCULADO"].append(f"peça {p['id']}: {p['estado']}")
+    for p in pn:
+        if p["estado"] == "DADOS_INCOMPLETOS":
+            B["NAO_DISPONIVEL"].append(f"peça {p['id']}: sem material atribuído (nunca atribuído automaticamente)")
+    B["HIPOTESE"].append("Só vale o que foi registrado em .nexus (assinaturas de geometria/material); mudanças de contorno/malha só são detectadas se o estudo for registrado de novo.")
+    return {"reconhecida": True, "blocos": B, "resposta": "\n".join(f"[{b}] {x}" for b, xs in B.items() for x in xs)}

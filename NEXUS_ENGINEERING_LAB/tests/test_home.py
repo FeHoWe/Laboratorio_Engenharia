@@ -83,3 +83,14 @@ def test_home_relatorio_tecnico(janela, tmp_path, monkeypatch):
     assert "14 seções" in msg and (tmp_path / "r.md").read_text(encoding="utf-8").count("## ") == 14
     assert "Não foi possível" in w.home_tab.relatorio(str(tmp_path / "r.xyz"))
     assert w.home_tab.relatorio("") == ""
+
+
+def test_home_gemeo_digital(janela):
+    w = janela
+    w.open_sample_engine(background=False)
+    t = w.home_tab.gemeo_levantar()
+    assert "Levantamento #1" in t and "Gêmeo digital" in t and len(w.project.gemeo["levantamentos"]) == 1
+    folha = list(w.project.components.leaves())[0]
+    w.project.components.set_material(folha.id, "Aço carbono", recursive=False)
+    t2 = w.home_tab.gemeo_painel()
+    assert "MODIFICADO" in t2 and w.home_tab.saida.toPlainText() == t2

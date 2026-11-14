@@ -40,7 +40,7 @@ class HomeTab(QWidget):
                 b = QPushButton(tr(rot)); b.clicked.connect(lambda _=False, m=metodo: getattr(self.w, m)())
                 lay.addWidget(b); self.botoes[metodo] = b
             grade.addWidget(g, i // 2, i % 2)
-        for rot, fn in (("Verificar consistência do projeto", self.verificar), ("Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)", self.diagnosticar), ("Relatório técnico (PDF, Markdown ou JSON)…", self.relatorio), ("Versões do projeto…", lambda: self.w.mostrar_versoes()),
+        for rot, fn in (("Verificar consistência do projeto", self.verificar), ("Diagnóstico técnico (calculado, interpretação, hipótese, recomendação)", self.diagnosticar), ("Relatório técnico (PDF, Markdown ou JSON)…", self.relatorio), ("Gêmeo digital: estado das peças e estudos", self.gemeo_painel), ("Gêmeo digital: registrar levantamento das peças", self.gemeo_levantar), ("Versões do projeto…", lambda: self.w.mostrar_versoes()),
                         ("Registrar versão…", lambda: self.w.registrar_versao())):
             b = QPushButton(tr(rot)); b.clicked.connect(lambda _=False, f=fn: f()); v.addWidget(b)
             if fn == self.verificar:
@@ -90,6 +90,22 @@ class HomeTab(QWidget):
         self._estado_anterior = gemeo_digital.levantar(self.w.project)
         txt = ai_engenheiro.texto(d)
         self.saida.setPlainText(txt)
+        return txt
+
+    def gemeo_painel(self) -> str:
+        """Estado de cada peça e de cada estudo registrado no projeto (ATUALIZADO / OBSOLETO / HISTÓRICO / INCOMPLETO)."""
+        from modules import gemeo_registro
+        txt = gemeo_registro.texto(self.w.project)
+        self.saida.setPlainText(txt)
+        return txt
+
+    def gemeo_levantar(self) -> str:
+        """Grava um retrato das peças no projeto (vai para o .nexus ao salvar) para comparar versões e detectar peças modificadas."""
+        from modules import gemeo_registro
+        r = gemeo_registro.registrar_levantamento(self.w.project, "manual")
+        txt = f"Levantamento #{r['id']} registrado ({len(r['estado'])} peça(s)). Salve o projeto para guardá-lo no arquivo.\n\n" + gemeo_registro.texto(self.w.project)
+        self.saida.setPlainText(txt)
+        self._atualizar_recentes()
         return txt
 
     def relatorio(self, caminho: str | None = None) -> str:

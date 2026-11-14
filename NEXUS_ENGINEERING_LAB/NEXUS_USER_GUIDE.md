@@ -156,3 +156,10 @@ Abra o mesmo link do visualizador; aba **Veículo** tem longitudinal + curva em 
 ## Novidades da V110.0
 - **Relatório técnico:** botão na Home ou `python nexus_cli.py relatorio projeto.nexus --saida r.pdf --estudos e.json --objetivo "..." --criterio "erro < 5 % contra ensaio X" --imagem vista.png`. As 14 seções aparecem sempre; “Não informado” onde faltar dado. Sem critério de validação, nada é declarado validado.
 - **Windows 11:** siga `docs/WINDOWS_VALIDACAO.md` e marque item a item na sua máquina. Até lá o empacotamento e o instalador continuam NÃO VALIDADOS.
+
+
+## Novidades da V120.0
+## V120.0 — Novidades
+- **Gêmeo digital**: Home → "Gêmeo digital: registrar levantamento das peças" e "…estado das peças e estudos"; CLI `nexus_cli gemeo projeto.nexus [--levantar ROTULO --saida novo.nexus]`.
+- **Telemetria A×B**: `nexus_cli telemetria-ab --csv-a a.csv --csv-b b.csv --col-dist D --col-vel V --un-vel kmh`; delta = B − A.
+- **Suspensão→Volta**, **estados do veículo** e **perguntas ao AI Engineer** (`diagnostico --pergunta "quais estudos estão obsoletos?"`): módulos Python (`modules.suspensao_volta`, `modules.estados_veiculo`).
