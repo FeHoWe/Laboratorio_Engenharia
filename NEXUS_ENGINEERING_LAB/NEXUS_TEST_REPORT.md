@@ -1,11 +1,15 @@
 # NEXUS — Relatório de testes (V3.4, 2026-11-11)
 
+## V120.0
+Resultado da suíte completa (principal + `test_v22`): 859 passed, 4 skipped (818 principal + 41 test_v22), EXIT 0. Módulos/CLI V120 testados sem display; mouse no CAD, animação 3D e gráficos A×B na GUI NÃO feitos.
+Não testado: Windows 11, WSL2, instalador.
+
 ## V110.0
-Resultado da suíte completa (principal + `test_v22`): **841 passed, 4 skipped** (800 principal + 41 test_v22; 0 falhas; 4 skips = ferramentas externas ausentes no sandbox)
+Resultado da suíte completa (principal + `test_v22`): 841 passed, 4 skipped (V110.0 final, entrega anterior).
 Não testado: Windows 11, WSL2, instalador.
 
 ## V106.0
-Resultado da suíte completa (principal + `test_v22`): __RESULT__
+Resultado da suíte completa (principal + `test_v22`): resultado não registrado neste relatório (suíte da época foi executada; não reexecutada isoladamente).
 Não testado: Windows 11, WSL2, instalador.
 
 ## V103.0

@@ -23,6 +23,9 @@ Legenda: ✅ feito e testado · 🟡 parcial · ⬜ não feito.
 | 7 Integração | 🟡 | Resultados ligados à versão da geometria; comparação entre versões | Fluxo único na GUI (Arsenal→FEA→versão→comparar) e CFD→Veículo automático |
 | 8 Testes/empacotamento | 🟡 | Suíte + paridade JS×Python | Empacotamento Windows (instalador), teste em Windows 11 real, GPU |
 
+## Feito na V120.0
+V120.0 entregue: gêmeo digital 2.0, telemetria A×B, suspensão→volta, estados do veículo, AI Engineer 2.0. Pendente: CAD por mouse, animação 3D, gráficos A×B na GUI, favoritos/busca global, validação Windows 11.
+
 ## Feito na V110.0
 Itens não feitos da V110 listados no CHANGELOG da V110.0 (seleção por mouse, gráficos de dinâmica, animação 3D, suspensão na volta, validação Windows)
 

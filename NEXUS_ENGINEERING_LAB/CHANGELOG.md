@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## V120.0 — Gêmeo Digital 2.0, Telemetria A×B, Suspensão→Volta, estados do veículo, AI Engineer 2.0
+- Gêmeo digital persistido no .nexus (chave opcional `gemeo_digital`, formato 1 inalterado): levantamentos, estudos com assinatura, 5 estados, comparação de levantamentos, restauração de materiais; CLI `gemeo`; botões na Home.
+- `telemetria_ab`: delta A×B, setores, zonas de frenagem, aceleração lateral (simulação), consulta de ponto, CSV com mapeamento de colunas/unidades e sincronização por distância; CLI `telemetria-ab`.
+- `suspensao_volta`: geometria da suspensão → centro de rolagem → transferência lateral → aderência → tempo de volta (modelo reduzido, declarado).
+- `estados_veiculo`: séries de estado (t, x, y, ψ, v, a, vy, r, β) dos simuladores longitudinal e lateral, CSV e quadros.
+- `ai_engenheiro.responder_gemeo`: perguntas sobre estudos obsoletos/peças modificadas, cinco blocos, sem IA generativa.
+- NÃO feito (ver NEXUS_V120_AUDIT.md): seleção por mouse no CAD, barra FEA no viewport, animação 3D, gráficos A×B na GUI, favoritos/busca global, validação Windows 11.
+
 ## V110.0 — 2026-11-13 (V110 final: relatórios técnicos, auditoria de empacotamento e consolidação 101→110)
 Nada foi reconstruído; `.nexus` segue compatível (`FORMAT_VERSION` 1). Etapas: V101 (A+B), V106 (C–F), V110 (G+H); V102–V105 e V107–V109 não foram empacotadas separadamente.
 - **Fase G — `modules/relatorio_tecnico.py`, CLI `relatorio` e botão na Home:** relatório de 14 seções SEMPRE presentes (identificação, objetivo, geometria, materiais, parâmetros, contorno, método, hipóteses, resultados, gráficos, imagens 3D, limitações, critérios de validação, conclusão); o que falta diz “Não informado”; resultados agrupados por classe sem misturar; sem critério de validação documentado nenhum resultado é declarado validado; imagens/gráficos só os arquivos que você indicar. Exporta PDF, Markdown e JSON.

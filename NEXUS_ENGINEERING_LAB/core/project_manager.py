@@ -84,6 +84,8 @@ class Project:
         self.ids = IdGenerator()
         self.components = ComponentManager(engine, ids=self.ids)
         self.assembly = AssemblyManager(self.components)
+        # V120: Gêmeo digital 2.0 — registros de estudos e levantamentos versionados (chave OPCIONAL no project.json; FORMAT_VERSION continua 1)
+        self.gemeo: dict = {"estudos": [], "levantamentos": []}
 
     def set_root(self, root: Component) -> None:
         self.components.set_root(root)
@@ -142,6 +144,8 @@ class ProjectManager:
                     "history": project.history.to_list(),
                     "root": tree,
                 }
+                if project.gemeo.get("estudos") or project.gemeo.get("levantamentos"):
+                    doc["gemeo_digital"] = project.gemeo             # só quando há conteúdo: projetos sem registro continuam byte a byte como antes
                 zf.writestr("project.json", json.dumps(doc, ensure_ascii=False, indent=2))
             if backup and target.exists():                        # V4.0: nunca perde a versão anterior (mantém as 10 últimas em backups/)
                 from core.backup import backup_file
@@ -210,6 +214,9 @@ class ProjectManager:
                 project.source_files = list(doc.get("source_files", []))
                 project.history = ChangeHistory.from_list(doc.get("history", []))
                 project.scenes = SceneStore.from_list(doc.get("scenes", []))
+                g = doc.get("gemeo_digital")
+                if isinstance(g, dict) and isinstance(g.get("estudos", []), list) and isinstance(g.get("levantamentos", []), list):
+                    project.gemeo = {"estudos": list(g.get("estudos", [])), "levantamentos": list(g.get("levantamentos", []))}
                 for m in doc.get("custom_materials", []):
                     project.materials.add_custom(m["name"], m["density_g_cm3"])
                 for m in doc.get("used_db_materials", []):

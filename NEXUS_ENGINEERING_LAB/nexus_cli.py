@@ -19,6 +19,8 @@ Uso:  python nexus_cli.py <comando> [opções]      (--json imprime o resultado 
   comparar-veiculos a.json b.json [--saida r.pdf]   compara duas configurações (volta, bicicleta, lateral, freios) com as hipóteses de cada modelo
   diagnostico projeto.nexus [--estudos e.json] [--pergunta "..."]   cinco blocos: calculado, interpretação, hipótese, recomendação, indisponível (sem IA generativa)
   relatorio projeto.nexus --saida r.pdf [--estudos e.json --objetivo ... --criterio ... --imagem x.png]   relatório técnico de 14 seções (PDF/MD/JSON)
+  telemetria-ab --csv-a a.csv --csv-b b.csv --col-dist D --col-vel V [--un-dist m|km|mi] [--un-vel kmh|ms|mph] [--ds 3] [--setores 3]   compara duas telemetrias SUAS (delta B−A)
+  gemeo projeto.nexus [--levantar ROTULO --saida novo.nexus]   estado das peças e dos estudos registrados (gêmeo digital 2.0)
   receita receita.json [--pasta saida]   executa vários estudos em lote (um dossiê por passo + resumo)
   dossie criar espec.json --saida x.dossie.json | dossie verificar x.dossie.json   dossiê reprodutível (entradas+semente+versões+hash; re-executa e confere)
   dinamica-lateral --massa 800 --a 1.6 --b 1.7 --iz 900 --cf 120000 --cr 140000 [--u 20 40 60] [--delta 0.02] [--t 3]   bicicleta linear 2 GDL (Cf, Cr SEUS) ; ou --projeto arq.nexus --eixos y_d y_t
@@ -163,6 +165,15 @@ def executar(argv=None, out=None) -> int:
             s.add_argument("--k-cda-por-cla", type=float, default=None)
             s.add_argument("--iter", type=int, default=40)
     sub.add_parser("formato-telemetria")
+    ta = sub.add_parser("telemetria-ab")
+    ta.add_argument("--csv-a", required=True); ta.add_argument("--csv-b", required=True)
+    ta.add_argument("--col-dist", required=True); ta.add_argument("--col-vel", required=True)
+    ta.add_argument("--un-dist", default="m"); ta.add_argument("--un-vel", default="kmh")
+    ta.add_argument("--ds", type=float, default=3.0); ta.add_argument("--setores", type=int, default=3)
+    gm = sub.add_parser("gemeo")
+    gm.add_argument("projeto", metavar="arq.nexus")
+    gm.add_argument("--levantar", metavar="ROTULO", help="registra um levantamento das peças e grava em --saida (o original não é alterado)")
+    gm.add_argument("--saida", metavar="novo.nexus")
     rt = sub.add_parser("relatorio")
     rt.add_argument("projeto", metavar="arq.nexus")
     rt.add_argument("--saida", required=True, metavar="relatorio.{pdf,md,json}")
@@ -407,7 +418,9 @@ def executar(argv=None, out=None) -> int:
                 raise ValueError(f"estudos ilegíveis: {exc}")
             d_ = AE.diagnostico(ProjectManager(CadEngine()).open(a.projeto), est_)
             if a.pergunta:
-                r_ = AE.responder(a.pergunta, d_)
+                pr2_ = ProjectManager(CadEngine()).open(a.projeto)
+                _gq = any(k in a.pergunta.lower() for k in ("obsol", "desatualiz", "nova simula", "refazer", "mudou", "modific", "alterad", "estudos"))
+                r_ = AE.responder_gemeo(a.pergunta, pr2_) if _gq else AE.responder(a.pergunta, d_)
                 emit(r_["resposta"], r_)
             else:
                 emit(AE.texto(d_), d_)
@@ -422,6 +435,26 @@ def executar(argv=None, out=None) -> int:
             rel_ = RT.montar(ProjectManager(CadEngine()).open(a.projeto), a.objetivo, est_, a.criterio, a.imagem, None, a.contorno)
             p_ = RT.exportar(rel_, a.saida)
             emit(f"Relatório técnico gravado em {p_} ({len(RT.SECOES)} seções).", {"arquivo": str(p_), "secoes": list(RT.SECOES), "conclusao": rel_["conclusao"]})
+        elif a.cmd == "telemetria-ab":
+            from modules import telemetria_ab as TA
+            def _ler(arq, rot):
+                try:
+                    txt = open(arq, encoding="utf-8-sig").read()
+                except OSError as exc:
+                    raise ValueError(f"arquivo ilegível: {exc}")
+                return TA.sincronizar(TA.ler_csv_mapeado(txt, a.col_dist, a.col_vel, a.un_dist, a.un_vel), a.ds, rot)
+            r_ = TA.comparar(_ler(a.csv_a, "A"), _ler(a.csv_b, "B"), a.setores)
+            emit(TA.texto(r_), {k: r_[k] for k in ("classe", "tempo_A_s", "tempo_B_s", "delta_volta_s", "setores", "frenagem_A", "frenagem_B", "avisos")})
+        elif a.cmd == "gemeo":
+            from core.cad_engine import CadEngine
+            from core.project_manager import ProjectManager
+            from modules import gemeo_registro as GR
+            pm_ = ProjectManager(CadEngine()); pr_ = pm_.open(a.projeto)
+            if a.levantar is not None:
+                if not a.saida:
+                    raise ValueError("--levantar exige --saida (o arquivo original não é alterado)")
+                GR.registrar_levantamento(pr_, a.levantar); pm_.save(pr_, a.saida, backup=False)
+            emit(GR.texto(pr_), {"estudos": GR.estado_estudos(pr_), "pecas": GR.painel(pr_), "levantamentos": len(pr_.gemeo["levantamentos"])})
         elif a.cmd == "formato-telemetria":
             from modules import validacao_dados as VD
             print(VD.para_csv_exemplo(_carro(None)), file=out, end="")
